@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:zona_x_16_4/features/auth/presentation/auth_gate.dart';
 import 'package:zona_x_16_4/core/theme/app_colors.dart';
@@ -25,12 +26,19 @@ class MyApp extends StatelessWidget {
       extensions: [AppColors.dark()],
     );
 
-    return MaterialApp(
-      debugShowCheckedModeBanner: false,
-      theme: lightTheme,
-      darkTheme: darkTheme,
-      themeMode: ThemeMode.system,
-      home: AuthGate(),
+    return ScreenUtilInit(
+      designSize: const Size(375, 812),
+      minTextAdapt: true,
+      splitScreenMode: true,
+      builder: (context, child) {
+        return MaterialApp(
+          debugShowCheckedModeBanner: false,
+          theme: lightTheme,
+          darkTheme: darkTheme,
+          themeMode: ThemeMode.system,
+          home: AuthGate(),
+        );
+      },
     );
   }
 }

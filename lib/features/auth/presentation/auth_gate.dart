@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:zona_x_16_4/features/login/presentation/login_screen.dart';
 import 'package:zona_x_16_4/features/profile/presentation/profile_page.dart';
@@ -15,9 +16,21 @@ class AuthGate extends StatelessWidget {
         builder: (context, snapshot) {
           // If Loading..
           if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Scaffold(
-              body:
-              Center(child: CircularProgressIndicator()),
+            return Scaffold(
+              body: Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Image.asset(
+                      'assets/images/ZonaX_Dversion.png',
+                      height: 120.h,
+                      width: 120.w,
+                    ),
+                    SizedBox(height: 20.h),
+                    const CircularProgressIndicator(),
+                  ],
+                ),
+              ),
             );
           }
           // check if there is a valid session currently
