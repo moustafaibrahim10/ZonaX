@@ -1,3 +1,12 @@
+import java.util.Properties
+import java.io.File
+
+val env = Properties()
+val envFile = File(rootProject.projectDir, "../.env")
+if (envFile.exists()) {
+    envFile.inputStream().use { env.load(it) }
+}
+rootProject.extensions.extraProperties.set("env", env)
 allprojects {
     repositories {
         google()
@@ -22,3 +31,4 @@ subprojects {
 tasks.register<Delete>("clean") {
     delete(rootProject.layout.buildDirectory)
 }
+
