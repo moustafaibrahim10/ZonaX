@@ -6,7 +6,6 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:mapbox_maps_flutter/mapbox_maps_flutter.dart' hide Size;
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:zona_x_16_4/features/map/data/datasources/hive_local_data_source.dart';
-import 'package:zona_x_16_4/features/map/presentation/screens/heatmap_screen.dart';
 import 'package:zona_x_16_4/features/home/presentation/screens/main_screen.dart';
 import 'package:zona_x_16_4/features/map/presentation/cubit/map_cubit.dart';
 import 'package:zona_x_16_4/features/map/data/repositories/map_repository_impl.dart';
