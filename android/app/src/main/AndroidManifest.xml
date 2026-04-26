@@ -3,6 +3,9 @@
         android:label="zona_x"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
+        <meta-data
+    android:name="com.mapbox.token"
+    android:value="${mapboxToken}" />
         <activity
             android:name=".MainActivity"
             android:exported="true"

@@ -8,14 +8,18 @@ class ZoneModel extends ZoneEntity {
   
   const ZoneModel({
     required String id,
-    @JsonKey(name: 'latitude') required double lat,    // بنقوله خد latitude من الـ JSON وحطها في lat
-    @JsonKey(name: 'longitude') required double lng,   // بنقوله خد longitude من الـ JSON وحطها في lng
-    @JsonKey(name: 'intensity') required int demandLevel, // بنقوله خد intensity من الـ JSON وحطها في demandLevel
+    @JsonKey(name: 'latitude') required double lat,
+    @JsonKey(name: 'longitude') required double lng,
+    @JsonKey(name: 'demand_level') required int demandLevel,
+    @JsonKey(name: 'is_high_profit') required bool isHighProfit,
+    @JsonKey(name: 'forecast_msg') required String forecastMsg,
   }) : super(
           id: id,
           lat: lat,
           lng: lng,
           demandLevel: demandLevel,
+          isHighProfit: isHighProfit,
+          forecastMsg: forecastMsg,
         );
 
   factory ZoneModel.fromJson(Map<String, dynamic> json) => _$ZoneModelFromJson(json);

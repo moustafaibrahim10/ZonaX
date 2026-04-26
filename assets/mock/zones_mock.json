@@ -5,19 +5,25 @@
       "id": "zone_001",
       "latitude": 30.145,
       "longitude": 31.635,
-      "intensity": 9
+      "demand_level": 9,
+      "is_high_profit": true,
+      "forecast_msg": "Demand will peak in 15 mins"
     },
     {
       "id": "zone_002",
       "latitude": 30.150,
       "longitude": 31.640,
-      "intensity": 5
+      "demand_level": 5,
+      "is_high_profit": false,
+      "forecast_msg": "Steady demand"
     },
     {
       "id": "zone_003",
       "latitude": 30.138,
       "longitude": 31.625,
-      "intensity": 3
+      "demand_level": 3,
+      "is_high_profit": false,
+      "forecast_msg": "Low demand expected"
     }
   ]
 }

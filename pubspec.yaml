@@ -44,6 +44,11 @@ dependencies:
   retrofit: ^4.9.2
   json_annotation: ^4.11.0
   flutter_screenutil: ^5.9.0
+  mapbox_maps_flutter: ^2.22.0
+  flutter_dotenv: ^6.0.1
+  hive: ^2.2.3
+  hive_flutter: ^1.1.0
+  path_provider: ^2.1.5
 
 
 dev_dependencies:
@@ -76,6 +81,7 @@ flutter:
     - assets/images/
     - assets/icons/
     - assets/mock/zones_mock.json
+    - .env
 
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/to/resolution-aware-images
