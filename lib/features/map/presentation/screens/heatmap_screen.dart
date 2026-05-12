@@ -4,8 +4,6 @@ import 'package:mapbox_maps_flutter/mapbox_maps_flutter.dart';
 import 'package:zona_x_16_4/features/map/domain/entities/zone_entity.dart';
 import 'package:zona_x_16_4/features/map/presentation/cubit/map_cubit.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'dart:ui' as ui;
-import 'package:flutter/services.dart';
 
 class HeatmapScreen extends StatefulWidget {
   const HeatmapScreen({super.key});
@@ -38,9 +36,10 @@ class _HeatmapScreenState extends State<HeatmapScreen> {
               },
               onStyleLoadedListener: (styleLoadedEvent) async {
                 isStyleLoaded = true;
+                final mapCubit = context.read<MapCubit>();
                 await _initAnnotationManagers();
                 if (mounted) {
-                  context.read<MapCubit>().getZones();
+                  mapCubit.getZones();
                   // Draw car initially at starting point without moving
                   _updateCarPosition(30.14488, 31.63581);
                 }
@@ -105,7 +104,7 @@ class _HeatmapScreenState extends State<HeatmapScreen> {
     return Container(
       padding: EdgeInsets.symmetric(horizontal: 15.w, vertical: 12.h),
       decoration: BoxDecoration(
-        color: const Color(0xFF1E1E2A).withOpacity(0.95),
+        color: const Color(0xFF1E1E2A).withValues(alpha: 0.95),
         borderRadius: BorderRadius.circular(15.r),
         border: Border.all(color: Colors.white10),
       ),
@@ -158,7 +157,7 @@ class _HeatmapScreenState extends State<HeatmapScreen> {
       width: 60.w,
       padding: EdgeInsets.symmetric(vertical: 10.h),
       decoration: BoxDecoration(
-        color: const Color(0xFF1E1E2A).withOpacity(0.9),
+        color: const Color(0xFF1E1E2A).withValues(alpha: 0.9),
         borderRadius: BorderRadius.circular(12.r),
         border: Border.all(color: Colors.white10),
       ),
@@ -187,7 +186,7 @@ class _HeatmapScreenState extends State<HeatmapScreen> {
       child: Container(
         padding: EdgeInsets.all(15.w),
         decoration: BoxDecoration(
-          color: const Color(0xFF191B28).withOpacity(0.95),
+          color: const Color(0xFF191B28).withValues(alpha: 0.95),
           borderRadius: BorderRadius.circular(20.r),
           border: Border.all(color: Colors.white12),
           boxShadow: [
@@ -262,11 +261,11 @@ class _HeatmapScreenState extends State<HeatmapScreen> {
 
       int fillColor;
       if (zone.demandLevel > 7) {
-        fillColor = Colors.red.value;
+        fillColor = Colors.red.toARGB32();
       } else if (zone.demandLevel > 4) {
-        fillColor = Colors.orangeAccent.value;
+        fillColor = Colors.orangeAccent.toARGB32();
       } else {
-        fillColor = Colors.green.withOpacity(0.5).value;
+        fillColor = Colors.green.withValues(alpha: 0.5).toARGB32();
       }
 
       // 1. Draw glowing polygon
@@ -285,7 +284,7 @@ class _HeatmapScreenState extends State<HeatmapScreen> {
           geometry: Point(coordinates: Position(zone.lng, zone.lat)),
           textField: "💲",
           textSize: 22.0,
-          textHaloColor: Colors.black87.value,
+          textHaloColor: Colors.black87.toARGB32(),
           textHaloWidth: 1.0,
         ),
       );
@@ -300,8 +299,8 @@ class _HeatmapScreenState extends State<HeatmapScreen> {
         CircleAnnotationOptions(
           geometry: Point(coordinates: position),
           circleRadius: 10.0,
-          circleColor: Colors.blueAccent.value,
-          circleStrokeColor: Colors.white.value,
+          circleColor: Colors.blueAccent.toARGB32(),
+          circleStrokeColor: Colors.white.toARGB32(),
           circleStrokeWidth: 2.0,
         ),
       );

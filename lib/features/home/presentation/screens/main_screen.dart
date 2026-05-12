@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:zona_x_16_4/features/analytics/presentation/screens/analytics_screen.dart';
 import 'package:zona_x_16_4/features/map/presentation/screens/heatmap_screen.dart';
+import 'package:zona_x_16_4/features/earnings/presentation/screens/earnings_screen.dart';
 
 class MainScreen extends StatefulWidget {
   const MainScreen({super.key});
@@ -14,8 +16,9 @@ class _MainScreenState extends State<MainScreen> {
 
   final List<Widget> _screens = [
     const HeatmapScreen(),
-    const DemandScreen(),
+    const AnalyticsScreen(), // Second page as requested
     const EarningsScreen(),
+    const LeaderboardScreen(),
     const ProfileScreen(),
   ];
 
@@ -35,11 +38,11 @@ class _MainScreenState extends State<MainScreen> {
         child: BottomNavigationBar(
           backgroundColor: const Color(0xFF0F111A),
           type: BottomNavigationBarType.fixed,
-          selectedItemColor: Colors.blueAccent,
+          selectedItemColor: const Color(0xFF00D293), // Teal/Green accent from image
           unselectedItemColor: Colors.grey[600],
           showUnselectedLabels: true,
-          selectedFontSize: 12.sp,
-          unselectedFontSize: 12.sp,
+          selectedFontSize: 11.sp,
+          unselectedFontSize: 11.sp,
           currentIndex: _currentIndex,
           onTap: (index) {
             setState(() {
@@ -47,9 +50,10 @@ class _MainScreenState extends State<MainScreen> {
             });
           },
           items: const [
-            BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Home'),
-            BottomNavigationBarItem(icon: Icon(Icons.show_chart), label: 'Demand'),
-            BottomNavigationBarItem(icon: Icon(Icons.attach_money), label: 'Earnings'),
+            BottomNavigationBarItem(icon: Icon(Icons.map_outlined), label: 'Map'),
+            BottomNavigationBarItem(icon: Icon(Icons.analytics_outlined), label: 'Analytics'),
+            BottomNavigationBarItem(icon: Icon(Icons.attach_money_rounded), label: 'Earnings'),
+            BottomNavigationBarItem(icon: Icon(Icons.emoji_events_outlined), label: 'Leaderboard'),
             BottomNavigationBarItem(icon: Icon(Icons.person_outline), label: 'Profile'),
           ],
         ),
@@ -60,8 +64,8 @@ class _MainScreenState extends State<MainScreen> {
 
 // --- Static Dummy Screens ---
 
-class DemandScreen extends StatelessWidget {
-  const DemandScreen({super.key});
+class LeaderboardScreen extends StatelessWidget {
+  const LeaderboardScreen({super.key});
   @override
   Widget build(BuildContext context) {
     return const Scaffold(
@@ -70,29 +74,9 @@ class DemandScreen extends StatelessWidget {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.show_chart, color: Colors.blueAccent, size: 80),
+            Icon(Icons.emoji_events_outlined, color: Colors.amber, size: 80),
             SizedBox(height: 20),
-            Text("Demand Forecast\n(Coming Soon)", textAlign: TextAlign.center, style: TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold)),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class EarningsScreen extends StatelessWidget {
-  const EarningsScreen({super.key});
-  @override
-  Widget build(BuildContext context) {
-    return const Scaffold(
-      backgroundColor: Color(0xFF0F111A),
-      body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(Icons.attach_money, color: Colors.green, size: 80),
-            SizedBox(height: 20),
-            Text("Earnings Tracker\n(Coming Soon)", textAlign: TextAlign.center, style: TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold)),
+            Text("Leaderboard\n(Coming Soon)", textAlign: TextAlign.center, style: TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold)),
           ],
         ),
       ),

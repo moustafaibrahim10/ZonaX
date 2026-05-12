@@ -195,7 +195,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                     style: ElevatedButton.styleFrom(
                       backgroundColor: appColors.accent,
                       disabledBackgroundColor:
-                          appColors.accent.withOpacity(0.6),
+                          appColors.accent.withValues(alpha: 0.6),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(12),
                       ),
@@ -254,10 +254,10 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                 Container(
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
-                    color: appColors.accent.withOpacity(0.1),
+                    color: appColors.accent.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(12),
                     border: Border.all(
-                      color: appColors.accent.withOpacity(0.3),
+                      color: appColors.accent.withValues(alpha: 0.3),
                       width: 1,
                     ),
                   ),

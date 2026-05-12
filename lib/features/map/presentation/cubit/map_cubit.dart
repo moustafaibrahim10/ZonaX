@@ -1,5 +1,5 @@
 import 'dart:async';
-import 'dart:math';
+import 'package:flutter/foundation.dart';
 
 import 'package:equatable/equatable.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -40,10 +40,10 @@ class MapCubit extends Cubit<MapState> {
     if (isConnected) {
       // Connection Restored -> Sync data
       final unsynced = await localDataSource.getUnsyncedLogs();
-      print("Syncing ${unsynced.length} offline logs to server...");
+      debugPrint("Syncing ${unsynced.length} offline logs to server...");
       await localDataSource.markLogsAsSynced();
     } else {
-      print("Connection Lost! Entering Offline Edge Mode.");
+      debugPrint("Connection Lost! Entering Offline Edge Mode.");
     }
   }
 

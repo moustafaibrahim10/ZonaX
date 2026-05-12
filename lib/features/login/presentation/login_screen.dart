@@ -105,7 +105,7 @@ class _HeroImage extends StatelessWidget {
                   end: Alignment.bottomCenter,
                   colors: [
                     Colors.transparent,
-                    appColors.background.withOpacity(0.85),
+                    appColors.background.withValues(alpha: 0.85),
                     appColors.background,
                   ],
                   stops: const [0.5, 0.85, 1.0],

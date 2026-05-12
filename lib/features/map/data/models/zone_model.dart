@@ -7,20 +7,13 @@ part 'zone_model.g.dart';
 class ZoneModel extends ZoneEntity {
   
   const ZoneModel({
-    required String id,
-    @JsonKey(name: 'latitude') required double lat,
-    @JsonKey(name: 'longitude') required double lng,
-    @JsonKey(name: 'demand_level') required int demandLevel,
-    @JsonKey(name: 'is_high_profit') required bool isHighProfit,
-    @JsonKey(name: 'forecast_msg') required String forecastMsg,
-  }) : super(
-          id: id,
-          lat: lat,
-          lng: lng,
-          demandLevel: demandLevel,
-          isHighProfit: isHighProfit,
-          forecastMsg: forecastMsg,
-        );
+    required super.id,
+    @JsonKey(name: 'latitude') required super.lat,
+    @JsonKey(name: 'longitude') required super.lng,
+    @JsonKey(name: 'demand_level') required super.demandLevel,
+    @JsonKey(name: 'is_high_profit') required super.isHighProfit,
+    @JsonKey(name: 'forecast_msg') required super.forecastMsg,
+  });
 
   factory ZoneModel.fromJson(Map<String, dynamic> json) => _$ZoneModelFromJson(json);
 
