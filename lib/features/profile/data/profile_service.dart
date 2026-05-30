@@ -10,6 +10,12 @@ class ProfileService {
       final user = _supabaseClient.auth.currentUser;
       if (user == null) return null;
 
+      // TODO: Replace with actual API calls when backend is ready
+      // For now, return dummy data for testing
+      return _getDummyProfile(user.email ?? 'user@example.com');
+      
+      // Uncomment below when backend tables are ready:
+      /*
       // Fetch profile data from profiles table
       final profileResponse = await _supabaseClient
           .from('profiles')
@@ -38,10 +44,44 @@ class ProfileService {
       };
 
       return ProfileModel.fromJson(profileMap);
+      */
     } catch (e) {
       print('Error fetching profile: $e');
-      return null;
+      // Return dummy data on error
+      return _getDummyProfile('user@example.com');
     }
+  }
+
+  // Dummy profile data for testing
+  ProfileModel _getDummyProfile(String email) {
+    return ProfileModel(
+      id: 'dummy-id-123',
+      name: 'Ahmed Hassan',
+      email: email,
+      rating: 4.8,
+      rank: 5,
+      vehicleModel: 'Toyota Camry 2023',
+      vehiclePlate: 'ABC 1234',
+      earnedThisMonth: 14500,
+      tripsThisMonth: 324,
+      onlineHoursThisMonth: 186,
+      achievements: [
+        Achievement(
+          id: '1',
+          title: 'Rising Star',
+          description: 'Earnings increased by 20% this week',
+          icon: 'star',
+          unlockedAt: DateTime.now().subtract(const Duration(days: 7)),
+        ),
+        Achievement(
+          id: '2',
+          title: '5-Star Service',
+          description: 'Maintained 4.8+ rating for 30 days',
+          icon: 'grade',
+          unlockedAt: DateTime.now().subtract(const Duration(days: 30)),
+        ),
+      ],
+    );
   }
 
   // Update profile information
