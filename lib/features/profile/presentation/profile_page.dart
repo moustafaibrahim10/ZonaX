@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
+
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:zona_x_16_4/features/auth/data/auth_service.dart';
 import 'package:zona_x_16_4/core/theme/app_colors.dart';
-
 
 class ProfilePage extends StatefulWidget {
   const ProfilePage({super.key});
@@ -11,112 +12,583 @@ class ProfilePage extends StatefulWidget {
 }
 
 class _ProfilePageState extends State<ProfilePage> {
-
   final authService = AuthService();
-  
+  final profileService = ProfileService();
+  int _selectedIndex = 4; // Profile tab is selected
+  ProfileModel? _profileData;
+  bool _isLoading = true;
+  String? _errorMessage;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadProfileData();
+  }
+
+  Future<void> _loadProfileData() async {
+    try {
+      final profile = await profileService.getUserProfile();
+      setState(() {
+        _profileData = profile;
+        _isLoading = false;
+        if (profile == null) {
+          _errorMessage = 'Failed to load profile data';
+        }
+      });
+    } catch (e) {
+      setState(() {
+        _errorMessage = 'Error loading profile: ${e.toString()}';
+        _isLoading = false;
+      });
+    }
+  }
+
   void logout() async {
     await authService.signOut();
+  }
+
+  void _navigateToSettings() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => const SettingsPage()),
+    );
+  }
+
+  void _navigateToExportReports() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => const ExportReportsPage()),
+    );
+  }
+
+  void _navigateToSupportFAQ() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => const SupportFAQPage()),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
     final appColors = Theme.of(context).extension<AppColors>()!;
 
-    // get user email
-    final currentEmail = authService.getCurrentUserEmail();
-    return Scaffold(
-      backgroundColor: appColors.background,
-      appBar: AppBar(
+    if (_isLoading) {
+      return Scaffold(
         backgroundColor: appColors.background,
-        elevation: 0,
-        title: Text(
-          "Profile",
-          style: TextStyle(color: appColors.textPrimary),
-        ),
-        actions: [
-          //Log out button
-          IconButton(
-            onPressed: logout,
-            icon: Icon(
-              Icons.logout,
-              color: appColors.accent,
-            ),
+        body: Center(
+          child: CircularProgressIndicator(
+            color: appColors.accent,
           ),
-        ],
-      ),
-      body: Center(
-        child: Padding(
-          padding: const EdgeInsets.all(24.0),
+        ),
+      );
+    }
+
+    if (_errorMessage != null && _profileData == null) {
+      return Scaffold(
+        backgroundColor: appColors.background,
+        body: Center(
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(
-                Icons.account_circle_rounded,
-                size: 80,
-                color: appColors.accent,
-              ),
-              const SizedBox(height: 20),
+              Icon(Icons.error_outline, size: 48.sp, color: appColors.accent),
+              SizedBox(height: 16.h),
               Text(
-                "Welcome to ZonaX",
-                style: TextStyle(
-                  fontSize: 24,
-                  fontWeight: FontWeight.bold,
-                  color: appColors.textPrimary,
-                ),
+                _errorMessage!,
+                textAlign: TextAlign.center,
+                style: TextStyle(fontSize: 14.sp, color: appColors.textPrimary),
               ),
-              const SizedBox(height: 12),
-              Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: appColors.inputBackground,
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: appColors.inputBorder),
-                ),
-                child: Column(
-                  children: [
-                    Text(
-                      "Logged in as:",
-                      style: TextStyle(
-                        color: appColors.textSecondary,
-                        fontSize: 12,
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      currentEmail ?? 'No user',
-                      style: TextStyle(
-                        color: appColors.textPrimary,
-                        fontSize: 16,
-                        fontWeight: FontWeight.w600,
-                      ),
-                      textAlign: TextAlign.center,
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 32),
-              SizedBox(
-                width: 200,
-                height: 50,
-                child: ElevatedButton.icon(
-                  onPressed: logout,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.red,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                  ),
-                  icon: const Icon(Icons.logout),
-                  label: const Text(
-                    "Logout",
-                    style: TextStyle(fontWeight: FontWeight.bold),
-                  ),
-                ),
+              SizedBox(height: 16.h),
+              ElevatedButton(
+                onPressed: _loadProfileData,
+                child: const Text('Retry'),
               ),
             ],
           ),
         ),
+      );
+    }
+
+    final profile = _profileData;
+    if (profile == null) {
+      return Scaffold(
+        backgroundColor: appColors.background,
+        body: Center(
+          child: Text(
+            'No profile data available',
+            style: TextStyle(color: appColors.textPrimary),
+          ),
+        ),
+      );
+    }
+
+    return Scaffold(
+      backgroundColor: appColors.background,
+      body: SingleChildScrollView(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Header with "Profile" title
+            Padding(
+              padding: EdgeInsets.only(left: 20.w, top: 16.h, bottom: 24.h),
+              child: Text(
+                'Profile',
+                style: TextStyle(
+                  fontSize: 24.sp,
+                  fontWeight: FontWeight.bold,
+                  color: appColors.textPrimary,
+                ),
+              ),
+            ),
+
+            // User Profile Section
+            Padding(
+              padding: EdgeInsets.symmetric(horizontal: 20.w),
+              child: Column(
+                children: [
+                  // User Avatar and Info
+                  Row(
+                    children: [
+                      Container(
+                        width: 70.w,
+                        height: 70.w,
+                        decoration: BoxDecoration(
+                          color: appColors.accent.withOpacity(0.2),
+                          shape: BoxShape.circle,
+                        ),
+                        child: Icon(
+                          Icons.person,
+                          size: 40.sp,
+                          color: appColors.accent,
+                        ),
+                      ),
+                      SizedBox(width: 16.w),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              profile.name,
+                              style: TextStyle(
+                                fontSize: 20.sp,
+                                fontWeight: FontWeight.bold,
+                                color: appColors.textPrimary,
+                              ),
+                            ),
+                            SizedBox(height: 4.h),
+                            Text(
+                              profile.email,
+                              style: TextStyle(
+                                fontSize: 12.sp,
+                                color: appColors.textSecondary,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                  SizedBox(height: 16.h),
+
+                  // Rating and Rank
+                  Row(
+                    children: [
+                      Icon(Icons.star, color: appColors.accent, size: 18.sp),
+                      SizedBox(width: 6.w),
+                      Text(
+                        profile.rating.toStringAsFixed(1),
+                        style: TextStyle(
+                          fontSize: 14.sp,
+                          fontWeight: FontWeight.bold,
+                          color: appColors.textPrimary,
+                        ),
+                      ),
+                      SizedBox(width: 24.w),
+                      Text(
+                        'Rank #${profile.rank}',
+                        style: TextStyle(
+                          fontSize: 14.sp,
+                          fontWeight: FontWeight.bold,
+                          color: appColors.textPrimary,
+                        ),
+                      ),
+                    ],
+                  ),
+                  SizedBox(height: 16.h),
+
+                  // Vehicle Info
+                  Container(
+                    padding: EdgeInsets.all(12.w),
+                    decoration: BoxDecoration(
+                      color: appColors.surface,
+                      borderRadius: BorderRadius.circular(12.r),
+                      border: Border.all(color: appColors.inputBorder),
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(Icons.directions_car, color: appColors.accent, size: 24.sp),
+                        SizedBox(width: 12.w),
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              profile.vehicleModel,
+                              style: TextStyle(
+                                fontSize: 14.sp,
+                                fontWeight: FontWeight.bold,
+                                color: appColors.textPrimary,
+                              ),
+                            ),
+                            Text(
+                              profile.vehiclePlate,
+                              style: TextStyle(
+                                fontSize: 12.sp,
+                                color: appColors.textSecondary,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+
+            SizedBox(height: 32.h),
+
+            // This Month Section
+            Padding(
+              padding: EdgeInsets.only(left: 20.w, bottom: 12.h),
+              child: Text(
+                'This Month',
+                style: TextStyle(
+                  fontSize: 18.sp,
+                  fontWeight: FontWeight.bold,
+                  color: appColors.textPrimary,
+                ),
+              ),
+            ),
+            Padding(
+              padding: EdgeInsets.symmetric(horizontal: 20.w),
+              child: GridView.count(
+                crossAxisCount: 3,
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                mainAxisSpacing: 12.h,
+                crossAxisSpacing: 12.w,
+                childAspectRatio: 1,
+                children: [
+                  _buildStatCard(
+                    appColors,
+                    Icons.monetization_on,
+                    '\$${(profile.earnedThisMonth / 1000).toStringAsFixed(1)}K',
+                    'Earned',
+                  ),
+                  _buildStatCard(
+                    appColors,
+                    Icons.trending_up,
+                    '${profile.tripsThisMonth}',
+                    'Trips',
+                  ),
+                  _buildStatCard(
+                    appColors,
+                    Icons.schedule,
+                    '${profile.onlineHoursThisMonth}h',
+                    'Online',
+                  ),
+                ],
+              ),
+            ),
+
+            SizedBox(height: 32.h),
+
+            // Recent Achievements
+            if (profile.achievements.isNotEmpty) ...[
+              Padding(
+                padding: EdgeInsets.only(left: 20.w, bottom: 12.h),
+                child: Text(
+                  'Recent Achievements',
+                  style: TextStyle(
+                    fontSize: 18.sp,
+                    fontWeight: FontWeight.bold,
+                    color: appColors.textPrimary,
+                  ),
+                ),
+              ),
+              Padding(
+                padding: EdgeInsets.symmetric(horizontal: 20.w),
+                child: Column(
+                  children: profile.achievements.take(2).map((achievement) {
+                    return Column(
+                      children: [
+                        _buildAchievementCard(
+                          appColors,
+                          Icons.star_outline,
+                          achievement.title,
+                          achievement.description,
+                        ),
+                        SizedBox(height: 12.h),
+                      ],
+                    );
+                  }).toList(),
+                ),
+              ),
+            ],
+
+            SizedBox(height: 32.h),
+
+            // More Section
+            Padding(
+              padding: EdgeInsets.only(left: 20.w, bottom: 12.h),
+              child: Text(
+                'More',
+                style: TextStyle(
+                  fontSize: 18.sp,
+                  fontWeight: FontWeight.bold,
+                  color: appColors.textPrimary,
+                ),
+              ),
+            ),
+            Padding(
+              padding: EdgeInsets.symmetric(horizontal: 20.w),
+              child: Column(
+                children: [
+                  _buildMenuItemWithNavigation(
+                    appColors,
+                    Icons.settings,
+                    'Settings',
+                    _navigateToSettings,
+                  ),
+                  SizedBox(height: 12.h),
+                  _buildMenuItemWithNavigation(
+                    appColors,
+                    Icons.download,
+                    'Export Reports',
+                    _navigateToExportReports,
+                  ),
+                  SizedBox(height: 12.h),
+                  _buildMenuItemWithNavigation(
+                    appColors,
+                    Icons.help_outline,
+                    'Support & FAQ',
+                    _navigateToSupportFAQ,
+                  ),
+                  SizedBox(height: 12.h),
+                  _buildMenuItem(appColors, Icons.play_circle_outline, 'Tutorial Videos'),
+                ],
+              ),
+            ),
+
+            SizedBox(height: 20.h),
+
+            // Logout Button
+            Padding(
+              padding: EdgeInsets.symmetric(horizontal: 20.w),
+              child: Container(
+                width: double.infinity,
+                decoration: BoxDecoration(
+                  border: Border(
+                    top: BorderSide(color: appColors.inputBorder),
+                  ),
+                ),
+                child: Padding(
+                  padding: EdgeInsets.symmetric(vertical: 16.h),
+                  child: InkWell(
+                    onTap: logout,
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(Icons.logout, color: Colors.red, size: 20.sp),
+                        SizedBox(width: 8.w),
+                        Text(
+                          'Logout',
+                          style: TextStyle(
+                            fontSize: 16.sp,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.red,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ),
+
+            SizedBox(height: 80.h), // Space for bottom nav
+          ],
+        ),
+      ),
+
+      // Bottom Navigation
+      bottomNavigationBar: BottomNavigationBar(
+        backgroundColor: appColors.surface,
+        selectedItemColor: appColors.accent,
+        unselectedItemColor: appColors.textSecondary,
+        currentIndex: _selectedIndex,
+        type: BottomNavigationBarType.fixed,
+        items: const [
+          BottomNavigationBarItem(icon: Icon(Icons.map), label: 'Map'),
+          BottomNavigationBarItem(icon: Icon(Icons.monetization_on), label: 'Earnings'),
+          BottomNavigationBarItem(icon: Icon(Icons.bar_chart), label: 'Analytics'),
+          BottomNavigationBarItem(icon: Icon(Icons.trending_up), label: 'Leaderboard'),
+          BottomNavigationBarItem(icon: Icon(Icons.person), label: 'Profile'),
+        ],
       ),
     );
   }
-}
+
+  Widget _buildStatCard(AppColors appColors, IconData icon, String value, String label) {
+    return Container(
+      decoration: BoxDecoration(
+        color: appColors.surface,
+        borderRadius: BorderRadius.circular(12.r),
+        border: Border.all(color: appColors.inputBorder),
+      ),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(icon, color: appColors.accent, size: 24.sp),
+          SizedBox(height: 8.h),
+          Text(
+            value,
+            style: TextStyle(
+              fontSize: 16.sp,
+              fontWeight: FontWeight.bold,
+              color: appColors.textPrimary,
+            ),
+          ),
+          SizedBox(height: 4.h),
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: 11.sp,
+              color: appColors.textSecondary,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildAchievementCard(
+    AppColors appColors,
+    IconData icon,
+    String title,
+    String description,
+  ) {
+    return Container(
+      padding: EdgeInsets.all(16.w),
+      decoration: BoxDecoration(
+        color: appColors.surface,
+        borderRadius: BorderRadius.circular(12.r),
+        border: Border.all(color: appColors.inputBorder),
+      ),
+      child: Row(
+        children: [
+          Container(
+            padding: EdgeInsets.all(8.w),
+            decoration: BoxDecoration(
+              color: appColors.accent.withOpacity(0.2),
+              borderRadius: BorderRadius.circular(8.r),
+            ),
+            child: Icon(icon, color: appColors.accent, size: 20.sp),
+          ),
+          SizedBox(width: 12.w),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: TextStyle(
+                    fontSize: 14.sp,
+                    fontWeight: FontWeight.bold,
+                    color: appColors.textPrimary,
+                  ),
+                ),
+                SizedBox(height: 4.h),
+                Text(
+                  description,
+                  style: TextStyle(
+                    fontSize: 12.sp,
+                    color: appColors.textSecondary,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildMenuItem(AppColors appColors, IconData icon, String label) {
+    return Container(
+      padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 14.h),
+      decoration: BoxDecoration(
+        color: appColors.surface,
+        borderRadius: BorderRadius.circular(12.r),
+        border: Border.all(color: appColors.inputBorder),
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Row(
+            children: [
+              Icon(icon, color: appColors.accent, size: 20.sp),
+              SizedBox(width: 12.w),
+              Text(
+                label,
+                style: TextStyle(
+                  fontSize: 14.sp,
+                  fontWeight: FontWeight.w500,
+                  color: appColors.textPrimary,
+                ),
+              ),
+            ],
+          ),
+          Icon(Icons.arrow_forward_ios, size: 16.sp, color: appColors.textSecondary),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildMenuItemWithNavigation(
+    AppColors appColors,
+    IconData icon,
+    String label,
+    VoidCallback onTap,
+  ) {
+    return InkWell(
+      onTap: onTap,
+      child: Container(
+        padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 14.h),
+        decoration: BoxDecoration(
+          color: appColors.surface,
+          borderRadius: BorderRadius.circular(12.r),
+          border: Border.all(color: appColors.inputBorder),
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Row(
+              children: [
+                Icon(icon, color: appColors.accent, size: 20.sp),
+                SizedBox(width: 12.w),
+                Text(
+                  label,
+                  style: TextStyle(
+                    fontSize: 14.sp,
+                    fontWeight: FontWeight.w500,
+                    color: appColors.textPrimary,
+                  ),
+                ),
+              ],
+            ),
+            Icon(Icons.arrow_forward_ios, size: 16.sp, color: appColors.textSecondary),
+          ],
+        ),
+      ),
+    );
+  }
