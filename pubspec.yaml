@@ -19,7 +19,7 @@ publish_to: 'none' # Remove this line if you wish to publish to pub.dev
 version: 1.0.0+1
 
 environment:
-  sdk: ^3.11.4
+  sdk: '>=3.11.1 <4.0.0'
 
 # Dependencies specify other packages that your package needs in order to work.
 # To automatically upgrade your package dependencies to the latest versions
@@ -40,6 +40,10 @@ dependencies:
   flutter_native_splash: ^2.4.7
   supabase_flutter: ^2.12.2
   flutter_svg: ^2.2.4
+  dio: ^5.9.2
+  retrofit: ^4.9.2
+  json_annotation: ^4.11.0
+  flutter_screenutil: ^5.9.0
 
 
 dev_dependencies:
@@ -52,6 +56,9 @@ dev_dependencies:
   # package. See that file for information about deactivating specific lint
   # rules and activating additional ones.
   flutter_lints: ^6.0.0
+  build_runner: ^2.4.13
+  retrofit_generator: ^10.2.5
+  json_serializable: ^6.9.0
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec
@@ -68,6 +75,7 @@ flutter:
   assets:
     - assets/images/
     - assets/icons/
+    - assets/mock/zones_mock.json
 
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/to/resolution-aware-images

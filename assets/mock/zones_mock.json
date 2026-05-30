@@ -1,0 +1,23 @@
+{
+  "status": "success",
+  "data": [
+    {
+      "id": "zone_001",
+      "latitude": 30.145,
+      "longitude": 31.635,
+      "intensity": 9
+    },
+    {
+      "id": "zone_002",
+      "latitude": 30.150,
+      "longitude": 31.640,
+      "intensity": 5
+    },
+    {
+      "id": "zone_003",
+      "latitude": 30.138,
+      "longitude": 31.625,
+      "intensity": 3
+    }
+  ]
+}
