@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:zona_x_16_4/features/auth/data/auth_service.dart';
 import 'package:zona_x_16_4/core/theme/app_colors.dart';
-import 'package:zona_x_16_4/features/profile/data/profile_service.dart';
 import 'package:zona_x_16_4/features/profile/domain/models/profile_model.dart';
 import 'package:zona_x_16_4/features/profile/presentation/settings_page.dart';
 import 'package:zona_x_16_4/features/profile/presentation/export_reports_page.dart';
@@ -17,34 +16,41 @@ class ProfilePage extends StatefulWidget {
 
 class _ProfilePageState extends State<ProfilePage> {
   final authService = AuthService();
-  final profileService = ProfileService();
+  late ProfileModel _profileData;
   int _selectedIndex = 4; // Profile tab is selected
-  ProfileModel? _profileData;
-  bool _isLoading = true;
-  String? _errorMessage;
 
   @override
   void initState() {
     super.initState();
-    _loadProfileData();
-  }
-
-  Future<void> _loadProfileData() async {
-    try {
-      final profile = await profileService.getUserProfile();
-      setState(() {
-        _profileData = profile;
-        _isLoading = false;
-        if (profile == null) {
-          _errorMessage = 'Failed to load profile data';
-        }
-      });
-    } catch (e) {
-      setState(() {
-        _errorMessage = 'Error loading profile: ${e.toString()}';
-        _isLoading = false;
-      });
-    }
+    // Initialize with dummy data
+    _profileData = ProfileModel(
+      id: 'dummy-id-123',
+      name: 'Ahmed Hassan',
+      email: authService.getCurrentUserEmail() ?? 'user@example.com',
+      rating: 4.8,
+      rank: 5,
+      vehicleModel: 'Toyota Camry 2023',
+      vehiclePlate: 'ABC 1234',
+      earnedThisMonth: 14500,
+      tripsThisMonth: 324,
+      onlineHoursThisMonth: 186,
+      achievements: [
+        Achievement(
+          id: '1',
+          title: 'Rising Star',
+          description: 'Earnings increased by 20% this week',
+          icon: 'star',
+          unlockedAt: DateTime.now().subtract(const Duration(days: 7)),
+        ),
+        Achievement(
+          id: '2',
+          title: '5-Star Service',
+          description: 'Maintained 4.8+ rating for 30 days',
+          icon: 'grade',
+          unlockedAt: DateTime.now().subtract(const Duration(days: 30)),
+        ),
+      ],
+    );
   }
 
   void logout() async {
@@ -75,55 +81,7 @@ class _ProfilePageState extends State<ProfilePage> {
   @override
   Widget build(BuildContext context) {
     final appColors = Theme.of(context).extension<AppColors>()!;
-
-    if (_isLoading) {
-      return Scaffold(
-        backgroundColor: appColors.background,
-        body: Center(
-          child: CircularProgressIndicator(
-            color: appColors.accent,
-          ),
-        ),
-      );
-    }
-
-    if (_errorMessage != null && _profileData == null) {
-      return Scaffold(
-        backgroundColor: appColors.background,
-        body: Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(Icons.error_outline, size: 48.sp, color: appColors.accent),
-              SizedBox(height: 16.h),
-              Text(
-                _errorMessage!,
-                textAlign: TextAlign.center,
-                style: TextStyle(fontSize: 14.sp, color: appColors.textPrimary),
-              ),
-              SizedBox(height: 16.h),
-              ElevatedButton(
-                onPressed: _loadProfileData,
-                child: const Text('Retry'),
-              ),
-            ],
-          ),
-        ),
-      );
-    }
-
     final profile = _profileData;
-    if (profile == null) {
-      return Scaffold(
-        backgroundColor: appColors.background,
-        body: Center(
-          child: Text(
-            'No profile data available',
-            style: TextStyle(color: appColors.textPrimary),
-          ),
-        ),
-      );
-    }
 
     return Scaffold(
       backgroundColor: appColors.background,
