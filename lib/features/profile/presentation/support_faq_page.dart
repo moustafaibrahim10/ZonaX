@@ -12,45 +12,23 @@ class SupportFAQPage extends StatefulWidget {
 class _SupportFAQPageState extends State<SupportFAQPage> {
   int selectedFAQIndex = -1;
 
+  // TODO: Replace with API call to fetch FAQs from backend
   final List<Map<String, String>> faqs = [
     {
       'question': 'How do I update my payment method?',
-      'answer':
-          'Go to Settings > Payment Methods to add, update, or remove your payment methods. We support credit cards, debit cards, and digital wallets.',
+      'answer': 'Go to Settings > Payment Methods to add or update your payment methods.',
     },
     {
       'question': 'What fees does ZonaX charge?',
-      'answer':
-          'ZonaX takes a 15% commission from your earnings. We also charge a small transaction fee for certain payment methods. You can see the exact breakdown in your earnings section.',
+      'answer': 'ZonaX takes a 15% commission from your earnings.',
     },
     {
-      'question': 'How long does it take to withdraw my earnings?',
-      'answer':
-          'Withdrawals typically take 2-3 business days to appear in your bank account. Weekend and holiday withdrawals may take longer.',
+      'question': 'How long does withdrawal take?',
+      'answer': 'Withdrawals typically take 2-3 business days to appear in your account.',
     },
     {
       'question': 'How is my rating calculated?',
-      'answer':
-          'Your rating is based on passenger feedback, punctuality, vehicle cleanliness, and safety records. Ratings are updated in real-time after each trip.',
-    },
-    {
-      'question': 'Can I cancel a trip after accepting it?',
-      'answer':
-          'You can cancel within 2 minutes of accepting a trip without any penalty. Cancellations after 2 minutes may result in a small fee.',
-    },
-    {
-      'question': 'How do I report an issue with a trip?',
-      'answer':
-          'After completing a trip, you can report any issues through the trip details page. Our support team will investigate and respond within 24 hours.',
-    },
-    {
-      'question': 'Is my personal information secure?',
-      'answer':
-          'Yes, we use industry-standard encryption and security measures to protect your data. Your information is never shared with third parties.',
-    },
-    {
-      'question': 'How do I contact customer support?',
-      'answer': 'You can reach our support team via email (support@zonax.com), phone (+1-800-ZONAX-HELP), or in-app chat. We\'re available 24/7.',
+      'answer': 'Your rating is based on passenger feedback, punctuality, and vehicle cleanliness.',
     },
   ];
 
@@ -87,7 +65,7 @@ class _SupportFAQPageState extends State<SupportFAQPage> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    'Need Immediate Help?',
+                    'Contact Us',
                     style: TextStyle(
                       fontSize: 18.sp,
                       fontWeight: FontWeight.bold,
@@ -95,65 +73,16 @@ class _SupportFAQPageState extends State<SupportFAQPage> {
                     ),
                   ),
                   SizedBox(height: 12.h),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: _buildContactButton(
-                          appColors,
-                          Icons.phone,
-                          'Call Us',
-                          'appColors.accent',
-                        ),
-                      ),
-                      SizedBox(width: 12.w),
-                      Expanded(
-                        child: _buildContactButton(
-                          appColors,
-                          Icons.chat,
-                          'Chat Now',
-                          'appColors.accent',
-                        ),
-                      ),
-                    ],
-                  ),
-                  SizedBox(height: 12.h),
-                  _buildContactButton(
-                    appColors,
-                    Icons.email,
-                    'Email Support (support@zonax.com)',
-                    'appColors.accent',
-                  ),
+                  _buildContactTile(appColors, Icons.email, 'Email', 'support@zonax.com'),
+                  SizedBox(height: 8.h),
+                  _buildContactTile(appColors, Icons.phone, 'Phone', '+1-800-ZONAX'),
+                  SizedBox(height: 8.h),
+                  _buildContactTile(appColors, Icons.chat, 'Live Chat', 'Available 24/7'),
                 ],
               ),
             ),
 
-            // FAQ Search Section
-            Padding(
-              padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 10.h),
-              child: TextField(
-                decoration: InputDecoration(
-                  hintText: 'Search FAQ...',
-                  hintStyle: TextStyle(color: appColors.textSecondary),
-                  prefixIcon: Icon(Icons.search, color: appColors.textSecondary),
-                  filled: true,
-                  fillColor: appColors.surface,
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12.r),
-                    borderSide: BorderSide(color: appColors.inputBorder),
-                  ),
-                  enabledBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12.r),
-                    borderSide: BorderSide(color: appColors.inputBorder),
-                  ),
-                  focusedBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12.r),
-                    borderSide: BorderSide(color: appColors.accent),
-                  ),
-                ),
-              ),
-            ),
-
-            // FAQ List
+            // FAQ Section
             Padding(
               padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 10.h),
               child: Text(
@@ -177,48 +106,6 @@ class _SupportFAQPageState extends State<SupportFAQPage> {
               ),
             ),
 
-            // Help Center Link
-            Padding(
-              padding: EdgeInsets.all(20.w),
-              child: Container(
-                padding: EdgeInsets.all(16.w),
-                decoration: BoxDecoration(
-                  color: appColors.accent.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(12.r),
-                  border: Border.all(color: appColors.accent.withOpacity(0.3)),
-                ),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'Visit Our Help Center',
-                            style: TextStyle(
-                              fontSize: 14.sp,
-                              fontWeight: FontWeight.bold,
-                              color: appColors.textPrimary,
-                            ),
-                          ),
-                          SizedBox(height: 4.h),
-                          Text(
-                            'Browse articles and guides',
-                            style: TextStyle(
-                              fontSize: 12.sp,
-                              color: appColors.textSecondary,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    Icon(Icons.arrow_forward_ios, size: 16.sp, color: appColors.accent),
-                  ],
-                ),
-              ),
-            ),
-
             SizedBox(height: 20.h),
           ],
         ),
@@ -226,43 +113,45 @@ class _SupportFAQPageState extends State<SupportFAQPage> {
     );
   }
 
-  Widget _buildContactButton(
+  Widget _buildContactTile(
     AppColors appColors,
     IconData icon,
-    String label,
-    String colorRef,
+    String title,
+    String subtitle,
   ) {
-    return InkWell(
-      onTap: () {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('$label - Feature coming soon!'),
-            duration: const Duration(seconds: 2),
-          ),
-        );
-      },
-      child: Container(
-        padding: EdgeInsets.symmetric(vertical: 12.h),
-        decoration: BoxDecoration(
-          color: appColors.accent.withOpacity(0.1),
-          borderRadius: BorderRadius.circular(12.r),
-          border: Border.all(color: appColors.accent.withOpacity(0.3)),
-        ),
-        child: Column(
-          children: [
-            Icon(icon, color: appColors.accent, size: 20.sp),
-            SizedBox(height: 6.h),
-            Text(
-              label,
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                fontSize: 12.sp,
-                fontWeight: FontWeight.w600,
-                color: appColors.accent,
+    return Container(
+      padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 12.h),
+      decoration: BoxDecoration(
+        color: appColors.surface,
+        borderRadius: BorderRadius.circular(12.r),
+        border: Border.all(color: appColors.inputBorder),
+      ),
+      child: Row(
+        children: [
+          Icon(icon, color: appColors.accent, size: 20.sp),
+          SizedBox(width: 12.w),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                title,
+                style: TextStyle(
+                  fontSize: 13.sp,
+                  fontWeight: FontWeight.w600,
+                  color: appColors.textPrimary,
+                ),
               ),
-            ),
-          ],
-        ),
+              SizedBox(height: 2.h),
+              Text(
+                subtitle,
+                style: TextStyle(
+                  fontSize: 11.sp,
+                  color: appColors.textSecondary,
+                ),
+              ),
+            ],
+          ),
+        ],
       ),
     );
   }
