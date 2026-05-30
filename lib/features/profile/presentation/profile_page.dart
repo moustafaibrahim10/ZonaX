@@ -1,8 +1,12 @@
 import 'package:flutter/material.dart';
-
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:zona_x_16_4/features/auth/data/auth_service.dart';
 import 'package:zona_x_16_4/core/theme/app_colors.dart';
+import 'package:zona_x_16_4/features/profile/data/profile_service.dart';
+import 'package:zona_x_16_4/features/profile/domain/models/profile_model.dart';
+import 'package:zona_x_16_4/features/profile/presentation/settings_page.dart';
+import 'package:zona_x_16_4/features/profile/presentation/export_reports_page.dart';
+import 'package:zona_x_16_4/features/profile/presentation/support_faq_page.dart';
 
 class ProfilePage extends StatefulWidget {
   const ProfilePage({super.key});
@@ -586,9 +590,10 @@ class _ProfilePageState extends State<ProfilePage> {
                 ),
               ],
             ),
-            Icon(Icons.arrow_forward_ios, size: 16.sp, color: appColors.textSecondary),
-          ],
-        ),
-      ),
-    );
-  }
+             Icon(Icons.arrow_forward_ios, size: 16.sp, color: appColors.textSecondary),
+           ],
+         ),
+       ),
+     );
+   }
+}
