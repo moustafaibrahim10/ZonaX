@@ -79,14 +79,7 @@ class _ProfilePageState extends State<ProfilePage> {
 
   @override
   Widget build(BuildContext context) {
-    final appColors = Theme.of(context).extension<AppColors>()!.copyWith(
-      background: const Color(0xFF0F111A),
-      surface: const Color(0xFF1E1E2A),
-      inputBorder: Colors.white10,
-      accent: const Color(0xFF00D293),
-      textPrimary: Colors.white,
-      textSecondary: Colors.grey,
-    );
+    final appColors = Theme.of(context).extension<AppColors>()!;
     final profile = _profileData;
 
     return Scaffold(
@@ -116,13 +109,13 @@ class _ProfilePageState extends State<ProfilePage> {
                   // User Avatar and Info
                   Row(
                     children: [
-                      Container(
-                        width: 70.w,
-                        height: 70.w,
-                        decoration: BoxDecoration(
-                          color: appColors.accent.withOpacity(0.2),
-                          shape: BoxShape.circle,
-                        ),
+                       Container(
+                         width: 70.w,
+                         height: 70.w,
+                         decoration: BoxDecoration(
+                           color: appColors.accent.withValues(alpha: 0.2),
+                           shape: BoxShape.circle,
+                         ),
                         child: Icon(
                           Icons.person,
                           size: 40.sp,
@@ -439,12 +432,12 @@ class _ProfilePageState extends State<ProfilePage> {
       ),
       child: Row(
         children: [
-          Container(
-            padding: EdgeInsets.all(8.w),
-            decoration: BoxDecoration(
-              color: appColors.accent.withOpacity(0.2),
-              borderRadius: BorderRadius.circular(8.r),
-            ),
+            Container(
+              padding: EdgeInsets.all(8.w),
+              decoration: BoxDecoration(
+                color: appColors.accent.withValues(alpha: 0.2),
+                borderRadius: BorderRadius.circular(8.r),
+              ),
             child: Icon(icon, color: appColors.accent, size: 20.sp),
           ),
           SizedBox(width: 12.w),
