@@ -4,6 +4,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:zona_x_16_4/core/theme/app_colors.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'dart:io' show Platform;
+import 'package:zona_x_16_4/features/auth/presentation/auth_gate.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -37,7 +38,6 @@ void main() async {
   runApp(const MyApp());
 }
 
-import 'package:zona_x_16_4/features/auth/presentation/auth_gate.dart';
 
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
