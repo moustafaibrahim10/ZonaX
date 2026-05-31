@@ -16,14 +16,7 @@ class _ExportReportsPageState extends State<ExportReportsPage> {
 
   @override
   Widget build(BuildContext context) {
-    final appColors = Theme.of(context).extension<AppColors>()!.copyWith(
-      background: const Color(0xFF0F111A),
-      surface: const Color(0xFF1E1E2A),
-      inputBorder: Colors.white10,
-      accent: const Color(0xFF00D293),
-      textPrimary: Colors.white,
-      textSecondary: Colors.grey,
-    );
+    final appColors = Theme.of(context).extension<AppColors>()!;
 
     return Scaffold(
       backgroundColor: appColors.background,
@@ -351,12 +344,12 @@ class _ExportReportsPageState extends State<ExportReportsPage> {
           Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Container(
-                padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 4.h),
-                decoration: BoxDecoration(
-                  color: appColors.accent.withOpacity(0.2),
-                  borderRadius: BorderRadius.circular(6.r),
-                ),
+                Container(
+                  padding: EdgeInsets.all(8.w),
+                  decoration: BoxDecoration(
+                    color: appColors.accent.withValues(alpha: 0.2),
+                    borderRadius: BorderRadius.circular(8.r),
+                  ),
                 child: Text(
                   format,
                   style: TextStyle(

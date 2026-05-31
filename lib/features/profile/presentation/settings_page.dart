@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:provider/provider.dart';
 import 'package:zona_x_16_4/core/theme/app_colors.dart';
+import 'package:zona_x_16_4/core/theme/theme_provider.dart';
 
 class SettingsPage extends StatefulWidget {
   const SettingsPage({super.key});
@@ -11,175 +13,171 @@ class SettingsPage extends StatefulWidget {
 
 class _SettingsPageState extends State<SettingsPage> {
   bool notificationsEnabled = true;
-  bool darkModeEnabled = false;
   bool locationEnabled = true;
   bool dataAnalyticsEnabled = true;
 
   @override
   Widget build(BuildContext context) {
-    final appColors = Theme.of(context).extension<AppColors>()!.copyWith(
-      background: const Color(0xFF0F111A),
-      surface: const Color(0xFF1E1E2A),
-      inputBorder: Colors.white10,
-      accent: const Color(0xFF00D293),
-      textPrimary: Colors.white,
-      textSecondary: Colors.grey,
-    );
+    final appColors = Theme.of(context).extension<AppColors>()!;
 
-    return Scaffold(
-      backgroundColor: appColors.background,
-      appBar: AppBar(
-        backgroundColor: appColors.surface,
-        elevation: 0,
-        leading: IconButton(
-          icon: Icon(Icons.arrow_back, color: appColors.textPrimary),
-          onPressed: () => Navigator.pop(context),
-        ),
-        title: Text(
-          'Settings',
-          style: TextStyle(
-            fontSize: 20.sp,
-            fontWeight: FontWeight.bold,
-            color: appColors.textPrimary,
+    return Consumer<ThemeProvider>(
+      builder: (context, themeProvider, _) {
+        return Scaffold(
+          backgroundColor: appColors.background,
+          appBar: AppBar(
+            backgroundColor: appColors.surface,
+            elevation: 0,
+            leading: IconButton(
+              icon: Icon(Icons.arrow_back, color: appColors.textPrimary),
+              onPressed: () => Navigator.pop(context),
+            ),
+            title: Text(
+              'Settings',
+              style: TextStyle(
+                fontSize: 20.sp,
+                fontWeight: FontWeight.bold,
+                color: appColors.textPrimary,
+              ),
+            ),
           ),
-        ),
-      ),
-      body: SingleChildScrollView(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Account Section
-            Padding(
-              padding: EdgeInsets.only(left: 20.w, top: 24.h, bottom: 12.h),
-              child: Text(
-                'Account',
-                style: TextStyle(
-                  fontSize: 18.sp,
-                  fontWeight: FontWeight.bold,
-                  color: appColors.textPrimary,
+          body: SingleChildScrollView(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Account Section
+                Padding(
+                  padding: EdgeInsets.only(left: 20.w, top: 24.h, bottom: 12.h),
+                  child: Text(
+                    'Account',
+                    style: TextStyle(
+                      fontSize: 18.sp,
+                      fontWeight: FontWeight.bold,
+                      color: appColors.textPrimary,
+                    ),
+                  ),
                 ),
-              ),
-            ),
-            _buildSettingsTile(
-              appColors,
-              Icons.edit,
-              'Edit Profile',
-              'Update your personal information',
-            ),
-            _buildSettingsTile(
-              appColors,
-              Icons.credit_card,
-              'Payment Methods',
-              'Manage your payment methods',
-            ),
-            _buildSettingsTile(
-              appColors,
-              Icons.lock,
-              'Change Password',
-              'Update your password',
-            ),
-
-            // Preferences Section
-            Padding(
-              padding: EdgeInsets.only(left: 20.w, top: 24.h, bottom: 12.h),
-              child: Text(
-                'Preferences',
-                style: TextStyle(
-                  fontSize: 18.sp,
-                  fontWeight: FontWeight.bold,
-                  color: appColors.textPrimary,
+                _buildSettingsTile(
+                  appColors,
+                  Icons.edit,
+                  'Edit Profile',
+                  'Update your personal information',
                 ),
-              ),
-            ),
-            _buildToggleSetting(
-              appColors,
-              Icons.notifications,
-              'Push Notifications',
-              'Receive notifications about trips and earnings',
-              notificationsEnabled,
-              (value) {
-                setState(() => notificationsEnabled = value);
-              },
-            ),
-            _buildToggleSetting(
-              appColors,
-              Icons.location_on,
-              'Location Services',
-              'Allow access to your location',
-              locationEnabled,
-              (value) {
-                setState(() => locationEnabled = value);
-              },
-            ),
-            _buildToggleSetting(
-              appColors,
-              Icons.bar_chart,
-              'Data Analytics',
-              'Help us improve with anonymous data',
-              dataAnalyticsEnabled,
-              (value) {
-                setState(() => dataAnalyticsEnabled = value);
-              },
-            ),
-
-            // Appearance Section
-            Padding(
-              padding: EdgeInsets.only(left: 20.w, top: 24.h, bottom: 12.h),
-              child: Text(
-                'Appearance',
-                style: TextStyle(
-                  fontSize: 18.sp,
-                  fontWeight: FontWeight.bold,
-                  color: appColors.textPrimary,
+                _buildSettingsTile(
+                  appColors,
+                  Icons.credit_card,
+                  'Payment Methods',
+                  'Manage your payment methods',
                 ),
-              ),
-            ),
-            _buildToggleSetting(
-              appColors,
-              Icons.dark_mode,
-              'Dark Mode',
-              'Enable dark theme',
-              darkModeEnabled,
-              (value) {
-                setState(() => darkModeEnabled = value);
-              },
-            ),
-
-            // About Section
-            Padding(
-              padding: EdgeInsets.only(left: 20.w, top: 24.h, bottom: 12.h),
-              child: Text(
-                'About',
-                style: TextStyle(
-                  fontSize: 18.sp,
-                  fontWeight: FontWeight.bold,
-                  color: appColors.textPrimary,
+                _buildSettingsTile(
+                  appColors,
+                  Icons.lock,
+                  'Change Password',
+                  'Update your password',
                 ),
-              ),
-            ),
-            _buildSettingsTile(
-              appColors,
-              Icons.info,
-              'About ZonaX',
-              'Version 1.0.0',
-            ),
-            _buildSettingsTile(
-              appColors,
-              Icons.description,
-              'Terms & Conditions',
-              'Read our terms of service',
-            ),
-            _buildSettingsTile(
-              appColors,
-              Icons.privacy_tip,
-              'Privacy Policy',
-              'Review our privacy policy',
-            ),
 
-            SizedBox(height: 80.h),
-          ],
-        ),
-      ),
+                // Preferences Section
+                Padding(
+                  padding: EdgeInsets.only(left: 20.w, top: 24.h, bottom: 12.h),
+                  child: Text(
+                    'Preferences',
+                    style: TextStyle(
+                      fontSize: 18.sp,
+                      fontWeight: FontWeight.bold,
+                      color: appColors.textPrimary,
+                    ),
+                  ),
+                ),
+                _buildToggleSetting(
+                  appColors,
+                  Icons.notifications,
+                  'Push Notifications',
+                  'Receive notifications about trips and earnings',
+                  notificationsEnabled,
+                  (value) {
+                    setState(() => notificationsEnabled = value);
+                  },
+                ),
+                _buildToggleSetting(
+                  appColors,
+                  Icons.location_on,
+                  'Location Services',
+                  'Allow access to your location',
+                  locationEnabled,
+                  (value) {
+                    setState(() => locationEnabled = value);
+                  },
+                ),
+                _buildToggleSetting(
+                  appColors,
+                  Icons.bar_chart,
+                  'Data Analytics',
+                  'Help us improve with anonymous data',
+                  dataAnalyticsEnabled,
+                  (value) {
+                    setState(() => dataAnalyticsEnabled = value);
+                  },
+                ),
+
+                // Appearance Section
+                Padding(
+                  padding: EdgeInsets.only(left: 20.w, top: 24.h, bottom: 12.h),
+                  child: Text(
+                    'Appearance',
+                    style: TextStyle(
+                      fontSize: 18.sp,
+                      fontWeight: FontWeight.bold,
+                      color: appColors.textPrimary,
+                    ),
+                  ),
+                ),
+                _buildToggleSetting(
+                  appColors,
+                  Icons.dark_mode,
+                  'Dark Mode',
+                  'Enable dark theme',
+                  themeProvider.isDarkMode,
+                  (value) {
+                    themeProvider.setDarkMode(value);
+                  },
+                ),
+
+                // About Section
+                Padding(
+                  padding: EdgeInsets.only(left: 20.w, top: 24.h, bottom: 12.h),
+                  child: Text(
+                    'About',
+                    style: TextStyle(
+                      fontSize: 18.sp,
+                      fontWeight: FontWeight.bold,
+                      color: appColors.textPrimary,
+                    ),
+                  ),
+                ),
+                _buildSettingsTile(
+                  appColors,
+                  Icons.info,
+                  'About ZonaX',
+                  'Version 1.0.0',
+                ),
+                _buildSettingsTile(
+                  appColors,
+                  Icons.description,
+                  'Terms & Conditions',
+                  'Read our terms of service',
+                ),
+                _buildSettingsTile(
+                  appColors,
+                  Icons.privacy_tip,
+                  'Privacy Policy',
+                  'Review our privacy policy',
+                ),
+
+                SizedBox(height: 80.h),
+              ],
+            ),
+          ),
+        );
+      },
     );
   }
 
@@ -300,7 +298,7 @@ class _SettingsPageState extends State<SettingsPage> {
           Switch(
             value: value,
             onChanged: onChanged,
-            activeColor: appColors.accent,
+            activeThumbColor: appColors.accent,
           ),
         ],
       ),
