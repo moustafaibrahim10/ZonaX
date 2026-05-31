@@ -6,19 +6,32 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:mapbox_maps_flutter/mapbox_maps_flutter.dart' hide Size;
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:zona_x_16_4/features/map/data/datasources/hive_local_data_source.dart';
-import 'package:zona_x_16_4/features/home/presentation/screens/main_screen.dart';
+import 'package:zona_x_16_4/features/auth/presentation/auth_gate.dart';
 import 'package:zona_x_16_4/features/map/presentation/cubit/map_cubit.dart';
 import 'package:zona_x_16_4/features/map/data/repositories/map_repository_impl.dart';
 import 'package:zona_x_16_4/features/map/data/datasources/map_mock_data_source.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await dotenv.load(fileName: ".env");
-  MapboxOptions.setAccessToken(dotenv.env['MAPBOX_ACCESS_TOKEN'] ?? '');
-  
+
+  // Load environment variables
+  try {
+    await dotenv.load(fileName: ".env");
+  } catch (e) {
+    print('Warning: .env file not loaded: $e');
+  }
+
+  // Initialize Mapbox with access token
+  final mapboxToken = dotenv.env['MAPBOX_ACCESS_TOKEN'] ?? '';
+  if (mapboxToken.isNotEmpty) {
+    MapboxOptions.setAccessToken(mapboxToken);
+  }
+
+  // Initialize Supabase
   await Supabase.initialize(
       url: "https://xoiqadbokgbrnwgthzfl.supabase.co",
       anonKey: "sb_publishable_wsTLf4VUTJtr66kGcvUUaw_dM0V-Pvr");
+
   runApp(const MyApp());
 }
 
@@ -53,7 +66,7 @@ class MyApp extends StatelessWidget {
               MapRepositoryImpl(MapMockDataSourceImpl()),
               HiveLocalDataSourceImpl(),
             ),
-            child: const MainScreen(),
+            child: const AuthGate(),
           ),
         );
       },
