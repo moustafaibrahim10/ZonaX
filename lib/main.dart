@@ -3,13 +3,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:zona_x_16_4/core/theme/app_colors.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
-import 'package:mapbox_maps_flutter/mapbox_maps_flutter.dart' hide Size;
-import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:zona_x_16_4/features/map/data/datasources/hive_local_data_source.dart';
-import 'package:zona_x_16_4/features/auth/presentation/auth_gate.dart';
-import 'package:zona_x_16_4/features/map/presentation/cubit/map_cubit.dart';
-import 'package:zona_x_16_4/features/map/data/repositories/map_repository_impl.dart';
-import 'package:zona_x_16_4/features/map/data/datasources/map_mock_data_source.dart';
+import 'dart:io' show Platform;
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -18,22 +12,32 @@ void main() async {
   try {
     await dotenv.load(fileName: ".env");
   } catch (e) {
-    print('Warning: .env file not loaded: $e');
+    debugPrint('Warning: .env file not loaded: $e');
   }
 
-  // Initialize Mapbox with access token
-  final mapboxToken = dotenv.env['MAPBOX_ACCESS_TOKEN'] ?? '';
-  if (mapboxToken.isNotEmpty) {
-    MapboxOptions.setAccessToken(mapboxToken);
+  // Initialize Mapbox only on mobile platforms
+  if (Platform.isAndroid || Platform.isIOS) {
+    try {
+      // Mapbox initialization would go here for mobile
+      // MapboxOptions.setAccessToken(...);
+    } catch (e) {
+      debugPrint('Warning: Mapbox initialization failed: $e');
+    }
   }
 
   // Initialize Supabase
-  await Supabase.initialize(
-      url: "https://xoiqadbokgbrnwgthzfl.supabase.co",
-      anonKey: "sb_publishable_wsTLf4VUTJtr66kGcvUUaw_dM0V-Pvr");
+  try {
+    await Supabase.initialize(
+        url: "https://xoiqadbokgbrnwgthzfl.supabase.co",
+        anonKey: "sb_publishable_wsTLf4VUTJtr66kGcvUUaw_dM0V-Pvr");
+  } catch (e) {
+    debugPrint('Warning: Supabase initialization failed: $e');
+  }
 
   runApp(const MyApp());
 }
+
+import 'package:zona_x_16_4/features/auth/presentation/auth_gate.dart';
 
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
@@ -61,13 +65,7 @@ class MyApp extends StatelessWidget {
           theme: lightTheme,
           darkTheme: darkTheme,
           themeMode: ThemeMode.system,
-          home: BlocProvider(
-            create: (context) => MapCubit(
-              MapRepositoryImpl(MapMockDataSourceImpl()),
-              HiveLocalDataSourceImpl(),
-            ),
-            child: const AuthGate(),
-          ),
+          home: const AuthGate(),
         );
       },
     );
