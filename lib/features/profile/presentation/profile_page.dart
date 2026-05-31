@@ -17,7 +17,6 @@ class ProfilePage extends StatefulWidget {
 class _ProfilePageState extends State<ProfilePage> {
   final authService = AuthService();
   late ProfileModel _profileData;
-  int _selectedIndex = 4; // Profile tab is selected
 
   @override
   void initState() {
@@ -80,7 +79,14 @@ class _ProfilePageState extends State<ProfilePage> {
 
   @override
   Widget build(BuildContext context) {
-    final appColors = Theme.of(context).extension<AppColors>()!;
+    final appColors = Theme.of(context).extension<AppColors>()!.copyWith(
+      background: const Color(0xFF0F111A),
+      surface: const Color(0xFF1E1E2A),
+      inputBorder: Colors.white10,
+      accent: const Color(0xFF00D293),
+      textPrimary: Colors.white,
+      textSecondary: Colors.grey,
+    );
     final profile = _profileData;
 
     return Scaffold(
@@ -382,21 +388,6 @@ class _ProfilePageState extends State<ProfilePage> {
         ),
       ),
 
-      // Bottom Navigation
-      bottomNavigationBar: BottomNavigationBar(
-        backgroundColor: appColors.surface,
-        selectedItemColor: appColors.accent,
-        unselectedItemColor: appColors.textSecondary,
-        currentIndex: _selectedIndex,
-        type: BottomNavigationBarType.fixed,
-        items: const [
-          BottomNavigationBarItem(icon: Icon(Icons.map), label: 'Map'),
-          BottomNavigationBarItem(icon: Icon(Icons.monetization_on), label: 'Earnings'),
-          BottomNavigationBarItem(icon: Icon(Icons.bar_chart), label: 'Analytics'),
-          BottomNavigationBarItem(icon: Icon(Icons.trending_up), label: 'Leaderboard'),
-          BottomNavigationBarItem(icon: Icon(Icons.person), label: 'Profile'),
-        ],
-      ),
     );
   }
 

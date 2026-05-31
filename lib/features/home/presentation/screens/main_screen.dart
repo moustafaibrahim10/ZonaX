@@ -3,6 +3,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:zona_x_16_4/features/analytics/presentation/screens/analytics_screen.dart';
 import 'package:zona_x_16_4/features/map/presentation/screens/heatmap_screen.dart';
 import 'package:zona_x_16_4/features/earnings/presentation/screens/earnings_screen.dart';
+import 'package:zona_x_16_4/features/profile/presentation/profile_page.dart';
 
 class MainScreen extends StatefulWidget {
   const MainScreen({super.key});
@@ -19,7 +20,7 @@ class _MainScreenState extends State<MainScreen> {
     const AnalyticsScreen(), // Second page as requested
     const EarningsScreen(),
     const LeaderboardScreen(),
-    const ProfileScreen(),
+    const ProfilePage(),
   ];
 
   @override
@@ -84,22 +85,3 @@ class LeaderboardScreen extends StatelessWidget {
   }
 }
 
-class ProfileScreen extends StatelessWidget {
-  const ProfileScreen({super.key});
-  @override
-  Widget build(BuildContext context) {
-    return const Scaffold(
-      backgroundColor: Color(0xFF0F111A),
-      body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(Icons.person_outline, color: Colors.purpleAccent, size: 80),
-            SizedBox(height: 20),
-            Text("Driver Profile\n(Coming Soon)", textAlign: TextAlign.center, style: TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold)),
-          ],
-        ),
-      ),
-    );
-  }
-}
