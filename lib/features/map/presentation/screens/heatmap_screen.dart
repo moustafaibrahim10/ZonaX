@@ -31,10 +31,10 @@ class _HeatmapScreenState extends State<HeatmapScreen> {
       body: SafeArea(
         child: Stack(
           children: [
-            // 1. Mapbox Layer (Dark Mode)
+            // 1. Mapbox Layer (Traffic Dark Mode)
             MapWidget(
               key: const ValueKey("mapWidget"),
-              styleUri: MapboxStyles.DARK, // Dark Theme
+              styleUri: 'mapbox://styles/mapbox/traffic-night-v2', // Live Traffic Dark Theme
               onMapCreated: (map) async {
                 mapboxMap = map;
               },
