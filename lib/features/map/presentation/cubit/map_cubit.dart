@@ -83,11 +83,13 @@ class MapCubit extends Cubit<MapState> {
     int index = 0;
     _simulationTimer?.cancel();
     // Speed up: Update every 1 second
-    _simulationTimer = Timer.periodic(const Duration(seconds: 1), (timer) async {
+    _simulationTimer = Timer.periodic(const Duration(seconds: 1), (
+      timer,
+    ) async {
       if (index < route.length) {
         final currentLat = route[index]['lat']!;
         final currentLng = route[index]['lng']!;
-        
+
         final location = DriverLocationEntity(
           lat: currentLat,
           lng: currentLng,
@@ -97,19 +99,17 @@ class MapCubit extends Cubit<MapState> {
 
         if (!isConnected) {
           // Store locally via Hive
-          await localDataSource.saveTripLog(TripLogModel(
-            lat: location.lat,
-            lng: location.lng,
-            timestamp: location.timestamp,
-          ));
+          await localDataSource.saveTripLog(
+            TripLogModel(
+              lat: location.lat,
+              lng: location.lng,
+              timestamp: location.timestamp,
+            ),
+          );
         }
 
-        emit(MapCarMoving(
-          lat: location.lat,
-          lng: location.lng,
-          bearing: 45.0,
-        ));
-        
+        emit(MapCarMoving(lat: location.lat, lng: location.lng, bearing: 45.0));
+
         index++;
       } else {
         stopCarSimulation();

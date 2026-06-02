@@ -1,8 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:zona_x_16_4/features/auth/presentation/register_screen.dart';
-import 'package:zona_x_16_4/core/theme/app_colors.dart';
+import 'package:dio/dio.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:hive_flutter/hive_flutter.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 
+import '../../../core/theme/app_colors.dart';
+import '../../../core/utils/app_images.dart';
+import '../../auth/data/datasources/local/auth_local_data_source.dart';
+import '../../auth/data/repositories/auth_repository_impl.dart';
+import '../../auth/data/datasources/remote/auth_api_service.dart';
+import '../../auth/presentation/register_screen.dart';
+import '../../home/presentation/screens/main_screen.dart';
 import 'blocs/login_bloc.dart';
 import 'forgot_password_screen.dart';
 
@@ -19,7 +28,24 @@ class LoginScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return BlocProvider(
-      create: (_) => LoginBloc(),
+      create: (context) {
+        final dio = Dio();
+        dio.interceptors.add(LogInterceptor(
+          requestHeader: true,
+          requestBody: true,
+          responseBody: true,
+          responseHeader: false,
+          error: true,
+          logPrint: (object) => debugPrint('🌐 API LOG: $object'),
+        ));
+        final apiService = AuthApiService(dio);
+        final localDataSource = AuthLocalDataSourceImpl(
+          const FlutterSecureStorage(),
+          Hive.box('app_box'),
+        );
+        final authRepo = AuthRepositoryImpl(apiService, localDataSource);
+        return LoginBloc(authRepo);
+      },
       child: const _LoginView(),
     );
   }
@@ -36,20 +62,18 @@ class _LoginView extends StatelessWidget {
   Widget build(BuildContext context) {
     return BlocListener<LoginBloc, LoginState>(
       listenWhen: (previous, current) {
-        // Only show snackbar when transitioning TO failure state
-        // AND when there's an error message (to avoid showing empty snackbars)
-        return current.status == LoginStatus.failure && 
-               previous.status != LoginStatus.failure &&
-               current.errorMessage != null;
+        return (current.status == LoginStatus.failure && current.errorMessage != null) ||
+               (current.status == LoginStatus.success);
       },
       listener: _handleStateChanges,
       child: Scaffold(
         backgroundColor: Theme.of(context).extension<AppColors>()!.background,
-        body: SafeArea(
+        body: const SafeArea(
+          top: false, // Because hero image goes to the top edge
           child: SingleChildScrollView(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: const [
+              children: [
                 _HeroImage(),
                 _LoginFormSection(),
               ],
@@ -60,21 +84,56 @@ class _LoginView extends StatelessWidget {
     );
   }
 
-  /// Reacts to side-effect states such as navigation or showing a snackbar.
-  ///
-  /// Should handle [LoginStatus.success] by navigating to the home screen,
-  /// and [LoginStatus.failure] by showing an error snackbar.
   void _handleStateChanges(BuildContext context, LoginState state) {
+    final appColors = Theme.of(context).extension<AppColors>()!;
     if (state.status == LoginStatus.failure && state.errorMessage != null) {
+      _showErrorDialog(context, state.errorMessage!, appColors);
+    } else if (state.status == LoginStatus.success) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(state.errorMessage!),
-          backgroundColor: Colors.red,
-          duration: const Duration(seconds: 3),
+          content: const Text('Signed in successfully!'),
+          backgroundColor: appColors.accent,
+          behavior: SnackBarBehavior.floating,
         ),
       );
+      Navigator.of(context).pushReplacement(
+        MaterialPageRoute(builder: (context) => const MainScreen()),
+      );
     }
-    // Success is handled by AuthGate listening to Supabase auth state
+  }
+
+  void _showErrorDialog(BuildContext context, String message, AppColors colors) {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) {
+        return AlertDialog(
+          backgroundColor: const Color(0xFF1E1E2C), // Premium Dark
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+            side: const BorderSide(color: Colors.redAccent, width: 1.5),
+          ),
+          title: const Row(
+            children: [
+              Icon(Icons.error_outline_rounded, color: Colors.redAccent, size: 28),
+              SizedBox(width: 12),
+              Text("Error", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+            ],
+          ),
+          content: Text(
+            message,
+            style: const TextStyle(color: Colors.white70, fontSize: 15, height: 1.5),
+            textAlign: TextAlign.left,
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text("Dismiss", style: TextStyle(color: Colors.redAccent, fontSize: 16, fontWeight: FontWeight.bold)),
+            ),
+          ],
+        );
+      },
+    );
   }
 }
 
@@ -82,9 +141,6 @@ class _LoginView extends StatelessWidget {
 // Hero / banner image at the top
 // ---------------------------------------------------------------------------
 
-/// Displays the full-width hero photograph at the top of the screen.
-///
-/// The image fades into the dark background via a bottom gradient overlay.
 class _HeroImage extends StatelessWidget {
   const _HeroImage();
 
@@ -92,11 +148,15 @@ class _HeroImage extends StatelessWidget {
   Widget build(BuildContext context) {
     final appColors = Theme.of(context).extension<AppColors>()!;
     return SizedBox(
-      height: 220,
+      height: MediaQuery.of(context).size.height * 0.35,
       child: Stack(
         fit: StackFit.expand,
         children: [
-          Image.asset('assets/images/Login_Image.jpg', fit: BoxFit.cover),
+          Image.asset(
+            AppImages.loginImage,
+            fit: BoxFit.cover,
+            alignment: Alignment.topCenter,
+          ),
           Positioned.fill(
             child: DecoratedBox(
               decoration: BoxDecoration(
@@ -105,12 +165,23 @@ class _HeroImage extends StatelessWidget {
                   end: Alignment.bottomCenter,
                   colors: [
                     Colors.transparent,
-                    appColors.background.withValues(alpha: 0.85),
+                    appColors.background.withOpacity(0.85),
                     appColors.background,
                   ],
-                  stops: const [0.5, 0.85, 1.0],
+                  stops: const [0.4, 0.85, 1.0],
                 ),
               ),
+            ),
+          ),
+          const Align(
+            alignment: Alignment(0, -0.4),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                _LoginIcon(),
+                SizedBox(height: 12),
+                _TitleBlock(),
+              ],
             ),
           ),
         ],
@@ -123,34 +194,86 @@ class _HeroImage extends StatelessWidget {
 // Main form section
 // ---------------------------------------------------------------------------
 
-/// Contains the login icon, title, subtitle, form fields, and action buttons.
-class _LoginFormSection extends StatelessWidget {
+class _LoginFormSection extends StatefulWidget {
   const _LoginFormSection();
+
+  @override
+  State<_LoginFormSection> createState() => _LoginFormSectionState();
+}
+
+class _LoginFormSectionState extends State<_LoginFormSection> {
+  final _formKey = GlobalKey<FormState>();
 
   @override
   Widget build(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 24.0),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: const [
-          SizedBox(height: 8),
-          _LoginIcon(),
-          SizedBox(height: 20),
-          _TitleBlock(),
-          SizedBox(height: 36),
-          _PhoneNumberField(),
-          SizedBox(height: 16),
-          _PasswordField(),
-          SizedBox(height: 8),
-          _ForgotPasswordButton(),
-          SizedBox(height: 28),
-          _SignInButton(),
-          SizedBox(height: 24),
-          _CreateAccountSection(),
-          SizedBox(height: 32),
-        ],
+      child: Form(
+        key: _formKey,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            const SizedBox(height: 8),
+            const _PhoneNumberField(),
+            const SizedBox(height: 16),
+            const _PasswordField(),
+            const SizedBox(height: 4),
+            const _ForgotPasswordButton(),
+            const SizedBox(height: 24),
+            _buildSignInButton(context),
+            const SizedBox(height: 24),
+            const _CreateAccountSection(),
+            const SizedBox(height: 24),
+          ],
+        ),
       ),
+    );
+  }
+
+  Widget _buildSignInButton(BuildContext context) {
+    final appColors = Theme.of(context).extension<AppColors>()!;
+    return BlocBuilder<LoginBloc, LoginState>(
+      buildWhen: (prev, curr) => prev.isLoading != curr.isLoading,
+      builder: (context, state) {
+        return SizedBox(
+          height: 54,
+          child: ElevatedButton(
+            onPressed: state.isLoading
+                ? null
+                : () {
+                    if (_formKey.currentState!.validate()) {
+                      context.read<LoginBloc>().add(const SignInSubmitted());
+                    }
+                  },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: appColors.accent,
+              disabledBackgroundColor: appColors.accent.withOpacity(0.5),
+              elevation: 4,
+              shadowColor: appColors.accent.withOpacity(0.4),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(16),
+              ),
+            ),
+            child: state.isLoading
+                ? SizedBox(
+                    height: 24,
+                    width: 24,
+                    child: CircularProgressIndicator(
+                      color: appColors.background,
+                      strokeWidth: 2,
+                    ),
+                  )
+                : Text(
+                    'Sign In',
+                    style: TextStyle(
+                      color: appColors.background,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 16,
+                    ),
+                  ),
+          ),
+        );
+      },
     );
   }
 }
@@ -159,18 +282,16 @@ class _LoginFormSection extends StatelessWidget {
 // Login arrow icon
 // ---------------------------------------------------------------------------
 
-/// Renders the arrow-right-into-bracket login icon shown below the hero image.
 class _LoginIcon extends StatelessWidget {
   const _LoginIcon();
 
   @override
   Widget build(BuildContext context) {
-    final appColors = Theme.of(context).extension<AppColors>()!;
-    return Center(
+    return const Center(
       child: Icon(
         Icons.login_rounded,
-        color: appColors.textPrimary,
-        size: 40,
+        color: Colors.white,
+        size: 38,
       ),
     );
   }
@@ -180,7 +301,6 @@ class _LoginIcon extends StatelessWidget {
 // Title + subtitle
 // ---------------------------------------------------------------------------
 
-/// Displays the "ZonaX" title and "Drive smarter, earn more" subtitle.
 class _TitleBlock extends StatelessWidget {
   const _TitleBlock();
 
@@ -194,9 +314,9 @@ class _TitleBlock extends StatelessWidget {
           textAlign: TextAlign.center,
           style: Theme.of(context).textTheme.headlineMedium?.copyWith(
             color: appColors.textPrimary,
-            fontWeight: FontWeight.w700,
-            fontSize: 30,
-            letterSpacing: 0.3,
+            fontWeight: FontWeight.bold,
+            fontSize: 32,
+            letterSpacing: 0.5,
           ),
         ),
         const SizedBox(height: 8),
@@ -214,12 +334,9 @@ class _TitleBlock extends StatelessWidget {
 }
 
 // ---------------------------------------------------------------------------
-// Email field (Phone login)
+// Phone field
 // ---------------------------------------------------------------------------
 
-/// Input field for the user's phone number (displayed as Email).
-///
-/// Dispatches [PhoneNumberChanged] on every keystroke.
 class _PhoneNumberField extends StatefulWidget {
   const _PhoneNumberField();
 
@@ -248,26 +365,46 @@ class _PhoneNumberFieldState extends State<_PhoneNumberField> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _FieldLabel(label: 'Email'),
+        _FieldLabel(label: 'Phone Number'),
         const SizedBox(height: 8),
         _StyledTextField(
           controller: _controller,
-          hintText: 'example@gmail.com',
-          prefixIcon: Icon(
-            Icons.email_outlined,
-            color: appColors.inputIcon,
-            size: 20,
+          hintText: '100 123 4567',
+          prefixIcon: Padding(
+            padding: const EdgeInsets.only(left: 16.0, right: 8.0),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(
+                  Icons.phone_outlined,
+                  color: appColors.inputIcon,
+                  size: 20,
+                ),
+                const SizedBox(width: 8),
+                Text(
+                  '+20',
+                  style: TextStyle(
+                    color: appColors.textPrimary,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 15,
+                  ),
+                ),
+              ],
+            ),
           ),
-          keyboardType: TextInputType.emailAddress,
+          keyboardType: TextInputType.phone,
+          maxLength: 10,
           onChanged: (value) => _onPhoneChanged(context, value),
+          validator: (value) {
+            if (value == null || value.trim().isEmpty) return 'Phone number is required';
+            if (value.length != 10) return 'Phone number must be exactly 10 digits';
+            return null;
+          },
         ),
       ],
     );
   }
 
-  /// Dispatches [PhoneNumberChanged] to [LoginBloc].
-  ///
-  /// Should be called with the latest value from the text field.
   void _onPhoneChanged(BuildContext context, String value) {
     context.read<LoginBloc>().add(PhoneNumberChanged(phoneNumber: value));
   }
@@ -277,10 +414,6 @@ class _PhoneNumberFieldState extends State<_PhoneNumberField> {
 // Password field
 // ---------------------------------------------------------------------------
 
-/// Input field for the user's password, with visibility toggle.
-///
-/// Dispatches [PasswordChanged] on every keystroke and
-/// [TogglePasswordVisibility] when the eye icon is tapped.
 class _PasswordField extends StatefulWidget {
   const _PasswordField();
 
@@ -307,8 +440,7 @@ class _PasswordFieldState extends State<_PasswordField> {
   Widget build(BuildContext context) {
     final appColors = Theme.of(context).extension<AppColors>()!;
     return BlocBuilder<LoginBloc, LoginState>(
-      buildWhen: (prev, curr) =>
-      prev.isPasswordVisible != curr.isPasswordVisible,
+      buildWhen: (prev, curr) => prev.isPasswordVisible != curr.isPasswordVisible,
       builder: (context, state) {
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -335,6 +467,7 @@ class _PasswordFieldState extends State<_PasswordField> {
                 ),
               ),
               onChanged: (value) => _onPasswordChanged(context, value),
+              validator: (value) => (value == null || value.isEmpty) ? 'Password is required' : null,
             ),
           ],
         );
@@ -342,16 +475,10 @@ class _PasswordFieldState extends State<_PasswordField> {
     );
   }
 
-  /// Dispatches [PasswordChanged] to [LoginBloc].
-  ///
-  /// Should be called with the latest value from the text field.
   void _onPasswordChanged(BuildContext context, String value) {
     context.read<LoginBloc>().add(PasswordChanged(password: value));
   }
 
-  /// Dispatches [TogglePasswordVisibility] to [LoginBloc].
-  ///
-  /// Should flip the obscure-text state of the password field.
   void _onToggleVisibility(BuildContext context) {
     context.read<LoginBloc>().add(const TogglePasswordVisibility());
   }
@@ -361,7 +488,6 @@ class _PasswordFieldState extends State<_PasswordField> {
 // Forgot password button
 // ---------------------------------------------------------------------------
 
-/// Text button aligned to the right, navigating to the forgot-password flow.
 class _ForgotPasswordButton extends StatelessWidget {
   const _ForgotPasswordButton();
 
@@ -372,21 +498,21 @@ class _ForgotPasswordButton extends StatelessWidget {
       alignment: Alignment.centerRight,
       child: GestureDetector(
         onTap: () => _onForgotPasswordTapped(context),
-        child: Text(
-          'Forgot password?',
-          style: Theme.of(context).textTheme.bodySmall?.copyWith(
-            color: appColors.accent,
-            fontWeight: FontWeight.w500,
-            fontSize: 13,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 8.0),
+          child: Text(
+            'Forgot password?',
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+              color: appColors.accent,
+              fontWeight: FontWeight.bold,
+              fontSize: 13,
+            ),
           ),
         ),
       ),
     );
   }
 
-  /// Dispatches [ForgotPasswordTapped] to [LoginBloc].
-  ///
-  /// Should trigger navigation to the forgot-password screen.
   void _onForgotPasswordTapped(BuildContext context) {
     Navigator.of(context).push(
       MaterialPageRoute(
@@ -396,63 +522,11 @@ class _ForgotPasswordButton extends StatelessWidget {
   }
 }
 
-// ---------------------------------------------------------------------------
-// Sign In button
-// ---------------------------------------------------------------------------
-
-/// Text-style primary action button for signing in.
-///
-/// Shows a loading indicator while [LoginStatus.loading] is active.
-class _SignInButton extends StatelessWidget {
-  const _SignInButton();
-
-  @override
-  Widget build(BuildContext context) {
-    final appColors = Theme.of(context).extension<AppColors>()!;
-    return BlocBuilder<LoginBloc, LoginState>(
-      buildWhen: (prev, curr) => prev.isLoading != curr.isLoading,
-      builder: (context, state) {
-        return Center(
-          child: state.isLoading
-              ? SizedBox(
-            height: 24,
-            width: 24,
-            child: CircularProgressIndicator(
-              color: appColors.textPrimary,
-              strokeWidth: 2,
-            ),
-          )
-              : GestureDetector(
-            onTap: () => _onSignInPressed(context),
-            child: Text(
-              'Sign In',
-              style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                color: appColors.signInText,
-                fontWeight: FontWeight.w600,
-                fontSize: 16,
-              ),
-            ),
-          ),
-        );
-      },
-    );
-  }
-
-  /// Dispatches [SignInSubmitted] to [LoginBloc].
-  ///
-  /// Should validate form inputs before dispatching the event.
-  void _onSignInPressed(BuildContext context) {
-    // TODO: Implement logic
-    context.read<LoginBloc>().add(const SignInSubmitted());
-  }
-}
 
 // ---------------------------------------------------------------------------
 // Create Account section
 // ---------------------------------------------------------------------------
 
-/// Bottom section with "Don't have an account?" label and the outlined
-/// "Create Account" button.
 class _CreateAccountSection extends StatelessWidget {
   const _CreateAccountSection();
 
@@ -465,17 +539,16 @@ class _CreateAccountSection extends StatelessWidget {
           "Don't have an account?",
           style: Theme.of(context).textTheme.bodySmall?.copyWith(
             color: appColors.textSecondary,
-            fontSize: 13,
+            fontSize: 14,
           ),
         ),
-        const SizedBox(height: 14),
-        _CreateAccountButton(),
+        const SizedBox(height: 16),
+        const _CreateAccountButton(),
       ],
     );
   }
 }
 
-/// Outlined button navigating to the registration screen.
 class _CreateAccountButton extends StatelessWidget {
   const _CreateAccountButton();
 
@@ -483,7 +556,8 @@ class _CreateAccountButton extends StatelessWidget {
   Widget build(BuildContext context) {
     final appColors = Theme.of(context).extension<AppColors>()!;
     return SizedBox(
-      height: 52,
+      height: 54,
+      width: double.infinity,
       child: OutlinedButton(
         onPressed: () => _onCreateAccountPressed(context),
         style: OutlinedButton.styleFrom(
@@ -491,13 +565,12 @@ class _CreateAccountButton extends StatelessWidget {
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(30),
           ),
-          foregroundColor: appColors.textPrimary,
         ),
         child: Text(
           'Create Account',
-          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+          style: TextStyle(
             color: appColors.textPrimary,
-            fontWeight: FontWeight.w600,
+            fontWeight: FontWeight.bold,
             fontSize: 15,
           ),
         ),
@@ -505,12 +578,7 @@ class _CreateAccountButton extends StatelessWidget {
     );
   }
 
-  /// Dispatches [CreateAccountTapped] to [LoginBloc].
-  ///
-  /// Should navigate the user to the sign-up / registration screen.
   void _onCreateAccountPressed(BuildContext context) {
-    context.read<LoginBloc>().add(const CreateAccountTapped());
-    // Navigate to registration screen
     Navigator.of(context).push(
       MaterialPageRoute(
         builder: (context) => const RegisterScreen(),
@@ -519,12 +587,10 @@ class _CreateAccountButton extends StatelessWidget {
   }
 }
 
-
 // ---------------------------------------------------------------------------
 // Shared reusable widgets
 // ---------------------------------------------------------------------------
 
-/// Small label rendered above each input field.
 class _FieldLabel extends StatelessWidget {
   const _FieldLabel({required this.label});
 
@@ -535,19 +601,14 @@ class _FieldLabel extends StatelessWidget {
     final appColors = Theme.of(context).extension<AppColors>()!;
     return Text(
       label,
-      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+      style: TextStyle(
         color: appColors.textSecondary,
         fontSize: 13,
-        fontWeight: FontWeight.w400,
       ),
     );
   }
 }
 
-/// A styled [TextFormField] that matches the dark-themed design.
-///
-/// Accepts optional [prefixIcon], [suffixIcon], and [obscureText] parameters
-/// and reports changes via [onChanged].
 class _StyledTextField extends StatelessWidget {
   const _StyledTextField({
     required this.hintText,
@@ -557,6 +618,8 @@ class _StyledTextField extends StatelessWidget {
     this.obscureText = false,
     this.keyboardType,
     this.onChanged,
+    this.validator,
+    this.maxLength,
   });
 
   final String hintText;
@@ -566,6 +629,8 @@ class _StyledTextField extends StatelessWidget {
   final bool obscureText;
   final TextInputType? keyboardType;
   final ValueChanged<String>? onChanged;
+  final String? Function(String?)? validator;
+  final int? maxLength;
 
   @override
   Widget build(BuildContext context) {
@@ -574,44 +639,38 @@ class _StyledTextField extends StatelessWidget {
       controller: controller,
       obscureText: obscureText,
       keyboardType: keyboardType,
+      maxLength: maxLength,
       onChanged: onChanged,
+      validator: validator,
+      autovalidateMode: AutovalidateMode.onUserInteraction,
       style: TextStyle(
         color: appColors.textPrimary,
-        fontSize: 14,
+        fontSize: 15,
       ),
       decoration: InputDecoration(
         hintText: hintText,
         hintStyle: TextStyle(
           color: appColors.textHint,
-          fontSize: 14,
+          fontSize: 15,
         ),
         prefixIcon: prefixIcon,
-        suffixIcon: suffixIcon != null
-            ? Padding(
-          padding: const EdgeInsets.only(right: 12),
-          child: suffixIcon,
-        )
-            : null,
-        suffixIconConstraints: const BoxConstraints(
-          minWidth: 40,
-          minHeight: 40,
-        ),
+        suffixIcon: suffixIcon,
         filled: true,
         fillColor: appColors.inputBackground,
         contentPadding: const EdgeInsets.symmetric(
           horizontal: 16,
-          vertical: 16,
+          vertical: 18,
         ),
         border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(color: appColors.inputBorder, width: 1),
+          borderRadius: BorderRadius.circular(16),
+          borderSide: BorderSide.none,
         ),
         enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(color: appColors.inputBorder, width: 1),
+          borderRadius: BorderRadius.circular(16),
+          borderSide: BorderSide.none,
         ),
         focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(16),
           borderSide: BorderSide(color: appColors.accent, width: 1.5),
         ),
       ),

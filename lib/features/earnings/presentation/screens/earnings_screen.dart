@@ -36,7 +36,11 @@ class EarningsScreen extends StatelessWidget {
             SizedBox(height: 30.h),
             Text(
               "Performance",
-              style: TextStyle(color: Colors.white, fontSize: 18.sp, fontWeight: FontWeight.bold),
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 18.sp,
+                fontWeight: FontWeight.bold,
+              ),
             ),
             SizedBox(height: 16.h),
             _buildPerformanceGrid(),
@@ -46,9 +50,19 @@ class EarningsScreen extends StatelessWidget {
               children: [
                 Text(
                   "Daily Breakdown",
-                  style: TextStyle(color: Colors.white, fontSize: 18.sp, fontWeight: FontWeight.bold),
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 18.sp,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
-                Text("View All", style: TextStyle(color: const Color(0xFF00D293), fontSize: 12.sp)),
+                Text(
+                  "View All",
+                  style: TextStyle(
+                    color: const Color(0xFF00D293),
+                    fontSize: 12.sp,
+                  ),
+                ),
               ],
             ),
             SizedBox(height: 16.h),
@@ -59,9 +73,19 @@ class EarningsScreen extends StatelessWidget {
               children: [
                 Text(
                   "Recent Trips",
-                  style: TextStyle(color: Colors.white, fontSize: 18.sp, fontWeight: FontWeight.bold),
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 18.sp,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
-                Text("View All >", style: TextStyle(color: const Color(0xFF00D293), fontSize: 12.sp)),
+                Text(
+                  "View All >",
+                  style: TextStyle(
+                    color: const Color(0xFF00D293),
+                    fontSize: 12.sp,
+                  ),
+                ),
               ],
             ),
             SizedBox(height: 16.h),
@@ -85,7 +109,10 @@ class EarningsScreen extends StatelessWidget {
         children: [
           Icon(Icons.ios_share, color: Colors.white, size: 16.sp),
           SizedBox(width: 6.w),
-          Text("Export", style: TextStyle(color: Colors.white, fontSize: 12.sp)),
+          Text(
+            "Export",
+            style: TextStyle(color: Colors.white, fontSize: 12.sp),
+          ),
         ],
       ),
     );
@@ -139,11 +166,18 @@ class EarningsScreen extends StatelessWidget {
             Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text("Total Earnings", style: TextStyle(color: Colors.grey, fontSize: 12.sp)),
+                Text(
+                  "Total Earnings",
+                  style: TextStyle(color: Colors.grey, fontSize: 12.sp),
+                ),
                 SizedBox(height: 4.h),
                 Text(
                   "450 EGP",
-                  style: TextStyle(color: Colors.white, fontSize: 32.sp, fontWeight: FontWeight.bold),
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 32.sp,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
               ],
             ),
@@ -173,11 +207,18 @@ class EarningsScreen extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(label, style: TextStyle(color: const Color(0xFF00D293), fontSize: 12.sp)),
+        Text(
+          label,
+          style: TextStyle(color: const Color(0xFF00D293), fontSize: 12.sp),
+        ),
         SizedBox(height: 4.h),
         Text(
           value,
-          style: TextStyle(color: Colors.white, fontSize: 20.sp, fontWeight: FontWeight.bold),
+          style: TextStyle(
+            color: Colors.white,
+            fontSize: 20.sp,
+            fontWeight: FontWeight.bold,
+          ),
         ),
       ],
     );
@@ -186,14 +227,32 @@ class EarningsScreen extends StatelessWidget {
   Widget _buildPerformanceGrid() {
     return Row(
       children: [
-        _buildPerformanceCard(Icons.attach_money, "Avg. per Trip", "38 EGP", "+15%", Colors.greenAccent),
+        _buildPerformanceCard(
+          Icons.attach_money,
+          "Avg. per Trip",
+          "38 EGP",
+          "+15%",
+          Colors.greenAccent,
+        ),
         SizedBox(width: 12.w),
-        _buildPerformanceCard(Icons.trending_up, "Per Hour", "69 EGP", "+22%", Colors.greenAccent),
+        _buildPerformanceCard(
+          Icons.trending_up,
+          "Per Hour",
+          "69 EGP",
+          "+22%",
+          Colors.greenAccent,
+        ),
       ],
     );
   }
 
-  Widget _buildPerformanceCard(IconData icon, String label, String value, String trend, Color trendColor) {
+  Widget _buildPerformanceCard(
+    IconData icon,
+    String label,
+    String value,
+    String trend,
+    Color trendColor,
+  ) {
     return Expanded(
       child: Container(
         padding: EdgeInsets.all(16.w),
@@ -209,15 +268,25 @@ class EarningsScreen extends StatelessWidget {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Icon(icon, color: const Color(0xFF00D293), size: 20.sp),
-                Text(trend, style: TextStyle(color: trendColor, fontSize: 10.sp)),
+                Text(
+                  trend,
+                  style: TextStyle(color: trendColor, fontSize: 10.sp),
+                ),
               ],
             ),
             SizedBox(height: 12.h),
-            Text(label, style: TextStyle(color: Colors.grey, fontSize: 12.sp)),
+            Text(
+              label,
+              style: TextStyle(color: Colors.grey, fontSize: 12.sp),
+            ),
             SizedBox(height: 4.h),
             Text(
               value,
-              style: TextStyle(color: Colors.white, fontSize: 18.sp, fontWeight: FontWeight.bold),
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 18.sp,
+                fontWeight: FontWeight.bold,
+              ),
             ),
           ],
         ),
@@ -252,7 +321,14 @@ class EarningsScreen extends StatelessWidget {
     return Column(
       mainAxisAlignment: MainAxisAlignment.end,
       children: [
-        Text(amount.toString(), style: TextStyle(color: Colors.white, fontSize: 10.sp, fontWeight: FontWeight.bold)),
+        Text(
+          amount.toString(),
+          style: TextStyle(
+            color: Colors.white,
+            fontSize: 10.sp,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
         SizedBox(height: 8.h),
         Container(
           width: 35.w,
@@ -263,7 +339,10 @@ class EarningsScreen extends StatelessWidget {
           ),
         ),
         SizedBox(height: 8.h),
-        Text(day, style: TextStyle(color: Colors.grey, fontSize: 10.sp)),
+        Text(
+          day,
+          style: TextStyle(color: Colors.grey, fontSize: 10.sp),
+        ),
       ],
     );
   }
@@ -271,18 +350,48 @@ class EarningsScreen extends StatelessWidget {
   Widget _buildRecentTripsList() {
     return Column(
       children: [
-        _buildTripCard("Downtown → Airport", "14:30", "25 min", "12.5 km", "85 EGP"),
+        _buildTripCard(
+          "Downtown → Airport",
+          "14:30",
+          "25 min",
+          "12.5 km",
+          "85 EGP",
+        ),
         SizedBox(height: 12.h),
-        _buildTripCard("Mall District → Business Bay", "13:45", "15 min", "7.2 km", "52 EGP"),
+        _buildTripCard(
+          "Mall District → Business Bay",
+          "13:45",
+          "15 min",
+          "7.2 km",
+          "52 EGP",
+        ),
         SizedBox(height: 12.h),
-        _buildTripCard("Residential → Downtown", "12:20", "18 min", "9.1 km", "38 EGP"),
+        _buildTripCard(
+          "Residential → Downtown",
+          "12:20",
+          "18 min",
+          "9.1 km",
+          "38 EGP",
+        ),
         SizedBox(height: 12.h),
-        _buildTripCard("Business Bay → Mall District", "11:30", "12 min", "5.8 km", "45 EGP"),
+        _buildTripCard(
+          "Business Bay → Mall District",
+          "11:30",
+          "12 min",
+          "5.8 km",
+          "45 EGP",
+        ),
       ],
     );
   }
 
-  Widget _buildTripCard(String route, String time, String duration, String distance, String fare) {
+  Widget _buildTripCard(
+    String route,
+    String time,
+    String duration,
+    String distance,
+    String fare,
+  ) {
     return Container(
       padding: EdgeInsets.all(16.w),
       decoration: BoxDecoration(
@@ -298,19 +407,34 @@ class EarningsScreen extends StatelessWidget {
               Expanded(
                 child: Row(
                   children: [
-                    Icon(Icons.location_on_outlined, color: const Color(0xFF00D293), size: 18.sp),
+                    Icon(
+                      Icons.location_on_outlined,
+                      color: const Color(0xFF00D293),
+                      size: 18.sp,
+                    ),
                     SizedBox(width: 8.w),
                     Expanded(
                       child: Text(
                         route,
-                        style: TextStyle(color: Colors.white, fontSize: 14.sp, fontWeight: FontWeight.bold),
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 14.sp,
+                          fontWeight: FontWeight.bold,
+                        ),
                         overflow: TextOverflow.ellipsis,
                       ),
                     ),
                   ],
                 ),
               ),
-              Text(fare, style: TextStyle(color: const Color(0xFF00D293), fontSize: 16.sp, fontWeight: FontWeight.bold)),
+              Text(
+                fare,
+                style: TextStyle(
+                  color: const Color(0xFF00D293),
+                  fontSize: 16.sp,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
             ],
           ),
           SizedBox(height: 12.h),
@@ -333,7 +457,10 @@ class EarningsScreen extends StatelessWidget {
       children: [
         Icon(icon, color: Colors.grey, size: 14.sp),
         SizedBox(width: 4.w),
-        Text(text, style: TextStyle(color: Colors.grey, fontSize: 12.sp)),
+        Text(
+          text,
+          style: TextStyle(color: Colors.grey, fontSize: 12.sp),
+        ),
       ],
     );
   }

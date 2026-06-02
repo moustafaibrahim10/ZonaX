@@ -1,5 +1,5 @@
 // ⚠️ تأكد من هذا السطر، غير المسار حسب اسم مشروعك
-import '../../domain/repositories/map_repository.dart'; 
+import '../../domain/repositories/map_repository.dart';
 import '../../domain/entities/zone_entity.dart';
 import '../datasources/map_mock_data_source.dart';
 
@@ -11,7 +11,7 @@ class MapRepositoryImpl implements MapRepository {
 
   @override
   Future<List<ZoneEntity>> getActiveZones() async {
-     final models = await dataSource.getActiveZones();
-     return models; // بما أن Model يورث من Entity
+    final models = await dataSource.getActiveZones();
+    return models; // بما أن Model يورث من Entity
   }
 }

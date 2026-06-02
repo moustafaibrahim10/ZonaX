@@ -39,25 +39,25 @@ class ProfileModel {
       onlineHoursThisMonth: json['online_hours_this_month'] ?? 186,
       achievements: json['achievements'] != null
           ? (json['achievements'] as List)
-              .map((a) => Achievement.fromJson(a))
-              .toList()
+                .map((a) => Achievement.fromJson(a))
+                .toList()
           : [],
     );
   }
 
   Map<String, dynamic> toJson() => {
-        'id': id,
-        'name': name,
-        'email': email,
-        'rating': rating,
-        'rank': rank,
-        'vehicle_model': vehicleModel,
-        'vehicle_plate': vehiclePlate,
-        'earned_this_month': earnedThisMonth,
-        'trips_this_month': tripsThisMonth,
-        'online_hours_this_month': onlineHoursThisMonth,
-        'achievements': achievements.map((a) => a.toJson()).toList(),
-      };
+    'id': id,
+    'name': name,
+    'email': email,
+    'rating': rating,
+    'rank': rank,
+    'vehicle_model': vehicleModel,
+    'vehicle_plate': vehiclePlate,
+    'earned_this_month': earnedThisMonth,
+    'trips_this_month': tripsThisMonth,
+    'online_hours_this_month': onlineHoursThisMonth,
+    'achievements': achievements.map((a) => a.toJson()).toList(),
+  };
 }
 
 class Achievement {
@@ -81,16 +81,17 @@ class Achievement {
       title: json['title'] ?? '',
       description: json['description'] ?? '',
       icon: json['icon'] ?? 'star',
-      unlockedAt: DateTime.parse(json['unlocked_at'] ?? DateTime.now().toString()),
+      unlockedAt: DateTime.parse(
+        json['unlocked_at'] ?? DateTime.now().toString(),
+      ),
     );
   }
 
   Map<String, dynamic> toJson() => {
-        'id': id,
-        'title': title,
-        'description': description,
-        'icon': icon,
-        'unlocked_at': unlockedAt.toIso8601String(),
-      };
+    'id': id,
+    'title': title,
+    'description': description,
+    'icon': icon,
+    'unlocked_at': unlockedAt.toIso8601String(),
+  };
 }
-

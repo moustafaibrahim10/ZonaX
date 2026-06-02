@@ -18,5 +18,12 @@ class ZoneEntity extends Equatable {
   });
 
   @override
-  List<Object?> get props => [id, lat, lng, demandLevel, isHighProfit, forecastMsg];
+  List<Object?> get props => [
+    id,
+    lat,
+    lng,
+    demandLevel,
+    isHighProfit,
+    forecastMsg,
+  ];
 }

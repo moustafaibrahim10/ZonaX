@@ -1,4 +1,3 @@
-
 part of 'map_cubit.dart';
 
 abstract class MapState extends Equatable {
@@ -24,7 +23,7 @@ class MapZonesLoaded extends MapState {
 class MapCarMoving extends MapState {
   final double lat;
   final double lng;
-  final double bearing; 
+  final double bearing;
 
   const MapCarMoving({
     required this.lat,

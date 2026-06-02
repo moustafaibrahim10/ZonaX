@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:flutter/services.dart';
+import 'dart:typed_data';
 import 'package:mapbox_maps_flutter/mapbox_maps_flutter.dart';
+import 'package:zona_x_16_4/core/utils/app_images.dart';
 import 'package:zona_x_16_4/features/map/domain/entities/zone_entity.dart';
 import 'package:zona_x_16_4/features/map/presentation/cubit/map_cubit.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
@@ -17,8 +20,9 @@ class _HeatmapScreenState extends State<HeatmapScreen> {
   PointAnnotationManager? pointAnnotationManager;
   CircleAnnotationManager? circleAnnotationManager;
   PolygonAnnotationManager? polygonAnnotationManager;
-  CircleAnnotation? carAnnotation;
+  PointAnnotation? carPointAnnotation;
   bool isStyleLoaded = false;
+  Uint8List? carIconBytes;
 
   @override
   Widget build(BuildContext context) {
@@ -38,6 +42,7 @@ class _HeatmapScreenState extends State<HeatmapScreen> {
                 isStyleLoaded = true;
                 final mapCubit = context.read<MapCubit>();
                 await _initAnnotationManagers();
+                await _setupUserLocation();
                 if (mounted) {
                   mapCubit.getZones();
                   // Draw car initially at starting point without moving
@@ -78,11 +83,7 @@ class _HeatmapScreenState extends State<HeatmapScreen> {
             ),
 
             // 3. Left Sidebar Buttons
-            Positioned(
-              top: 100.h,
-              left: 15.w,
-              child: _buildSidebar(),
-            ),
+            Positioned(top: 100.h, left: 15.w, child: _buildSidebar()),
 
             // 4. Bottom Insight Card
             Positioned(
@@ -91,7 +92,6 @@ class _HeatmapScreenState extends State<HeatmapScreen> {
               right: 15.w,
               child: _buildInsightCard(),
             ),
-
           ],
         ),
       ),
@@ -145,7 +145,11 @@ class _HeatmapScreenState extends State<HeatmapScreen> {
       children: [
         _buildSideButton(Icons.cloud_off, "Offline\nMode", Colors.grey),
         SizedBox(height: 10.h),
-        _buildSideButton(Icons.battery_charging_full, "Battery\nSaver", Colors.green),
+        _buildSideButton(
+          Icons.battery_charging_full,
+          "Battery\nSaver",
+          Colors.green,
+        ),
         SizedBox(height: 10.h),
         _buildSideButton(Icons.insert_chart, "Data\nUsage", Colors.blueAccent),
       ],
@@ -168,7 +172,11 @@ class _HeatmapScreenState extends State<HeatmapScreen> {
           Text(
             label,
             textAlign: TextAlign.center,
-            style: TextStyle(color: Colors.white70, fontSize: 10.sp, height: 1.2),
+            style: TextStyle(
+              color: Colors.white70,
+              fontSize: 10.sp,
+              height: 1.2,
+            ),
           ),
         ],
       ),
@@ -178,7 +186,7 @@ class _HeatmapScreenState extends State<HeatmapScreen> {
   Widget _buildInsightCard() {
     // We add a GestureDetector to toggle simulation here as a bonus!
     final isSimulating = context.watch<MapCubit>().isSimulating;
-    
+
     return GestureDetector(
       onTap: () {
         context.read<MapCubit>().toggleSimulation();
@@ -190,7 +198,11 @@ class _HeatmapScreenState extends State<HeatmapScreen> {
           borderRadius: BorderRadius.circular(20.r),
           border: Border.all(color: Colors.white12),
           boxShadow: [
-            BoxShadow(color: Colors.black54, blurRadius: 10, offset: Offset(0, 5)),
+            BoxShadow(
+              color: Colors.black54,
+              blurRadius: 10,
+              offset: Offset(0, 5),
+            ),
           ],
         ),
         child: Column(
@@ -202,7 +214,10 @@ class _HeatmapScreenState extends State<HeatmapScreen> {
                 width: 40.w,
                 height: 4.h,
                 margin: EdgeInsets.only(bottom: 10.h),
-                decoration: BoxDecoration(color: Colors.grey[700], borderRadius: BorderRadius.circular(2)),
+                decoration: BoxDecoration(
+                  color: Colors.grey[700],
+                  borderRadius: BorderRadius.circular(2),
+                ),
               ),
             ),
             Row(
@@ -211,11 +226,18 @@ class _HeatmapScreenState extends State<HeatmapScreen> {
                 Expanded(
                   child: Text(
                     "Head to Zone 102 (Midtown East).",
-                    style: TextStyle(color: Colors.white, fontSize: 16.sp, fontWeight: FontWeight.bold),
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 16.sp,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
                 ),
                 // Simulation Status Icon
-                Icon(isSimulating ? Icons.stop_circle : Icons.play_circle_fill, color: isSimulating ? Colors.red : Colors.green),
+                Icon(
+                  isSimulating ? Icons.stop_circle : Icons.play_circle_fill,
+                  color: isSimulating ? Colors.red : Colors.green,
+                ),
               ],
             ),
             SizedBox(height: 5.h),
@@ -241,9 +263,12 @@ class _HeatmapScreenState extends State<HeatmapScreen> {
   // --- Mapbox Logic ---
 
   Future<void> _initAnnotationManagers() async {
-    polygonAnnotationManager = await mapboxMap?.annotations.createPolygonAnnotationManager();
-    pointAnnotationManager = await mapboxMap?.annotations.createPointAnnotationManager();
-    circleAnnotationManager = await mapboxMap?.annotations.createCircleAnnotationManager();
+    polygonAnnotationManager = await mapboxMap?.annotations
+        .createPolygonAnnotationManager();
+    pointAnnotationManager = await mapboxMap?.annotations
+        .createPointAnnotationManager();
+    circleAnnotationManager = await mapboxMap?.annotations
+        .createCircleAnnotationManager();
   }
 
   void _drawHeatmapPolygons(List<ZoneEntity> zones) async {
@@ -294,24 +319,60 @@ class _HeatmapScreenState extends State<HeatmapScreen> {
   void _updateCarPosition(double lat, double lng) async {
     final position = Position(lng, lat);
 
-    if (carAnnotation == null) {
-      carAnnotation = await circleAnnotationManager?.create(
-        CircleAnnotationOptions(
+    if (carPointAnnotation == null) {
+      if (carIconBytes == null) return; // Wait for asset to load
+      carPointAnnotation = await pointAnnotationManager?.create(
+        PointAnnotationOptions(
           geometry: Point(coordinates: position),
-          circleRadius: 10.0,
-          circleColor: Colors.blueAccent.toARGB32(),
-          circleStrokeColor: Colors.white.toARGB32(),
-          circleStrokeWidth: 2.0,
+          image: carIconBytes,
+          iconSize: 0.04, // Size matched to normal Uber-like apps
         ),
       );
     } else {
-      carAnnotation?.geometry = Point(coordinates: position);
-      circleAnnotationManager?.update(carAnnotation!);
+      carPointAnnotation?.geometry = Point(coordinates: position);
+      pointAnnotationManager?.update(carPointAnnotation!);
     }
 
     mapboxMap?.flyTo(
       CameraOptions(center: Point(coordinates: position), zoom: 16.0),
       MapAnimationOptions(duration: 1000),
     );
+  }
+
+  Future<void> _setupUserLocation() async {
+    try {
+      // 1. Load the explicit asset to Uint8List
+      final ByteData bytes = await rootBundle.load(AppImages.carIcon);
+      final Uint8List list = bytes.buffer.asUint8List();
+      carIconBytes = list;
+
+      // 2. Add style image
+      await mapboxMap?.style.addStyleImage(
+        'zona-x-driver-car',
+        1.0,
+        MbxImage(width: 100, height: 100, data: list),
+        false,
+        [],
+        [],
+        null,
+      );
+
+      // 3. Configure LocationComponentSettings with the injected image
+      await mapboxMap?.location.updateSettings(LocationComponentSettings(
+        enabled: true,
+        puckBearingEnabled: true,
+        puckBearing: PuckBearing.COURSE,
+        locationPuck: LocationPuck(
+          locationPuck2D: LocationPuck2D(
+            topImage: list, 
+            bearingImage: list,
+            shadowImage: list,
+            scaleExpression: '0.04', // Scale down the location puck
+          ),
+        ),
+      ));
+    } catch (e) {
+      debugPrint("Error loading advanced user location puck: $e");
+    }
   }
 }

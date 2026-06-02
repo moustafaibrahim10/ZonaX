@@ -234,7 +234,11 @@ class _SettingsPageState extends State<SettingsPage> {
             ),
           ),
           SizedBox(width: 12.w),
-          Icon(Icons.arrow_forward_ios, size: 16.sp, color: appColors.textSecondary),
+          Icon(
+            Icons.arrow_forward_ios,
+            size: 16.sp,
+            color: appColors.textSecondary,
+          ),
         ],
       ),
     );
@@ -305,4 +309,3 @@ class _SettingsPageState extends State<SettingsPage> {
     );
   }
 }
-

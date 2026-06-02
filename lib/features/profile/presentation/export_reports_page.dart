@@ -88,9 +88,24 @@ class _ExportReportsPageState extends State<ExportReportsPage> {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                     children: [
-                      _buildFormatOption(appColors, 'PDF', 'pdf', Icons.picture_as_pdf),
-                      _buildFormatOption(appColors, 'CSV', 'csv', Icons.table_chart),
-                      _buildFormatOption(appColors, 'Excel', 'excel', Icons.grid_on),
+                      _buildFormatOption(
+                        appColors,
+                        'PDF',
+                        'pdf',
+                        Icons.picture_as_pdf,
+                      ),
+                      _buildFormatOption(
+                        appColors,
+                        'CSV',
+                        'csv',
+                        Icons.table_chart,
+                      ),
+                      _buildFormatOption(
+                        appColors,
+                        'Excel',
+                        'excel',
+                        Icons.grid_on,
+                      ),
                       _buildFormatOption(appColors, 'JSON', 'json', Icons.code),
                     ],
                   ),
@@ -124,7 +139,11 @@ class _ExportReportsPageState extends State<ExportReportsPage> {
                   children: [
                     _buildPreviewRow(appColors, 'Report Period:', 'This Month'),
                     SizedBox(height: 12.h),
-                    _buildPreviewRow(appColors, 'Total Earnings:', '\$14,500.00'),
+                    _buildPreviewRow(
+                      appColors,
+                      'Total Earnings:',
+                      '\$14,500.00',
+                    ),
                     SizedBox(height: 12.h),
                     _buildPreviewRow(appColors, 'Total Trips:', '324'),
                     SizedBox(height: 12.h),
@@ -132,7 +151,11 @@ class _ExportReportsPageState extends State<ExportReportsPage> {
                     SizedBox(height: 12.h),
                     _buildPreviewRow(appColors, 'Average Rating:', '4.8 ⭐'),
                     SizedBox(height: 12.h),
-                    _buildPreviewRow(appColors, 'Export Format:', selectedFormat.toUpperCase()),
+                    _buildPreviewRow(
+                      appColors,
+                      'Export Format:',
+                      selectedFormat.toUpperCase(),
+                    ),
                   ],
                 ),
               ),
@@ -154,11 +177,26 @@ class _ExportReportsPageState extends State<ExportReportsPage> {
               padding: EdgeInsets.symmetric(horizontal: 20.w),
               child: Column(
                 children: [
-                  _buildExportHistoryItem(appColors, 'Monthly Report - May 2024', 'PDF', '2024-05-15'),
+                  _buildExportHistoryItem(
+                    appColors,
+                    'Monthly Report - May 2024',
+                    'PDF',
+                    '2024-05-15',
+                  ),
                   SizedBox(height: 12.h),
-                  _buildExportHistoryItem(appColors, 'Quarterly Report - Q1 2024', 'Excel', '2024-04-01'),
+                  _buildExportHistoryItem(
+                    appColors,
+                    'Quarterly Report - Q1 2024',
+                    'Excel',
+                    '2024-04-01',
+                  ),
                   SizedBox(height: 12.h),
-                  _buildExportHistoryItem(appColors, 'Monthly Report - April 2024', 'PDF', '2024-04-15'),
+                  _buildExportHistoryItem(
+                    appColors,
+                    'Monthly Report - April 2024',
+                    'PDF',
+                    '2024-04-15',
+                  ),
                 ],
               ),
             ),
@@ -188,7 +226,9 @@ class _ExportReportsPageState extends State<ExportReportsPage> {
                   width: 20.h,
                   child: CircularProgressIndicator(
                     strokeWidth: 2,
-                    valueColor: AlwaysStoppedAnimation<Color>(appColors.background),
+                    valueColor: AlwaysStoppedAnimation<Color>(
+                      appColors.background,
+                    ),
                   ),
                 )
               : Text(
@@ -276,10 +316,7 @@ class _ExportReportsPageState extends State<ExportReportsPage> {
         Expanded(
           child: Text(
             label,
-            style: TextStyle(
-              fontSize: 13.sp,
-              color: appColors.textSecondary,
-            ),
+            style: TextStyle(fontSize: 13.sp, color: appColors.textSecondary),
           ),
         ),
         SizedBox(width: 12.w),
@@ -344,12 +381,12 @@ class _ExportReportsPageState extends State<ExportReportsPage> {
           Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-                Container(
-                  padding: EdgeInsets.all(8.w),
-                  decoration: BoxDecoration(
-                    color: appColors.accent.withValues(alpha: 0.2),
-                    borderRadius: BorderRadius.circular(8.r),
-                  ),
+              Container(
+                padding: EdgeInsets.all(8.w),
+                decoration: BoxDecoration(
+                  color: appColors.accent.withValues(alpha: 0.2),
+                  borderRadius: BorderRadius.circular(8.r),
+                ),
                 child: Text(
                   format,
                   style: TextStyle(
@@ -386,4 +423,3 @@ class _ExportReportsPageState extends State<ExportReportsPage> {
     }
   }
 }
-

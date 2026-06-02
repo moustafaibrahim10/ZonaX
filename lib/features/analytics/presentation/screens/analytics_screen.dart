@@ -60,10 +60,7 @@ class AnalyticsScreen extends StatelessWidget {
         ),
         Text(
           "Performance insights & trends",
-          style: TextStyle(
-            color: Colors.grey,
-            fontSize: 14.sp,
-          ),
+          style: TextStyle(color: Colors.grey, fontSize: 14.sp),
         ),
       ],
     );
@@ -223,7 +220,10 @@ class AnalyticsScreen extends StatelessWidget {
         gradient: LinearGradient(
           begin: Alignment.topCenter,
           end: Alignment.bottomCenter,
-          colors: [Colors.blueAccent.withValues(alpha: 0.8), Colors.blueAccent.withValues(alpha: 0.1)],
+          colors: [
+            Colors.blueAccent.withValues(alpha: 0.8),
+            Colors.blueAccent.withValues(alpha: 0.1),
+          ],
         ),
         borderRadius: BorderRadius.circular(4.r),
       ),
@@ -233,18 +233,43 @@ class AnalyticsScreen extends StatelessWidget {
   Widget _buildPeakHoursList() {
     return Column(
       children: [
-        _buildPeakHourItem("6 AM - 9 AM", "12 trips - 520 EGP", 0.85, Colors.tealAccent),
+        _buildPeakHourItem(
+          "6 AM - 9 AM",
+          "12 trips - 520 EGP",
+          0.85,
+          Colors.tealAccent,
+        ),
         SizedBox(height: 12.h),
-        _buildPeakHourItem("12 PM - 2 PM", "8 trips - 360 EGP", 0.70, Colors.tealAccent),
+        _buildPeakHourItem(
+          "12 PM - 2 PM",
+          "8 trips - 360 EGP",
+          0.70,
+          Colors.tealAccent,
+        ),
         SizedBox(height: 12.h),
-        _buildPeakHourItem("5 PM - 8 PM", "18 trips - 850 EGP", 0.95, Colors.tealAccent),
+        _buildPeakHourItem(
+          "5 PM - 8 PM",
+          "18 trips - 850 EGP",
+          0.95,
+          Colors.tealAccent,
+        ),
         SizedBox(height: 12.h),
-        _buildPeakHourItem("9 PM - 12 AM", "10 trips - 450 EGP", 0.75, Colors.tealAccent),
+        _buildPeakHourItem(
+          "9 PM - 12 AM",
+          "10 trips - 450 EGP",
+          0.75,
+          Colors.tealAccent,
+        ),
       ],
     );
   }
 
-  Widget _buildPeakHourItem(String time, String stats, double progress, Color color) {
+  Widget _buildPeakHourItem(
+    String time,
+    String stats,
+    double progress,
+    Color color,
+  ) {
     return Container(
       padding: EdgeInsets.all(16.w),
       decoration: BoxDecoration(
@@ -260,7 +285,11 @@ class AnalyticsScreen extends StatelessWidget {
               children: [
                 Text(
                   time,
-                  style: TextStyle(color: Colors.white, fontSize: 14.sp, fontWeight: FontWeight.bold),
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 14.sp,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
                 Text(
                   stats,
@@ -286,7 +315,11 @@ class AnalyticsScreen extends StatelessWidget {
                 SizedBox(height: 4.h),
                 Text(
                   "${(progress * 100).toInt()}%",
-                  style: TextStyle(color: color, fontSize: 12.sp, fontWeight: FontWeight.bold),
+                  style: TextStyle(
+                    color: color,
+                    fontSize: 12.sp,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
               ],
             ),
@@ -299,16 +332,40 @@ class AnalyticsScreen extends StatelessWidget {
   Widget _buildTopRoutesList() {
     return Column(
       children: [
-        _buildRouteItem("Downtown → Airport", "15 trips this week", "82 EGP", "Trending", Colors.greenAccent),
+        _buildRouteItem(
+          "Downtown → Airport",
+          "15 trips this week",
+          "82 EGP",
+          "Trending",
+          Colors.greenAccent,
+        ),
         SizedBox(height: 12.h),
-        _buildRouteItem("Business Bay → Mall", "12 trips this week", "54 EGP", "Trending", Colors.greenAccent),
+        _buildRouteItem(
+          "Business Bay → Mall",
+          "12 trips this week",
+          "54 EGP",
+          "Trending",
+          Colors.greenAccent,
+        ),
         SizedBox(height: 12.h),
-        _buildRouteItem("Airport → Downtown", "11 trips this week", "78 EGP", "Stable", Colors.grey),
+        _buildRouteItem(
+          "Airport → Downtown",
+          "11 trips this week",
+          "78 EGP",
+          "Stable",
+          Colors.grey,
+        ),
       ],
     );
   }
 
-  Widget _buildRouteItem(String route, String trips, String fare, String status, Color statusColor) {
+  Widget _buildRouteItem(
+    String route,
+    String trips,
+    String fare,
+    String status,
+    Color statusColor,
+  ) {
     return Container(
       padding: EdgeInsets.all(16.w),
       decoration: BoxDecoration(
@@ -324,7 +381,11 @@ class AnalyticsScreen extends StatelessWidget {
               color: Colors.tealAccent.withValues(alpha: 0.1),
               shape: BoxShape.circle,
             ),
-            child: Icon(Icons.location_on, color: Colors.tealAccent, size: 20.sp),
+            child: Icon(
+              Icons.location_on,
+              color: Colors.tealAccent,
+              size: 20.sp,
+            ),
           ),
           SizedBox(width: 12.w),
           Expanded(
@@ -333,7 +394,11 @@ class AnalyticsScreen extends StatelessWidget {
               children: [
                 Text(
                   route,
-                  style: TextStyle(color: Colors.white, fontSize: 14.sp, fontWeight: FontWeight.bold),
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 14.sp,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
                 Text(
                   trips,
@@ -347,7 +412,11 @@ class AnalyticsScreen extends StatelessWidget {
             children: [
               Text(
                 fare,
-                style: TextStyle(color: Colors.tealAccent, fontSize: 14.sp, fontWeight: FontWeight.bold),
+                style: TextStyle(
+                  color: Colors.tealAccent,
+                  fontSize: 14.sp,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
               Text(
                 status,
@@ -383,8 +452,18 @@ class AnalyticsScreen extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(title, style: TextStyle(color: Colors.grey, fontSize: 12.sp)),
-              Text(progressText, style: TextStyle(color: Colors.white, fontSize: 12.sp, fontWeight: FontWeight.bold)),
+              Text(
+                title,
+                style: TextStyle(color: Colors.grey, fontSize: 12.sp),
+              ),
+              Text(
+                progressText,
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 12.sp,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
             ],
           ),
           SizedBox(height: 12.h),
@@ -393,7 +472,9 @@ class AnalyticsScreen extends StatelessWidget {
             child: LinearProgressIndicator(
               value: progress,
               backgroundColor: Colors.white10,
-              valueColor: const AlwaysStoppedAnimation<Color>(Colors.blueAccent),
+              valueColor: const AlwaysStoppedAnimation<Color>(
+                Colors.blueAccent,
+              ),
               minHeight: 8.h,
             ),
           ),

@@ -16,7 +16,8 @@ class _SupportFAQPageState extends State<SupportFAQPage> {
   final List<Map<String, String>> faqs = [
     {
       'question': 'How do I update my payment method?',
-      'answer': 'Go to Settings > Payment Methods to add or update your payment methods.',
+      'answer':
+          'Go to Settings > Payment Methods to add or update your payment methods.',
     },
     {
       'question': 'What fees does ZonaX charge?',
@@ -24,11 +25,13 @@ class _SupportFAQPageState extends State<SupportFAQPage> {
     },
     {
       'question': 'How long does withdrawal take?',
-      'answer': 'Withdrawals typically take 2-3 business days to appear in your account.',
+      'answer':
+          'Withdrawals typically take 2-3 business days to appear in your account.',
     },
     {
       'question': 'How is my rating calculated?',
-      'answer': 'Your rating is based on passenger feedback, punctuality, and vehicle cleanliness.',
+      'answer':
+          'Your rating is based on passenger feedback, punctuality, and vehicle cleanliness.',
     },
   ];
 
@@ -73,11 +76,26 @@ class _SupportFAQPageState extends State<SupportFAQPage> {
                     ),
                   ),
                   SizedBox(height: 12.h),
-                  _buildContactTile(appColors, Icons.email, 'Email', 'support@zonax.com'),
+                  _buildContactTile(
+                    appColors,
+                    Icons.email,
+                    'Email',
+                    'support@zonax.com',
+                  ),
                   SizedBox(height: 8.h),
-                  _buildContactTile(appColors, Icons.phone, 'Phone', '+1-800-ZONAX'),
+                  _buildContactTile(
+                    appColors,
+                    Icons.phone,
+                    'Phone',
+                    '+1-800-ZONAX',
+                  ),
                   SizedBox(height: 8.h),
-                  _buildContactTile(appColors, Icons.chat, 'Live Chat', 'Available 24/7'),
+                  _buildContactTile(
+                    appColors,
+                    Icons.chat,
+                    'Live Chat',
+                    'Available 24/7',
+                  ),
                 ],
               ),
             ),
@@ -208,9 +226,7 @@ class _SupportFAQPageState extends State<SupportFAQPage> {
               Container(
                 padding: EdgeInsets.only(left: 16.w, right: 16.w, bottom: 16.w),
                 decoration: BoxDecoration(
-                  border: Border(
-                    top: BorderSide(color: appColors.inputBorder),
-                  ),
+                  border: Border(top: BorderSide(color: appColors.inputBorder)),
                 ),
                 child: Text(
                   faq['answer']!,
@@ -227,4 +243,3 @@ class _SupportFAQPageState extends State<SupportFAQPage> {
     );
   }
 }
-

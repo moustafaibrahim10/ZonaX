@@ -109,13 +109,13 @@ class _ProfilePageState extends State<ProfilePage> {
                   // User Avatar and Info
                   Row(
                     children: [
-                       Container(
-                         width: 70.w,
-                         height: 70.w,
-                         decoration: BoxDecoration(
-                           color: appColors.accent.withValues(alpha: 0.2),
-                           shape: BoxShape.circle,
-                         ),
+                      Container(
+                        width: 70.w,
+                        height: 70.w,
+                        decoration: BoxDecoration(
+                          color: appColors.accent.withValues(alpha: 0.2),
+                          shape: BoxShape.circle,
+                        ),
                         child: Icon(
                           Icons.person,
                           size: 40.sp,
@@ -186,7 +186,11 @@ class _ProfilePageState extends State<ProfilePage> {
                     ),
                     child: Row(
                       children: [
-                        Icon(Icons.directions_car, color: appColors.accent, size: 24.sp),
+                        Icon(
+                          Icons.directions_car,
+                          color: appColors.accent,
+                          size: 24.sp,
+                        ),
                         SizedBox(width: 12.w),
                         Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
@@ -335,7 +339,11 @@ class _ProfilePageState extends State<ProfilePage> {
                     _navigateToSupportFAQ,
                   ),
                   SizedBox(height: 12.h),
-                  _buildMenuItem(appColors, Icons.play_circle_outline, 'Tutorial Videos'),
+                  _buildMenuItem(
+                    appColors,
+                    Icons.play_circle_outline,
+                    'Tutorial Videos',
+                  ),
                 ],
               ),
             ),
@@ -348,9 +356,7 @@ class _ProfilePageState extends State<ProfilePage> {
               child: Container(
                 width: double.infinity,
                 decoration: BoxDecoration(
-                  border: Border(
-                    top: BorderSide(color: appColors.inputBorder),
-                  ),
+                  border: Border(top: BorderSide(color: appColors.inputBorder)),
                 ),
                 child: Padding(
                   padding: EdgeInsets.symmetric(vertical: 16.h),
@@ -380,11 +386,15 @@ class _ProfilePageState extends State<ProfilePage> {
           ],
         ),
       ),
-
     );
   }
 
-  Widget _buildStatCard(AppColors appColors, IconData icon, String value, String label) {
+  Widget _buildStatCard(
+    AppColors appColors,
+    IconData icon,
+    String value,
+    String label,
+  ) {
     return Container(
       decoration: BoxDecoration(
         color: appColors.surface,
@@ -407,10 +417,7 @@ class _ProfilePageState extends State<ProfilePage> {
           SizedBox(height: 4.h),
           Text(
             label,
-            style: TextStyle(
-              fontSize: 11.sp,
-              color: appColors.textSecondary,
-            ),
+            style: TextStyle(fontSize: 11.sp, color: appColors.textSecondary),
           ),
         ],
       ),
@@ -432,12 +439,12 @@ class _ProfilePageState extends State<ProfilePage> {
       ),
       child: Row(
         children: [
-            Container(
-              padding: EdgeInsets.all(8.w),
-              decoration: BoxDecoration(
-                color: appColors.accent.withValues(alpha: 0.2),
-                borderRadius: BorderRadius.circular(8.r),
-              ),
+          Container(
+            padding: EdgeInsets.all(8.w),
+            decoration: BoxDecoration(
+              color: appColors.accent.withValues(alpha: 0.2),
+              borderRadius: BorderRadius.circular(8.r),
+            ),
             child: Icon(icon, color: appColors.accent, size: 20.sp),
           ),
           SizedBox(width: 12.w),
@@ -494,7 +501,11 @@ class _ProfilePageState extends State<ProfilePage> {
               ),
             ],
           ),
-          Icon(Icons.arrow_forward_ios, size: 16.sp, color: appColors.textSecondary),
+          Icon(
+            Icons.arrow_forward_ios,
+            size: 16.sp,
+            color: appColors.textSecondary,
+          ),
         ],
       ),
     );
@@ -532,10 +543,14 @@ class _ProfilePageState extends State<ProfilePage> {
                 ),
               ],
             ),
-             Icon(Icons.arrow_forward_ios, size: 16.sp, color: appColors.textSecondary),
-           ],
-         ),
-       ),
-     );
-   }
+            Icon(
+              Icons.arrow_forward_ios,
+              size: 16.sp,
+              color: appColors.textSecondary,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 }
