@@ -1,6 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:zona_x_16_4/core/theme/app_colors.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import '../bloc/analytics_bloc.dart';
+import '../bloc/analytics_state.dart';
+import '../../domain/entities/analytics_entity.dart';
 
 class AnalyticsScreen extends StatelessWidget {
   const AnalyticsScreen({super.key});
@@ -12,38 +16,55 @@ class AnalyticsScreen extends StatelessWidget {
     return Scaffold(
       backgroundColor: appColors.background,
       body: SafeArea(
-        child: SingleChildScrollView(
-          padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 20.h),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              _buildHeader(appColors),
-              SizedBox(height: 24.h),
-              Text(
-                "This Week",
-                style: TextStyle(
-                  color: appColors.textPrimary,
-                  fontSize: 18.sp,
-                  fontWeight: FontWeight.bold,
+        child: BlocBuilder<AnalyticsBloc, AnalyticsState>(
+          builder: (context, state) {
+            if (state is AnalyticsLoading || state is AnalyticsInitial) {
+              return const Center(child: CircularProgressIndicator());
+            } else if (state is AnalyticsError) {
+              return Center(
+                child: Text(
+                  'Error: ${state.message}',
+                  style: TextStyle(color: Colors.red, fontSize: 16.sp),
                 ),
-              ),
-              SizedBox(height: 16.h),
-              _buildThisWeekGrid(appColors),
-              SizedBox(height: 24.h),
-              _buildSectionTitle(appColors, "Earnings Trend"),
-              _buildEarningsTrendChart(appColors),
-              SizedBox(height: 24.h),
-              _buildSectionTitle(appColors, "Peak Hours Performance"),
-              _buildPeakHoursList(appColors),
-              SizedBox(height: 24.h),
-              _buildSectionTitle(appColors, "Top Earning Routes"),
-              _buildTopRoutesList(appColors),
-              SizedBox(height: 24.h),
-              _buildSectionTitle(appColors, "Weekly Goals"),
-              _buildWeeklyGoals(appColors),
-              SizedBox(height: 40.h),
-            ],
-          ),
+              );
+            } else if (state is AnalyticsLoaded) {
+              final analytics = state.analytics;
+              return SingleChildScrollView(
+                padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 20.h),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _buildHeader(appColors),
+                    SizedBox(height: 24.h),
+                    Text(
+                      "This Week",
+                      style: TextStyle(
+                        color: appColors.textPrimary,
+                        fontSize: 18.sp,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    SizedBox(height: 16.h),
+                    _buildThisWeekGrid(appColors, analytics.weeklySummary),
+                    SizedBox(height: 24.h),
+                    _buildSectionTitle(appColors, "Earnings Trend"),
+                    _buildEarningsTrendChart(appColors, analytics.weeklySummary),
+                    SizedBox(height: 24.h),
+                    _buildSectionTitle(appColors, "Peak Hours Performance"),
+                    _buildPeakHoursList(appColors, analytics.weeklySummary),
+                    SizedBox(height: 24.h),
+                    _buildSectionTitle(appColors, "Top Earning Routes"),
+                    _buildTopRoutesList(appColors, analytics.weeklySummary),
+                    SizedBox(height: 24.h),
+                    _buildSectionTitle(appColors, "Weekly Goals"),
+                    _buildWeeklyGoals(appColors, analytics.weeklyGoals),
+                    SizedBox(height: 40.h),
+                  ],
+                ),
+              );
+            }
+            return const SizedBox();
+          },
         ),
       ),
     );
@@ -83,7 +104,7 @@ class AnalyticsScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildThisWeekGrid(AppColors appColors) {
+  Widget _buildThisWeekGrid(AppColors appColors, WeeklySummaryEntity summary) {
     return GridView.count(
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
@@ -97,17 +118,17 @@ class AnalyticsScreen extends StatelessWidget {
           icon: Icons.attach_money,
           iconColor: appColors.accent,
           label: "Total Earnings",
-          value: "3,200 EGP",
-          trend: "+18%",
-          trendColor: appColors.accent,
+          value: "${summary.totalEarnings.toStringAsFixed(0)} EGP",
+          trend: "${summary.trends > 0 ? '+' : ''}${summary.trends}%",
+          trendColor: summary.trends >= 0 ? appColors.accent : Colors.red,
         ),
         _buildStatCard(
           appColors,
           icon: Icons.track_changes,
           iconColor: Colors.blueAccent,
           label: "Completed Trips",
-          value: "78",
-          trend: "+12%",
+          value: "${summary.completedTrips}",
+          trend: "+0%", // Dummy trend for trips since not in API
           trendColor: Colors.blueAccent,
         ),
         _buildStatCard(
@@ -115,8 +136,8 @@ class AnalyticsScreen extends StatelessWidget {
           icon: Icons.access_time,
           iconColor: Colors.orangeAccent,
           label: "Online Hours",
-          value: "42h",
-          trend: "+5%",
+          value: "${summary.onlineHours.toStringAsFixed(1)}h",
+          trend: "+0%",
           trendColor: Colors.orangeAccent,
         ),
         _buildStatCard(
@@ -124,8 +145,8 @@ class AnalyticsScreen extends StatelessWidget {
           icon: Icons.trending_up,
           iconColor: appColors.accent,
           label: "Avg. per Hour",
-          value: "76 EGP",
-          trend: "+15%",
+          value: "${summary.avgPerHour.toStringAsFixed(0)} EGP",
+          trend: "+0%",
           trendColor: appColors.accent,
         ),
       ],
@@ -184,7 +205,7 @@ class AnalyticsScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildEarningsTrendChart(AppColors appColors) {
+  Widget _buildEarningsTrendChart(AppColors appColors, WeeklySummaryEntity summary) {
     return Container(
       height: 180.h,
       padding: EdgeInsets.all(16.w),
@@ -238,7 +259,7 @@ class AnalyticsScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildPeakHoursList(AppColors appColors) {
+  Widget _buildPeakHoursList(AppColors appColors, WeeklySummaryEntity summary) {
     return Column(
       children: [
         _buildPeakHourItem(
@@ -342,7 +363,7 @@ class AnalyticsScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildTopRoutesList(AppColors appColors) {
+  Widget _buildTopRoutesList(AppColors appColors, WeeklySummaryEntity summary) {
     return Column(
       children: [
         _buildRouteItem(
@@ -446,12 +467,15 @@ class AnalyticsScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildWeeklyGoals(AppColors appColors) {
+  Widget _buildWeeklyGoals(AppColors appColors, WeeklyGoalsEntity goals) {
+    final earningsGoalProgress = goals.earningsGoal.target > 0 ? (goals.earningsGoal.current / goals.earningsGoal.target).clamp(0.0, 1.0) : 0.0;
+    final tripsGoalProgress = goals.tripsGoal.target > 0 ? (goals.tripsGoal.current / goals.tripsGoal.target).clamp(0.0, 1.0) : 0.0;
+    
     return Column(
       children: [
-        _buildGoalItem(appColors, "Earnings Goal", "3,200 / 4,000 EGP", 0.8),
+        _buildGoalItem(appColors, "Earnings Goal", "${goals.earningsGoal.current.toStringAsFixed(0)} / ${goals.earningsGoal.target.toStringAsFixed(0)} EGP", earningsGoalProgress),
         SizedBox(height: 16.h),
-        _buildGoalItem(appColors, "Trips Goal", "78 / 100 trips", 0.78),
+        _buildGoalItem(appColors, "Trips Goal", "${goals.tripsGoal.current.toStringAsFixed(0)} / ${goals.tripsGoal.target.toStringAsFixed(0)} trips", tripsGoalProgress),
       ],
     );
   }

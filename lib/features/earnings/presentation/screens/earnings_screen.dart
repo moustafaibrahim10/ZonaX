@@ -2,8 +2,15 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:zona_x_16_4/core/theme/app_colors.dart';
 
-class EarningsScreen extends StatelessWidget {
+class EarningsScreen extends StatefulWidget {
   const EarningsScreen({super.key});
+
+  @override
+  State<EarningsScreen> createState() => _EarningsScreenState();
+}
+
+class _EarningsScreenState extends State<EarningsScreen> {
+  String _selectedPeriod = "Today";
 
   @override
   Widget build(BuildContext context) {
@@ -134,29 +141,37 @@ class EarningsScreen extends StatelessWidget {
       ),
       child: Row(
         children: [
-          _buildToggleItem(appColors, "Today", true),
-          _buildToggleItem(appColors, "Week", false),
-          _buildToggleItem(appColors, "Month", false),
+          _buildToggleItem(appColors, "Today"),
+          _buildToggleItem(appColors, "Week"),
+          _buildToggleItem(appColors, "Month"),
         ],
       ),
     );
   }
 
-  Widget _buildToggleItem(AppColors appColors, String label, bool isActive) {
+  Widget _buildToggleItem(AppColors appColors, String label) {
+    final isActive = _selectedPeriod == label;
     return Expanded(
-      child: Container(
-        margin: EdgeInsets.all(4.w),
-        decoration: BoxDecoration(
-          color: isActive ? appColors.accent : Colors.transparent,
-          borderRadius: BorderRadius.circular(8.r),
-        ),
-        alignment: Alignment.center,
-        child: Text(
-          label,
-          style: TextStyle(
-            color: isActive ? appColors.background : appColors.textSecondary,
-            fontSize: 14.sp,
-            fontWeight: isActive ? FontWeight.bold : FontWeight.normal,
+      child: GestureDetector(
+        onTap: () {
+          setState(() {
+            _selectedPeriod = label;
+          });
+        },
+        child: Container(
+          margin: EdgeInsets.all(4.w),
+          decoration: BoxDecoration(
+            color: isActive ? appColors.accent : Colors.transparent,
+            borderRadius: BorderRadius.circular(8.r),
+          ),
+          alignment: Alignment.center,
+          child: Text(
+            label,
+            style: TextStyle(
+              color: isActive ? appColors.background : appColors.textSecondary,
+              fontSize: 14.sp,
+              fontWeight: isActive ? FontWeight.bold : FontWeight.normal,
+            ),
           ),
         ),
       ),
@@ -164,6 +179,20 @@ class EarningsScreen extends StatelessWidget {
   }
 
   Widget _buildMainSummary(AppColors appColors) {
+    String earnings = "450 EGP";
+    String trips = "12";
+    String hours = "6.5h";
+
+    if (_selectedPeriod == "Week") {
+      earnings = "3,200 EGP";
+      trips = "78";
+      hours = "42h";
+    } else if (_selectedPeriod == "Month") {
+      earnings = "12,500 EGP";
+      trips = "310";
+      hours = "160h";
+    }
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -179,7 +208,7 @@ class EarningsScreen extends StatelessWidget {
                 ),
                 SizedBox(height: 4.h),
                 Text(
-                  "450 EGP",
+                  earnings,
                   style: TextStyle(
                     color: appColors.textPrimary,
                     fontSize: 32.sp,
@@ -202,9 +231,9 @@ class EarningsScreen extends StatelessWidget {
         SizedBox(height: 24.h),
         Row(
           children: [
-            _buildSmallSummaryItem(appColors, "Trips", "12"),
+            _buildSmallSummaryItem(appColors, "Trips", trips),
             SizedBox(width: 40.w),
-            _buildSmallSummaryItem(appColors, "Hours Online", "6.5h"),
+            _buildSmallSummaryItem(appColors, "Hours Online", hours),
           ],
         ),
       ],
