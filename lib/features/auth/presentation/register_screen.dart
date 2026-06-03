@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:dio/dio.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 
+import '../../../core/network/dio_factory.dart';
 import '../../../core/theme/app_colors.dart';
 import '../data/datasources/remote/auth_api_service.dart';
 import '../data/datasources/local/auth_local_data_source.dart';
@@ -19,15 +19,7 @@ class RegisterScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return BlocProvider(
       create: (context) {
-        final dio = Dio();
-        dio.interceptors.add(LogInterceptor(
-          requestHeader: true,
-          requestBody: true,
-          responseBody: true,
-          responseHeader: false,
-          error: true,
-          logPrint: (object) => debugPrint('🌐 API LOG: $object'),
-        ));
+        final dio = DioFactory.getDio();
         final apiService = AuthApiService(dio);
         final localDataSource = AuthLocalDataSourceImpl(
           const FlutterSecureStorage(),

@@ -1,153 +1,160 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:zona_x_16_4/core/theme/app_colors.dart';
 
 class EarningsScreen extends StatelessWidget {
   const EarningsScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
+    final appColors = Theme.of(context).extension<AppColors>()!;
+
     return Scaffold(
-      backgroundColor: const Color(0xFF0F111A),
+      backgroundColor: appColors.background,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
         title: Text(
           "Earnings",
           style: TextStyle(
-            color: Colors.white,
+            color: appColors.textPrimary,
             fontSize: 22.sp,
             fontWeight: FontWeight.bold,
           ),
         ),
         actions: [
-          _buildExportButton(),
+          _buildExportButton(appColors),
           SizedBox(width: 16.w),
         ],
       ),
-      body: SingleChildScrollView(
-        padding: EdgeInsets.symmetric(horizontal: 16.w),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            SizedBox(height: 10.h),
-            _buildPeriodToggle(),
-            SizedBox(height: 30.h),
-            _buildMainSummary(),
-            SizedBox(height: 30.h),
-            Text(
-              "Performance",
-              style: TextStyle(
-                color: Colors.white,
-                fontSize: 18.sp,
-                fontWeight: FontWeight.bold,
+      body: SafeArea(
+        top: false,
+        child: SingleChildScrollView(
+          padding: EdgeInsets.symmetric(horizontal: 16.w),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              SizedBox(height: 10.h),
+              _buildPeriodToggle(appColors),
+              SizedBox(height: 30.h),
+              _buildMainSummary(appColors),
+              SizedBox(height: 30.h),
+              Text(
+                "Performance",
+                style: TextStyle(
+                  color: appColors.textPrimary,
+                  fontSize: 18.sp,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
-            ),
-            SizedBox(height: 16.h),
-            _buildPerformanceGrid(),
-            SizedBox(height: 30.h),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  "Daily Breakdown",
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 18.sp,
-                    fontWeight: FontWeight.bold,
+              SizedBox(height: 16.h),
+              _buildPerformanceGrid(appColors),
+              SizedBox(height: 30.h),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    "Daily Breakdown",
+                    style: TextStyle(
+                      color: appColors.textPrimary,
+                      fontSize: 18.sp,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
-                ),
-                Text(
-                  "View All",
-                  style: TextStyle(
-                    color: const Color(0xFF00D293),
-                    fontSize: 12.sp,
+                  Text(
+                    "View All",
+                    style: TextStyle(
+                      color: appColors.accent,
+                      fontSize: 12.sp,
+                    ),
                   ),
-                ),
-              ],
-            ),
-            SizedBox(height: 16.h),
-            _buildDailyBreakdown(),
-            SizedBox(height: 30.h),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  "Recent Trips",
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 18.sp,
-                    fontWeight: FontWeight.bold,
+                ],
+              ),
+              SizedBox(height: 16.h),
+              _buildDailyBreakdown(appColors),
+              SizedBox(height: 30.h),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    "Recent Trips",
+                    style: TextStyle(
+                      color: appColors.textPrimary,
+                      fontSize: 18.sp,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
-                ),
-                Text(
-                  "View All >",
-                  style: TextStyle(
-                    color: const Color(0xFF00D293),
-                    fontSize: 12.sp,
+                  Text(
+                    "View All >",
+                    style: TextStyle(
+                      color: appColors.accent,
+                      fontSize: 12.sp,
+                    ),
                   ),
-                ),
-              ],
-            ),
-            SizedBox(height: 16.h),
-            _buildRecentTripsList(),
-            SizedBox(height: 40.h),
-          ],
+                ],
+              ),
+              SizedBox(height: 16.h),
+              _buildRecentTripsList(appColors),
+              SizedBox(height: 40.h),
+            ],
+          ),
         ),
       ),
     );
   }
 
-  Widget _buildExportButton() {
+  Widget _buildExportButton(AppColors appColors) {
     return Container(
       padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 6.h),
       decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.1),
+        color: appColors.surface,
         borderRadius: BorderRadius.circular(20.r),
-        border: Border.all(color: Colors.white12),
+        border: Border.all(color: appColors.inputBorder),
       ),
       child: Row(
         children: [
-          Icon(Icons.ios_share, color: Colors.white, size: 16.sp),
+          Icon(Icons.ios_share, color: appColors.accent, size: 16.sp),
           SizedBox(width: 6.w),
           Text(
             "Export",
-            style: TextStyle(color: Colors.white, fontSize: 12.sp),
+            style: TextStyle(color: appColors.textPrimary, fontSize: 12.sp),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildPeriodToggle() {
+  Widget _buildPeriodToggle(AppColors appColors) {
     return Container(
       height: 45.h,
       decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.05),
+        color: appColors.surface,
         borderRadius: BorderRadius.circular(12.r),
+        border: Border.all(color: appColors.inputBorder),
       ),
       child: Row(
         children: [
-          _buildToggleItem("Today", true),
-          _buildToggleItem("Week", false),
-          _buildToggleItem("Month", false),
+          _buildToggleItem(appColors, "Today", true),
+          _buildToggleItem(appColors, "Week", false),
+          _buildToggleItem(appColors, "Month", false),
         ],
       ),
     );
   }
 
-  Widget _buildToggleItem(String label, bool isActive) {
+  Widget _buildToggleItem(AppColors appColors, String label, bool isActive) {
     return Expanded(
       child: Container(
         margin: EdgeInsets.all(4.w),
         decoration: BoxDecoration(
-          color: isActive ? const Color(0xFF00D293) : Colors.transparent,
+          color: isActive ? appColors.accent : Colors.transparent,
           borderRadius: BorderRadius.circular(8.r),
         ),
         alignment: Alignment.center,
         child: Text(
           label,
           style: TextStyle(
-            color: isActive ? Colors.white : Colors.grey,
+            color: isActive ? appColors.background : appColors.textSecondary,
             fontSize: 14.sp,
             fontWeight: isActive ? FontWeight.bold : FontWeight.normal,
           ),
@@ -156,7 +163,7 @@ class EarningsScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildMainSummary() {
+  Widget _buildMainSummary(AppColors appColors) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -168,13 +175,13 @@ class EarningsScreen extends StatelessWidget {
               children: [
                 Text(
                   "Total Earnings",
-                  style: TextStyle(color: Colors.grey, fontSize: 12.sp),
+                  style: TextStyle(color: appColors.textSecondary, fontSize: 12.sp),
                 ),
                 SizedBox(height: 4.h),
                 Text(
                   "450 EGP",
                   style: TextStyle(
-                    color: Colors.white,
+                    color: appColors.textPrimary,
                     fontSize: 32.sp,
                     fontWeight: FontWeight.bold,
                   ),
@@ -184,38 +191,39 @@ class EarningsScreen extends StatelessWidget {
             Container(
               padding: EdgeInsets.all(12.w),
               decoration: BoxDecoration(
-                color: Colors.white.withValues(alpha: 0.05),
+                color: appColors.surface,
                 shape: BoxShape.circle,
+                border: Border.all(color: appColors.inputBorder),
               ),
-              child: Icon(Icons.attach_money, color: Colors.grey, size: 30.sp),
+              child: Icon(Icons.attach_money, color: appColors.accent, size: 30.sp),
             ),
           ],
         ),
         SizedBox(height: 24.h),
         Row(
           children: [
-            _buildSmallSummaryItem("Trips", "12"),
+            _buildSmallSummaryItem(appColors, "Trips", "12"),
             SizedBox(width: 40.w),
-            _buildSmallSummaryItem("Hours Online", "6.5h"),
+            _buildSmallSummaryItem(appColors, "Hours Online", "6.5h"),
           ],
         ),
       ],
     );
   }
 
-  Widget _buildSmallSummaryItem(String label, String value) {
+  Widget _buildSmallSummaryItem(AppColors appColors, String label, String value) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
           label,
-          style: TextStyle(color: const Color(0xFF00D293), fontSize: 12.sp),
+          style: TextStyle(color: appColors.accent, fontSize: 12.sp),
         ),
         SizedBox(height: 4.h),
         Text(
           value,
           style: TextStyle(
-            color: Colors.white,
+            color: appColors.textPrimary,
             fontSize: 20.sp,
             fontWeight: FontWeight.bold,
           ),
@@ -224,10 +232,11 @@ class EarningsScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildPerformanceGrid() {
+  Widget _buildPerformanceGrid(AppColors appColors) {
     return Row(
       children: [
         _buildPerformanceCard(
+          appColors,
           Icons.attach_money,
           "Avg. per Trip",
           "38 EGP",
@@ -236,6 +245,7 @@ class EarningsScreen extends StatelessWidget {
         ),
         SizedBox(width: 12.w),
         _buildPerformanceCard(
+          appColors,
           Icons.trending_up,
           "Per Hour",
           "69 EGP",
@@ -247,6 +257,7 @@ class EarningsScreen extends StatelessWidget {
   }
 
   Widget _buildPerformanceCard(
+    AppColors appColors,
     IconData icon,
     String label,
     String value,
@@ -257,9 +268,9 @@ class EarningsScreen extends StatelessWidget {
       child: Container(
         padding: EdgeInsets.all(16.w),
         decoration: BoxDecoration(
-          color: const Color(0xFF1E1E2A),
+          color: appColors.surface,
           borderRadius: BorderRadius.circular(16.r),
-          border: Border.all(color: Colors.white10),
+          border: Border.all(color: appColors.inputBorder),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -267,7 +278,7 @@ class EarningsScreen extends StatelessWidget {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Icon(icon, color: const Color(0xFF00D293), size: 20.sp),
+                Icon(icon, color: appColors.accent, size: 20.sp),
                 Text(
                   trend,
                   style: TextStyle(color: trendColor, fontSize: 10.sp),
@@ -277,13 +288,13 @@ class EarningsScreen extends StatelessWidget {
             SizedBox(height: 12.h),
             Text(
               label,
-              style: TextStyle(color: Colors.grey, fontSize: 12.sp),
+              style: TextStyle(color: appColors.textSecondary, fontSize: 12.sp),
             ),
             SizedBox(height: 4.h),
             Text(
               value,
               style: TextStyle(
-                color: Colors.white,
+                color: appColors.textPrimary,
                 fontSize: 18.sp,
                 fontWeight: FontWeight.bold,
               ),
@@ -294,37 +305,37 @@ class EarningsScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildDailyBreakdown() {
+  Widget _buildDailyBreakdown(AppColors appColors) {
     return Container(
       height: 180.h,
       padding: EdgeInsets.all(16.w),
       decoration: BoxDecoration(
-        color: const Color(0xFF1E1E2A),
+        color: appColors.surface,
         borderRadius: BorderRadius.circular(20.r),
-        border: Border.all(color: Colors.white10),
+        border: Border.all(color: appColors.inputBorder),
       ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceAround,
         crossAxisAlignment: CrossAxisAlignment.end,
         children: [
-          _buildBar("Mon", 520, 0.7),
-          _buildBar("Tue", 480, 0.6),
-          _buildBar("Wed", 650, 0.9),
-          _buildBar("Thu", 590, 0.8),
-          _buildBar("Fri", 450, 0.5),
+          _buildBar(appColors, "Mon", 520, 0.7),
+          _buildBar(appColors, "Tue", 480, 0.6),
+          _buildBar(appColors, "Wed", 650, 0.9),
+          _buildBar(appColors, "Thu", 590, 0.8),
+          _buildBar(appColors, "Fri", 450, 0.5),
         ],
       ),
     );
   }
 
-  Widget _buildBar(String day, int amount, double heightFactor) {
+  Widget _buildBar(AppColors appColors, String day, int amount, double heightFactor) {
     return Column(
       mainAxisAlignment: MainAxisAlignment.end,
       children: [
         Text(
           amount.toString(),
           style: TextStyle(
-            color: Colors.white,
+            color: appColors.textPrimary,
             fontSize: 10.sp,
             fontWeight: FontWeight.bold,
           ),
@@ -334,23 +345,24 @@ class EarningsScreen extends StatelessWidget {
           width: 35.w,
           height: 100.h * heightFactor,
           decoration: BoxDecoration(
-            color: Colors.white.withValues(alpha: 0.05),
+            color: appColors.accent,
             borderRadius: BorderRadius.circular(6.r),
           ),
         ),
         SizedBox(height: 8.h),
         Text(
           day,
-          style: TextStyle(color: Colors.grey, fontSize: 10.sp),
+          style: TextStyle(color: appColors.textSecondary, fontSize: 10.sp),
         ),
       ],
     );
   }
 
-  Widget _buildRecentTripsList() {
+  Widget _buildRecentTripsList(AppColors appColors) {
     return Column(
       children: [
         _buildTripCard(
+          appColors,
           "Downtown → Airport",
           "14:30",
           "25 min",
@@ -359,6 +371,7 @@ class EarningsScreen extends StatelessWidget {
         ),
         SizedBox(height: 12.h),
         _buildTripCard(
+          appColors,
           "Mall District → Business Bay",
           "13:45",
           "15 min",
@@ -367,6 +380,7 @@ class EarningsScreen extends StatelessWidget {
         ),
         SizedBox(height: 12.h),
         _buildTripCard(
+          appColors,
           "Residential → Downtown",
           "12:20",
           "18 min",
@@ -375,6 +389,7 @@ class EarningsScreen extends StatelessWidget {
         ),
         SizedBox(height: 12.h),
         _buildTripCard(
+          appColors,
           "Business Bay → Mall District",
           "11:30",
           "12 min",
@@ -386,6 +401,7 @@ class EarningsScreen extends StatelessWidget {
   }
 
   Widget _buildTripCard(
+    AppColors appColors,
     String route,
     String time,
     String duration,
@@ -395,9 +411,9 @@ class EarningsScreen extends StatelessWidget {
     return Container(
       padding: EdgeInsets.all(16.w),
       decoration: BoxDecoration(
-        color: const Color(0xFF1E1E2A),
+        color: appColors.surface,
         borderRadius: BorderRadius.circular(16.r),
-        border: Border.all(color: Colors.white10),
+        border: Border.all(color: appColors.inputBorder),
       ),
       child: Column(
         children: [
@@ -409,7 +425,7 @@ class EarningsScreen extends StatelessWidget {
                   children: [
                     Icon(
                       Icons.location_on_outlined,
-                      color: const Color(0xFF00D293),
+                      color: appColors.accent,
                       size: 18.sp,
                     ),
                     SizedBox(width: 8.w),
@@ -417,7 +433,7 @@ class EarningsScreen extends StatelessWidget {
                       child: Text(
                         route,
                         style: TextStyle(
-                          color: Colors.white,
+                          color: appColors.textPrimary,
                           fontSize: 14.sp,
                           fontWeight: FontWeight.bold,
                         ),
@@ -430,7 +446,7 @@ class EarningsScreen extends StatelessWidget {
               Text(
                 fare,
                 style: TextStyle(
-                  color: const Color(0xFF00D293),
+                  color: appColors.accent,
                   fontSize: 16.sp,
                   fontWeight: FontWeight.bold,
                 ),
@@ -440,11 +456,11 @@ class EarningsScreen extends StatelessWidget {
           SizedBox(height: 12.h),
           Row(
             children: [
-              _buildTripDetail(Icons.access_time, time),
+              _buildTripDetail(appColors, Icons.access_time, time),
               SizedBox(width: 16.w),
-              _buildTripDetail(Icons.timer_outlined, duration),
+              _buildTripDetail(appColors, Icons.timer_outlined, duration),
               SizedBox(width: 16.w),
-              _buildTripDetail(Icons.route_outlined, distance),
+              _buildTripDetail(appColors, Icons.route_outlined, distance),
             ],
           ),
         ],
@@ -452,14 +468,14 @@ class EarningsScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildTripDetail(IconData icon, String text) {
+  Widget _buildTripDetail(AppColors appColors, IconData icon, String text) {
     return Row(
       children: [
-        Icon(icon, color: Colors.grey, size: 14.sp),
+        Icon(icon, color: appColors.textSecondary, size: 14.sp),
         SizedBox(width: 4.w),
         Text(
           text,
-          style: TextStyle(color: Colors.grey, fontSize: 12.sp),
+          style: TextStyle(color: appColors.textSecondary, fontSize: 12.sp),
         ),
       ],
     );

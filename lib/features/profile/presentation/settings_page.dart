@@ -40,27 +40,29 @@ class _SettingsPageState extends State<SettingsPage> {
               ),
             ),
           ),
-          body: SingleChildScrollView(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Account Section
-                Padding(
-                  padding: EdgeInsets.only(left: 20.w, top: 24.h, bottom: 12.h),
-                  child: Text(
-                    'Account',
-                    style: TextStyle(
-                      fontSize: 18.sp,
-                      fontWeight: FontWeight.bold,
-                      color: appColors.textPrimary,
+          body: SafeArea(
+            top: false,
+            child: SingleChildScrollView(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Account Section
+                  Padding(
+                    padding: EdgeInsets.only(left: 20.w, top: 24.h, bottom: 12.h),
+                    child: Text(
+                      'Account',
+                      style: TextStyle(
+                        fontSize: 18.sp,
+                        fontWeight: FontWeight.bold,
+                        color: appColors.textPrimary,
+                      ),
                     ),
                   ),
-                ),
-                _buildSettingsTile(
-                  appColors,
-                  Icons.edit,
-                  'Edit Profile',
-                  'Update your personal information',
+                  _buildSettingsTile(
+                    appColors,
+                    Icons.edit,
+                    'Edit Profile',
+                    'Update your personal information',
                 ),
                 _buildSettingsTile(
                   appColors,
@@ -176,6 +178,7 @@ class _SettingsPageState extends State<SettingsPage> {
               ],
             ),
           ),
+        ),
         );
       },
     );

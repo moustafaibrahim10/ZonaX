@@ -6,6 +6,7 @@ class DioFactory {
   DioFactory._();
 
   static Dio? _dio;
+  static String? _authToken;
 
   static Dio getDio() {
     Duration timeOut = const Duration(milliseconds: ApiConstants.apiTimeOut);
@@ -22,15 +23,36 @@ class DioFactory {
     return _dio!;
   }
 
+  // Set authentication token (call this after login)
+  static void setAuthToken(String token) {
+    _authToken = token;
+  }
+
+  // Clear authentication token (call this on logout)
+  static void clearAuthToken() {
+    _authToken = null;
+  }
+
   static void _addInterceptors() {
     // Auth Interceptor for adding tokens
     _dio?.interceptors.add(
       InterceptorsWrapper(
         onRequest: (options, handler) {
-          // TODO: Add token dynamically here when Auth service is integrated
-          // options.headers['Authorization'] = 'Bearer $token';
+          // Add Bearer token if available
+          if (_authToken != null && _authToken!.isNotEmpty) {
+            options.headers['Authorization'] = 'Bearer $_authToken';
+          }
           options.headers['Accept'] = 'application/json';
+          options.headers['Content-Type'] = 'application/json';
           return handler.next(options);
+        },
+        onError: (error, handler) {
+          // Handle 401 Unauthorized (token expired)
+          if (error.response?.statusCode == 401) {
+            clearAuthToken();
+            // TODO: Redirect to login screen
+          }
+          return handler.next(error);
         },
       ),
     );

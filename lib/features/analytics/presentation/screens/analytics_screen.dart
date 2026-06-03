@@ -1,43 +1,46 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:zona_x_16_4/core/theme/app_colors.dart';
 
 class AnalyticsScreen extends StatelessWidget {
   const AnalyticsScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
+    final appColors = Theme.of(context).extension<AppColors>()!;
+
     return Scaffold(
-      backgroundColor: const Color(0xFF0F111A),
+      backgroundColor: appColors.background,
       body: SafeArea(
         child: SingleChildScrollView(
           padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 20.h),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              _buildHeader(),
+              _buildHeader(appColors),
               SizedBox(height: 24.h),
               Text(
                 "This Week",
                 style: TextStyle(
-                  color: Colors.white,
+                  color: appColors.textPrimary,
                   fontSize: 18.sp,
                   fontWeight: FontWeight.bold,
                 ),
               ),
               SizedBox(height: 16.h),
-              _buildThisWeekGrid(),
+              _buildThisWeekGrid(appColors),
               SizedBox(height: 24.h),
-              _buildSectionTitle("Earnings Trend"),
-              _buildEarningsTrendChart(),
+              _buildSectionTitle(appColors, "Earnings Trend"),
+              _buildEarningsTrendChart(appColors),
               SizedBox(height: 24.h),
-              _buildSectionTitle("Peak Hours Performance"),
-              _buildPeakHoursList(),
+              _buildSectionTitle(appColors, "Peak Hours Performance"),
+              _buildPeakHoursList(appColors),
               SizedBox(height: 24.h),
-              _buildSectionTitle("Top Earning Routes"),
-              _buildTopRoutesList(),
+              _buildSectionTitle(appColors, "Top Earning Routes"),
+              _buildTopRoutesList(appColors),
               SizedBox(height: 24.h),
-              _buildSectionTitle("Weekly Goals"),
-              _buildWeeklyGoals(),
+              _buildSectionTitle(appColors, "Weekly Goals"),
+              _buildWeeklyGoals(appColors),
               SizedBox(height: 40.h),
             ],
           ),
@@ -46,33 +49,33 @@ class AnalyticsScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildHeader() {
+  Widget _buildHeader(AppColors appColors) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
           "Analytics",
           style: TextStyle(
-            color: Colors.white,
+            color: appColors.textPrimary,
             fontSize: 24.sp,
             fontWeight: FontWeight.bold,
           ),
         ),
         Text(
           "Performance insights & trends",
-          style: TextStyle(color: Colors.grey, fontSize: 14.sp),
+          style: TextStyle(color: appColors.textSecondary, fontSize: 14.sp),
         ),
       ],
     );
   }
 
-  Widget _buildSectionTitle(String title) {
+  Widget _buildSectionTitle(AppColors appColors, String title) {
     return Padding(
       padding: EdgeInsets.only(bottom: 16.h),
       child: Text(
         title,
         style: TextStyle(
-          color: Colors.white,
+          color: appColors.textPrimary,
           fontSize: 18.sp,
           fontWeight: FontWeight.bold,
         ),
@@ -80,7 +83,7 @@ class AnalyticsScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildThisWeekGrid() {
+  Widget _buildThisWeekGrid(AppColors appColors) {
     return GridView.count(
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
@@ -90,14 +93,16 @@ class AnalyticsScreen extends StatelessWidget {
       crossAxisSpacing: 12.w,
       children: [
         _buildStatCard(
+          appColors,
           icon: Icons.attach_money,
-          iconColor: Colors.greenAccent,
+          iconColor: appColors.accent,
           label: "Total Earnings",
           value: "3,200 EGP",
           trend: "+18%",
-          trendColor: Colors.greenAccent,
+          trendColor: appColors.accent,
         ),
         _buildStatCard(
+          appColors,
           icon: Icons.track_changes,
           iconColor: Colors.blueAccent,
           label: "Completed Trips",
@@ -106,6 +111,7 @@ class AnalyticsScreen extends StatelessWidget {
           trendColor: Colors.blueAccent,
         ),
         _buildStatCard(
+          appColors,
           icon: Icons.access_time,
           iconColor: Colors.orangeAccent,
           label: "Online Hours",
@@ -114,18 +120,20 @@ class AnalyticsScreen extends StatelessWidget {
           trendColor: Colors.orangeAccent,
         ),
         _buildStatCard(
+          appColors,
           icon: Icons.trending_up,
-          iconColor: Colors.tealAccent,
+          iconColor: appColors.accent,
           label: "Avg. per Hour",
           value: "76 EGP",
           trend: "+15%",
-          trendColor: Colors.tealAccent,
+          trendColor: appColors.accent,
         ),
       ],
     );
   }
 
-  Widget _buildStatCard({
+  Widget _buildStatCard(
+    AppColors appColors, {
     required IconData icon,
     required Color iconColor,
     required String label,
@@ -136,9 +144,9 @@ class AnalyticsScreen extends StatelessWidget {
     return Container(
       padding: EdgeInsets.all(12.w),
       decoration: BoxDecoration(
-        color: const Color(0xFF1E1E2A),
+        color: appColors.surface,
         borderRadius: BorderRadius.circular(16.r),
-        border: Border.all(color: Colors.white10),
+        border: Border.all(color: appColors.inputBorder),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -159,12 +167,12 @@ class AnalyticsScreen extends StatelessWidget {
             children: [
               Text(
                 label,
-                style: TextStyle(color: Colors.grey, fontSize: 11.sp),
+                style: TextStyle(color: appColors.textSecondary, fontSize: 11.sp),
               ),
               Text(
                 value,
                 style: TextStyle(
-                  color: Colors.white,
+                  color: appColors.textPrimary,
                   fontSize: 16.sp,
                   fontWeight: FontWeight.bold,
                 ),
@@ -176,14 +184,14 @@ class AnalyticsScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildEarningsTrendChart() {
+  Widget _buildEarningsTrendChart(AppColors appColors) {
     return Container(
       height: 180.h,
       padding: EdgeInsets.all(16.w),
       decoration: BoxDecoration(
-        color: const Color(0xFF1E1E2A),
+        color: appColors.surface,
         borderRadius: BorderRadius.circular(20.r),
-        border: Border.all(color: Colors.white10),
+        border: Border.all(color: appColors.inputBorder),
       ),
       child: Column(
         children: [
@@ -192,27 +200,27 @@ class AnalyticsScreen extends StatelessWidget {
               mainAxisAlignment: MainAxisAlignment.spaceAround,
               crossAxisAlignment: CrossAxisAlignment.end,
               children: [
-                _buildBar(0.4),
-                _buildBar(0.7),
-                _buildBar(0.5),
-                _buildBar(0.9),
-                _buildBar(0.6),
-                _buildBar(0.8),
-                _buildBar(0.4),
+                _buildBar(appColors, 0.4),
+                _buildBar(appColors, 0.7),
+                _buildBar(appColors, 0.5),
+                _buildBar(appColors, 0.9),
+                _buildBar(appColors, 0.6),
+                _buildBar(appColors, 0.8),
+                _buildBar(appColors, 0.4),
               ],
             ),
           ),
           SizedBox(height: 12.h),
           Text(
             "Weekly earnings for the last 4 weeks",
-            style: TextStyle(color: Colors.grey, fontSize: 11.sp),
+            style: TextStyle(color: appColors.textSecondary, fontSize: 11.sp),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildBar(double heightFactor) {
+  Widget _buildBar(AppColors appColors, double heightFactor) {
     return Container(
       width: 20.w,
       height: 120.h * heightFactor,
@@ -221,8 +229,8 @@ class AnalyticsScreen extends StatelessWidget {
           begin: Alignment.topCenter,
           end: Alignment.bottomCenter,
           colors: [
-            Colors.blueAccent.withValues(alpha: 0.8),
-            Colors.blueAccent.withValues(alpha: 0.1),
+            appColors.accent.withValues(alpha: 0.8),
+            appColors.accent.withValues(alpha: 0.1),
           ],
         ),
         borderRadius: BorderRadius.circular(4.r),
@@ -230,41 +238,46 @@ class AnalyticsScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildPeakHoursList() {
+  Widget _buildPeakHoursList(AppColors appColors) {
     return Column(
       children: [
         _buildPeakHourItem(
+          appColors,
           "6 AM - 9 AM",
           "12 trips - 520 EGP",
           0.85,
-          Colors.tealAccent,
+          appColors.accent,
         ),
         SizedBox(height: 12.h),
         _buildPeakHourItem(
+          appColors,
           "12 PM - 2 PM",
           "8 trips - 360 EGP",
           0.70,
-          Colors.tealAccent,
+          appColors.accent,
         ),
         SizedBox(height: 12.h),
         _buildPeakHourItem(
+          appColors,
           "5 PM - 8 PM",
           "18 trips - 850 EGP",
           0.95,
-          Colors.tealAccent,
+          appColors.accent,
         ),
         SizedBox(height: 12.h),
         _buildPeakHourItem(
+          appColors,
           "9 PM - 12 AM",
           "10 trips - 450 EGP",
           0.75,
-          Colors.tealAccent,
+          appColors.accent,
         ),
       ],
     );
   }
 
   Widget _buildPeakHourItem(
+    AppColors appColors,
     String time,
     String stats,
     double progress,
@@ -273,9 +286,9 @@ class AnalyticsScreen extends StatelessWidget {
     return Container(
       padding: EdgeInsets.all(16.w),
       decoration: BoxDecoration(
-        color: const Color(0xFF1E1E2A),
+        color: appColors.surface,
         borderRadius: BorderRadius.circular(16.r),
-        border: Border.all(color: Colors.white10),
+        border: Border.all(color: appColors.inputBorder),
       ),
       child: Row(
         children: [
@@ -286,14 +299,14 @@ class AnalyticsScreen extends StatelessWidget {
                 Text(
                   time,
                   style: TextStyle(
-                    color: Colors.white,
+                    color: appColors.textPrimary,
                     fontSize: 14.sp,
                     fontWeight: FontWeight.bold,
                   ),
                 ),
                 Text(
                   stats,
-                  style: TextStyle(color: Colors.grey, fontSize: 12.sp),
+                  style: TextStyle(color: appColors.textSecondary, fontSize: 12.sp),
                 ),
               ],
             ),
@@ -307,7 +320,7 @@ class AnalyticsScreen extends StatelessWidget {
                   borderRadius: BorderRadius.circular(10.r),
                   child: LinearProgressIndicator(
                     value: progress,
-                    backgroundColor: Colors.white10,
+                    backgroundColor: appColors.background,
                     valueColor: AlwaysStoppedAnimation<Color>(color),
                     minHeight: 6.h,
                   ),
@@ -329,37 +342,41 @@ class AnalyticsScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildTopRoutesList() {
+  Widget _buildTopRoutesList(AppColors appColors) {
     return Column(
       children: [
         _buildRouteItem(
+          appColors,
           "Downtown → Airport",
           "15 trips this week",
           "82 EGP",
           "Trending",
-          Colors.greenAccent,
+          appColors.accent,
         ),
         SizedBox(height: 12.h),
         _buildRouteItem(
+          appColors,
           "Business Bay → Mall",
           "12 trips this week",
           "54 EGP",
           "Trending",
-          Colors.greenAccent,
+          appColors.accent,
         ),
         SizedBox(height: 12.h),
         _buildRouteItem(
+          appColors,
           "Airport → Downtown",
           "11 trips this week",
           "78 EGP",
           "Stable",
-          Colors.grey,
+          appColors.textSecondary,
         ),
       ],
     );
   }
 
   Widget _buildRouteItem(
+    AppColors appColors,
     String route,
     String trips,
     String fare,
@@ -369,21 +386,21 @@ class AnalyticsScreen extends StatelessWidget {
     return Container(
       padding: EdgeInsets.all(16.w),
       decoration: BoxDecoration(
-        color: const Color(0xFF1E1E2A),
+        color: appColors.surface,
         borderRadius: BorderRadius.circular(16.r),
-        border: Border.all(color: Colors.white10),
+        border: Border.all(color: appColors.inputBorder),
       ),
       child: Row(
         children: [
           Container(
             padding: EdgeInsets.all(8.w),
             decoration: BoxDecoration(
-              color: Colors.tealAccent.withValues(alpha: 0.1),
+              color: appColors.accent.withValues(alpha: 0.1),
               shape: BoxShape.circle,
             ),
             child: Icon(
               Icons.location_on,
-              color: Colors.tealAccent,
+              color: appColors.accent,
               size: 20.sp,
             ),
           ),
@@ -395,14 +412,14 @@ class AnalyticsScreen extends StatelessWidget {
                 Text(
                   route,
                   style: TextStyle(
-                    color: Colors.white,
+                    color: appColors.textPrimary,
                     fontSize: 14.sp,
                     fontWeight: FontWeight.bold,
                   ),
                 ),
                 Text(
                   trips,
-                  style: TextStyle(color: Colors.grey, fontSize: 12.sp),
+                  style: TextStyle(color: appColors.textSecondary, fontSize: 12.sp),
                 ),
               ],
             ),
@@ -413,7 +430,7 @@ class AnalyticsScreen extends StatelessWidget {
               Text(
                 fare,
                 style: TextStyle(
-                  color: Colors.tealAccent,
+                  color: appColors.accent,
                   fontSize: 14.sp,
                   fontWeight: FontWeight.bold,
                 ),
@@ -429,23 +446,23 @@ class AnalyticsScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildWeeklyGoals() {
+  Widget _buildWeeklyGoals(AppColors appColors) {
     return Column(
       children: [
-        _buildGoalItem("Earnings Goal", "3,200 / 4,000 EGP", 0.8),
+        _buildGoalItem(appColors, "Earnings Goal", "3,200 / 4,000 EGP", 0.8),
         SizedBox(height: 16.h),
-        _buildGoalItem("Trips Goal", "78 / 100 trips", 0.78),
+        _buildGoalItem(appColors, "Trips Goal", "78 / 100 trips", 0.78),
       ],
     );
   }
 
-  Widget _buildGoalItem(String title, String progressText, double progress) {
+  Widget _buildGoalItem(AppColors appColors, String title, String progressText, double progress) {
     return Container(
       padding: EdgeInsets.all(16.w),
       decoration: BoxDecoration(
-        color: const Color(0xFF1E1E2A),
+        color: appColors.surface,
         borderRadius: BorderRadius.circular(16.r),
-        border: Border.all(color: Colors.white10),
+        border: Border.all(color: appColors.inputBorder),
       ),
       child: Column(
         children: [
@@ -454,12 +471,12 @@ class AnalyticsScreen extends StatelessWidget {
             children: [
               Text(
                 title,
-                style: TextStyle(color: Colors.grey, fontSize: 12.sp),
+                style: TextStyle(color: appColors.textSecondary, fontSize: 12.sp),
               ),
               Text(
                 progressText,
                 style: TextStyle(
-                  color: Colors.white,
+                  color: appColors.textPrimary,
                   fontSize: 12.sp,
                   fontWeight: FontWeight.bold,
                 ),
@@ -471,9 +488,9 @@ class AnalyticsScreen extends StatelessWidget {
             borderRadius: BorderRadius.circular(10.r),
             child: LinearProgressIndicator(
               value: progress,
-              backgroundColor: Colors.white10,
-              valueColor: const AlwaysStoppedAnimation<Color>(
-                Colors.blueAccent,
+              backgroundColor: appColors.background,
+              valueColor: AlwaysStoppedAnimation<Color>(
+                appColors.accent,
               ),
               minHeight: 8.h,
             ),

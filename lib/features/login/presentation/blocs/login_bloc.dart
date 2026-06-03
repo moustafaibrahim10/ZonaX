@@ -1,5 +1,6 @@
 import 'package:equatable/equatable.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:zona_x_16_4/core/network/dio_factory.dart';
 import '../../../auth/domain/repositories/auth_repository.dart';
 import '../../../auth/data/models/requests/login_request.dart';
 
@@ -56,7 +57,13 @@ class LoginBloc extends Bloc<LoginEvent, LoginState> {
 
     result.fold(
       (failure) => emit(state.copyWith(status: LoginStatus.failure, errorMessage: failure.message)),
-      (success) => emit(state.copyWith(status: LoginStatus.success)),
+      (success) {
+        // Set auth token in DioFactory for future API calls
+        if (success.token != null && success.token!.isNotEmpty) {
+          DioFactory.setAuthToken(success.token!);
+        }
+        emit(state.copyWith(status: LoginStatus.success));
+      },
     );
   }
 

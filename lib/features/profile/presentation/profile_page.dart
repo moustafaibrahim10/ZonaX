@@ -1,6 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:hive_flutter/hive_flutter.dart';
+import 'package:zona_x_16_4/core/network/dio_factory.dart';
 import 'package:zona_x_16_4/features/auth/data/auth_service.dart';
+import 'package:zona_x_16_4/features/auth/data/datasources/local/auth_local_data_source.dart';
 import 'package:zona_x_16_4/core/theme/app_colors.dart';
 import 'package:zona_x_16_4/features/profile/domain/models/profile_model.dart';
 import 'package:zona_x_16_4/features/profile/presentation/settings_page.dart';
@@ -53,7 +57,32 @@ class _ProfilePageState extends State<ProfilePage> {
   }
 
   void logout() async {
-    await authService.signOut();
+    try {
+      // Sign out from Supabase
+      await authService.signOut();
+
+      // Clear token from local storage
+      final secureStorage = const FlutterSecureStorage();
+      final localDataSource = AuthLocalDataSourceImpl(
+        secureStorage,
+        Hive.box('app_box'),
+      );
+      await localDataSource.clearAllData();
+
+      // Clear token from DioFactory
+      DioFactory.clearAuthToken();
+
+      // Navigate back to login screen using pushNamedAndRemoveUntil
+      if (mounted) {
+        Navigator.of(context).pushNamedAndRemoveUntil('/', (route) => false);
+      }
+    } catch (e) {
+      debugPrint('Logout error: $e');
+      // Still navigate to login on error
+      if (mounted) {
+        Navigator.of(context).pushNamedAndRemoveUntil('/', (route) => false);
+      }
+    }
   }
 
   void _navigateToSettings() {
@@ -84,28 +113,29 @@ class _ProfilePageState extends State<ProfilePage> {
 
     return Scaffold(
       backgroundColor: appColors.background,
-      body: SingleChildScrollView(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Header with "Profile" title
-            Padding(
-              padding: EdgeInsets.only(left: 20.w, top: 16.h, bottom: 24.h),
-              child: Text(
-                'Profile',
-                style: TextStyle(
-                  fontSize: 24.sp,
-                  fontWeight: FontWeight.bold,
-                  color: appColors.textPrimary,
+      body: SafeArea(
+        child: SingleChildScrollView(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Header with "Profile" title
+              Padding(
+                padding: EdgeInsets.only(left: 20.w, top: 16.h, bottom: 24.h),
+                child: Text(
+                  'Profile',
+                  style: TextStyle(
+                    fontSize: 24.sp,
+                    fontWeight: FontWeight.bold,
+                    color: appColors.textPrimary,
+                  ),
                 ),
               ),
-            ),
 
-            // User Profile Section
-            Padding(
-              padding: EdgeInsets.symmetric(horizontal: 20.w),
-              child: Column(
-                children: [
+              // User Profile Section
+              Padding(
+                padding: EdgeInsets.symmetric(horizontal: 20.w),
+                child: Column(
+                  children: [
                   // User Avatar and Info
                   Row(
                     children: [
@@ -385,6 +415,7 @@ class _ProfilePageState extends State<ProfilePage> {
             SizedBox(height: 80.h), // Space for bottom nav
           ],
         ),
+      ),
       ),
     );
   }

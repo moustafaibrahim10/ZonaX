@@ -2,6 +2,7 @@ import 'package:dio/dio.dart';
 import 'package:retrofit/retrofit.dart';
 
 import 'package:zona_x_16_4/core/network/models/base_response.dart';
+import 'package:zona_x_16_4/core/network/api_constants.dart';
 import 'package:zona_x_16_4/features/auth/data/models/requests/login_request.dart';
 import 'package:zona_x_16_4/features/auth/data/models/requests/register_driver_request.dart';
 import 'package:zona_x_16_4/features/auth/data/models/requests/verify_otp_request.dart';
@@ -10,9 +11,9 @@ import 'package:zona_x_16_4/features/auth/data/models/responses/auth_response.da
 
 part 'auth_api_service.g.dart';
 
-@RestApi(baseUrl: "https://zonax.runasp.net/api/v1")
+@RestApi(baseUrl: ApiConstants.baseUrl)
 abstract class AuthApiService {
-  factory AuthApiService(Dio dio, {String baseUrl}) = _AuthApiService;
+  factory AuthApiService(Dio dio, {String? baseUrl}) = _AuthApiService;
 
   @POST("/auth/login")
   Future<BaseResponse<AuthResponse>> login(@Body() LoginRequest request);

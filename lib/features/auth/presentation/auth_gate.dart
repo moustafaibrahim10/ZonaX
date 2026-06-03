@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:zona_x_16_4/core/network/dio_factory.dart';
 import 'package:zona_x_16_4/features/login/presentation/login_screen.dart';
 import 'package:zona_x_16_4/features/home/presentation/screens/main_screen.dart';
 
@@ -27,6 +28,10 @@ class _AuthGateState extends State<AuthGate> {
     final token = await secureStorage.read(key: 'PREFS_KEY_TOKEN');
     
     if (mounted) {
+      if (token != null && token.isNotEmpty) {
+        // Restore the token in DioFactory for authenticated API calls
+        DioFactory.setAuthToken(token);
+      }
       setState(() {
         _isAuthenticated = token != null && token.isNotEmpty;
         _isLoading = false;

@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter/services.dart';
-import 'dart:typed_data';
 import 'package:mapbox_maps_flutter/mapbox_maps_flutter.dart';
 import 'package:zona_x_16_4/core/utils/app_images.dart';
 import 'package:zona_x_16_4/features/map/domain/entities/zone_entity.dart';
@@ -28,72 +27,78 @@ class _HeatmapScreenState extends State<HeatmapScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFF0F111A), // Dark background for nav area
-      body: SafeArea(
-        child: Stack(
-          children: [
-            // 1. Mapbox Layer (Traffic Dark Mode)
-            MapWidget(
-              key: const ValueKey("mapWidget"),
-              styleUri: 'mapbox://styles/mapbox/traffic-night-v2', // Live Traffic Dark Theme
-              onMapCreated: (map) async {
-                mapboxMap = map;
-              },
-              onStyleLoadedListener: (styleLoadedEvent) async {
-                isStyleLoaded = true;
-                final mapCubit = context.read<MapCubit>();
-                await _initAnnotationManagers();
-                await _setupUserLocation();
-                if (mounted) {
-                  mapCubit.getZones();
-                  // Draw car initially at starting point without moving
-                  _updateCarPosition(30.14488, 31.63581);
-                }
-              },
-            ),
+      body: Stack(
+        children: [
+          // 1. Mapbox Layer (Traffic Dark Mode)
+          MapWidget(
+            key: const ValueKey("mapWidget"),
+            styleUri:
+                'mapbox://styles/mapbox/traffic-night-v2', // Live Traffic Dark Theme
+            onMapCreated: (map) async {
+              mapboxMap = map;
+            },
+            onStyleLoadedListener: (styleLoadedEvent) async {
+              isStyleLoaded = true;
+              final mapCubit = context.read<MapCubit>();
+              await _initAnnotationManagers();
+              await _setupUserLocation();
+              if (mounted) {
+                mapCubit.getZones();
+                // Draw car initially at starting point without moving
+                _updateCarPosition(30.14488, 31.63581);
+              }
+            },
+          ),
 
-            // Bloc Listener for map updates
-            BlocListener<MapCubit, MapState>(
-              listener: (context, state) {
-                if (state is MapZonesLoaded && isStyleLoaded) {
-                  _drawHeatmapPolygons(state.zones);
-                }
-                if (state is MapCarMoving && isStyleLoaded) {
-                  _updateCarPosition(state.lat, state.lng);
-                }
-              },
-              child: const SizedBox.shrink(),
-            ),
+          // Bloc Listener for map updates
+          BlocListener<MapCubit, MapState>(
+            listener: (context, state) {
+              if (state is MapZonesLoaded && isStyleLoaded) {
+                _drawHeatmapPolygons(state.zones);
+              }
+              if (state is MapCarMoving && isStyleLoaded) {
+                _updateCarPosition(state.lat, state.lng);
+              }
+            },
+            child: const SizedBox.shrink(),
+          ),
 
-            // Loading Indicator
-            BlocBuilder<MapCubit, MapState>(
-              builder: (context, state) {
-                if (state is MapLoading) {
-                  return const Center(child: CircularProgressIndicator());
-                }
-                return const SizedBox.shrink();
-              },
-            ),
+          // Loading Indicator
+          BlocBuilder<MapCubit, MapState>(
+            builder: (context, state) {
+              if (state is MapLoading) {
+                return const Center(child: CircularProgressIndicator());
+              }
+              return const SizedBox.shrink();
+            },
+          ),
 
-            // 2. Top Voice Visualizer
-            Positioned(
-              top: 15.h,
-              left: 15.w,
-              right: 15.w,
-              child: _buildVoiceAssistantBar(),
-            ),
+          // Overlays with SafeArea
+          SafeArea(
+            child: Stack(
+              children: [
+                // 2. Top Voice Visualizer
+                Positioned(
+                  top: 15.h,
+                  left: 15.w,
+                  right: 15.w,
+                  child: _buildVoiceAssistantBar(),
+                ),
 
-            // 3. Left Sidebar Buttons
-            Positioned(top: 100.h, left: 15.w, child: _buildSidebar()),
+                // 3. Left Sidebar Buttons
+                Positioned(top: 100.h, left: 15.w, child: _buildSidebar()),
 
-            // 4. Bottom Insight Card
-            Positioned(
-              bottom: 15.h,
-              left: 15.w,
-              right: 15.w,
-              child: _buildInsightCard(),
+                // 4. Bottom Insight Card
+                Positioned(
+                  bottom: 15.h,
+                  left: 15.w,
+                  right: 15.w,
+                  child: _buildInsightCard(),
+                ),
+              ],
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
@@ -358,19 +363,21 @@ class _HeatmapScreenState extends State<HeatmapScreen> {
       );
 
       // 3. Configure LocationComponentSettings with the injected image
-      await mapboxMap?.location.updateSettings(LocationComponentSettings(
-        enabled: true,
-        puckBearingEnabled: true,
-        puckBearing: PuckBearing.COURSE,
-        locationPuck: LocationPuck(
-          locationPuck2D: LocationPuck2D(
-            topImage: list, 
-            bearingImage: list,
-            shadowImage: list,
-            scaleExpression: '0.04', // Scale down the location puck
+      await mapboxMap?.location.updateSettings(
+        LocationComponentSettings(
+          enabled: true,
+          puckBearingEnabled: true,
+          puckBearing: PuckBearing.COURSE,
+          locationPuck: LocationPuck(
+            locationPuck2D: LocationPuck2D(
+              topImage: list,
+              bearingImage: list,
+              shadowImage: list,
+              scaleExpression: '0.04', // Scale down the location puck
+            ),
           ),
         ),
-      ));
+      );
     } catch (e) {
       debugPrint("Error loading advanced user location puck: $e");
     }

@@ -9,6 +9,9 @@ import 'package:zona_x_16_4/features/map/presentation/cubit/map_cubit.dart';
 import 'package:zona_x_16_4/features/map/data/repositories/map_repository_impl.dart';
 import 'package:zona_x_16_4/features/map/data/datasources/map_mock_data_source.dart';
 import 'package:zona_x_16_4/features/map/data/datasources/hive_local_data_source.dart';
+import 'package:zona_x_16_4/features/leaderboard/presentation/pages/leaderboard_page.dart';
+import 'package:zona_x_16_4/features/leaderboard/presentation/cubit/leaderboard_cubit.dart';
+import 'package:zona_x_16_4/features/leaderboard/data/repositories/leaderboard_repository_impl.dart';
 
 class MainScreen extends StatefulWidget {
   const MainScreen({super.key});
@@ -24,7 +27,10 @@ class _MainScreenState extends State<MainScreen> {
     const HeatmapScreen(),
     const AnalyticsScreen(), // Second page as requested
     const EarningsScreen(),
-    const LeaderboardScreen(),
+    BlocProvider(
+      create: (context) => LeaderboardCubit(LeaderboardRepositoryImpl()),
+      child: const LeaderboardPage(),
+    ),
     const ProfilePage(),
   ];
 
@@ -86,35 +92,5 @@ class _MainScreenState extends State<MainScreen> {
         ),
       ),
     ));
-  }
-}
-
-// --- Static Dummy Screens ---
-
-class LeaderboardScreen extends StatelessWidget {
-  const LeaderboardScreen({super.key});
-  @override
-  Widget build(BuildContext context) {
-    return const Scaffold(
-      backgroundColor: Color(0xFF0F111A),
-      body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(Icons.emoji_events_outlined, color: Colors.amber, size: 80),
-            SizedBox(height: 20),
-            Text(
-              "Leaderboard\n(Coming Soon)",
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                color: Colors.white,
-                fontSize: 24,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
   }
 }

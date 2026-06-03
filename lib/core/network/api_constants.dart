@@ -1,7 +1,14 @@
 abstract final class ApiConstants {
-  static const String baseUrl =
-      'https://api.example.com'; // TODO: Update with real base URL
-  static const String zonesEndpoint = '/api/v1/zones';
+  static const String baseUrl = 'https://zonax.runasp.net/api/v1';
+  static const String zonesEndpoint = '/zones';
+
+  // Auth endpoints
+  static const String authLoginEndpoint = '/auth/login';
+  static const String authRegisterEndpoint = '/auth/register/driver';
+  static const String authOtpSendEndpoint = '/auth/otp/send';
+  static const String authOtpVerifyEndpoint = '/auth/otp/verify';
+  static const String authPasswordResetEndpoint = '/auth/password/reset';
+  static const String authProfileEndpoint = '/auth/profile';
 
   // Timeout
   static const int apiTimeOut = 60000;

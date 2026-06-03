@@ -1,4 +1,5 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:zona_x_16_4/core/network/dio_factory.dart';
 import '../../domain/repositories/auth_repository.dart';
 import '../../data/models/requests/register_driver_request.dart';
 import 'register_event.dart';
@@ -102,7 +103,13 @@ class RegisterBloc extends Bloc<RegisterEvent, RegisterState> {
 
     result.fold(
       (failure) => emit(state.copyWith(status: RegisterStatus.failure, errorMessage: failure.message)),
-      (success) => emit(state.copyWith(status: RegisterStatus.success)),
+      (success) {
+        // Set auth token in DioFactory for future API calls
+        if (success.token != null && success.token!.isNotEmpty) {
+          DioFactory.setAuthToken(success.token!);
+        }
+        emit(state.copyWith(status: RegisterStatus.success));
+      },
     );
   }
 }

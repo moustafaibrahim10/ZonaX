@@ -103,7 +103,10 @@ class MyApp extends StatelessWidget {
                 themeMode: themeProvider.isDarkMode
                     ? ThemeMode.dark
                     : ThemeMode.light,
-                home: const AuthGate(),
+                initialRoute: '/',
+                routes: {
+                  '/': (context) => const AuthGate(),
+                },
               );
             },
           );

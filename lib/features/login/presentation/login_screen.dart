@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:dio/dio.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
+import '../../../core/network/dio_factory.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/utils/app_images.dart';
 import '../../auth/data/datasources/local/auth_local_data_source.dart';
@@ -29,15 +29,7 @@ class LoginScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return BlocProvider(
       create: (context) {
-        final dio = Dio();
-        dio.interceptors.add(LogInterceptor(
-          requestHeader: true,
-          requestBody: true,
-          responseBody: true,
-          responseHeader: false,
-          error: true,
-          logPrint: (object) => debugPrint('🌐 API LOG: $object'),
-        ));
+        final dio = DioFactory.getDio();
         final apiService = AuthApiService(dio);
         final localDataSource = AuthLocalDataSourceImpl(
           const FlutterSecureStorage(),
@@ -62,8 +54,9 @@ class _LoginView extends StatelessWidget {
   Widget build(BuildContext context) {
     return BlocListener<LoginBloc, LoginState>(
       listenWhen: (previous, current) {
-        return (current.status == LoginStatus.failure && current.errorMessage != null) ||
-               (current.status == LoginStatus.success);
+        return (current.status == LoginStatus.failure &&
+                current.errorMessage != null) ||
+            (current.status == LoginStatus.success);
       },
       listener: _handleStateChanges,
       child: Scaffold(
@@ -73,10 +66,7 @@ class _LoginView extends StatelessWidget {
           child: SingleChildScrollView(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                _HeroImage(),
-                _LoginFormSection(),
-              ],
+              children: [_HeroImage(), _LoginFormSection()],
             ),
           ),
         ),
@@ -102,7 +92,11 @@ class _LoginView extends StatelessWidget {
     }
   }
 
-  void _showErrorDialog(BuildContext context, String message, AppColors colors) {
+  void _showErrorDialog(
+    BuildContext context,
+    String message,
+    AppColors colors,
+  ) {
     showDialog(
       context: context,
       barrierDismissible: false,
@@ -115,20 +109,41 @@ class _LoginView extends StatelessWidget {
           ),
           title: const Row(
             children: [
-              Icon(Icons.error_outline_rounded, color: Colors.redAccent, size: 28),
+              Icon(
+                Icons.error_outline_rounded,
+                color: Colors.redAccent,
+                size: 28,
+              ),
               SizedBox(width: 12),
-              Text("Error", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+              Text(
+                "Error",
+                style: TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
             ],
           ),
           content: Text(
             message,
-            style: const TextStyle(color: Colors.white70, fontSize: 15, height: 1.5),
+            style: const TextStyle(
+              color: Colors.white70,
+              fontSize: 15,
+              height: 1.5,
+            ),
             textAlign: TextAlign.left,
           ),
           actions: [
             TextButton(
               onPressed: () => Navigator.of(context).pop(),
-              child: const Text("Dismiss", style: TextStyle(color: Colors.redAccent, fontSize: 16, fontWeight: FontWeight.bold)),
+              child: const Text(
+                "Dismiss",
+                style: TextStyle(
+                  color: Colors.redAccent,
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
             ),
           ],
         );
@@ -165,7 +180,7 @@ class _HeroImage extends StatelessWidget {
                   end: Alignment.bottomCenter,
                   colors: [
                     Colors.transparent,
-                    appColors.background.withOpacity(0.85),
+                    appColors.background.withValues(alpha: 0.85),
                     appColors.background,
                   ],
                   stops: const [0.4, 0.85, 1.0],
@@ -177,11 +192,7 @@ class _HeroImage extends StatelessWidget {
             alignment: Alignment(0, -0.4),
             child: Column(
               mainAxisSize: MainAxisSize.min,
-              children: [
-                _LoginIcon(),
-                SizedBox(height: 12),
-                _TitleBlock(),
-              ],
+              children: [_LoginIcon(), SizedBox(height: 12), _TitleBlock()],
             ),
           ),
         ],
@@ -247,9 +258,9 @@ class _LoginFormSectionState extends State<_LoginFormSection> {
                   },
             style: ElevatedButton.styleFrom(
               backgroundColor: appColors.accent,
-              disabledBackgroundColor: appColors.accent.withOpacity(0.5),
+              disabledBackgroundColor: appColors.accent.withValues(alpha: 0.5),
               elevation: 4,
-              shadowColor: appColors.accent.withOpacity(0.4),
+              shadowColor: appColors.accent.withValues(alpha: 0.4),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(16),
               ),
@@ -288,11 +299,7 @@ class _LoginIcon extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return const Center(
-      child: Icon(
-        Icons.login_rounded,
-        color: Colors.white,
-        size: 38,
-      ),
+      child: Icon(Icons.login_rounded, color: Colors.white, size: 38),
     );
   }
 }
@@ -396,8 +403,12 @@ class _PhoneNumberFieldState extends State<_PhoneNumberField> {
           maxLength: 10,
           onChanged: (value) => _onPhoneChanged(context, value),
           validator: (value) {
-            if (value == null || value.trim().isEmpty) return 'Phone number is required';
-            if (value.length != 10) return 'Phone number must be exactly 10 digits';
+            if (value == null || value.trim().isEmpty) {
+              return 'Phone number is required';
+            }
+            if (value.length != 10) {
+              return 'Phone number must be exactly 10 digits';
+            }
             return null;
           },
         ),
@@ -440,7 +451,8 @@ class _PasswordFieldState extends State<_PasswordField> {
   Widget build(BuildContext context) {
     final appColors = Theme.of(context).extension<AppColors>()!;
     return BlocBuilder<LoginBloc, LoginState>(
-      buildWhen: (prev, curr) => prev.isPasswordVisible != curr.isPasswordVisible,
+      buildWhen: (prev, curr) =>
+          prev.isPasswordVisible != curr.isPasswordVisible,
       builder: (context, state) {
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -467,7 +479,9 @@ class _PasswordFieldState extends State<_PasswordField> {
                 ),
               ),
               onChanged: (value) => _onPasswordChanged(context, value),
-              validator: (value) => (value == null || value.isEmpty) ? 'Password is required' : null,
+              validator: (value) => (value == null || value.isEmpty)
+                  ? 'Password is required'
+                  : null,
             ),
           ],
         );
@@ -515,13 +529,10 @@ class _ForgotPasswordButton extends StatelessWidget {
 
   void _onForgotPasswordTapped(BuildContext context) {
     Navigator.of(context).push(
-      MaterialPageRoute(
-        builder: (context) => const ForgotPasswordScreen(),
-      ),
+      MaterialPageRoute(builder: (context) => const ForgotPasswordScreen()),
     );
   }
 }
-
 
 // ---------------------------------------------------------------------------
 // Create Account section
@@ -579,11 +590,9 @@ class _CreateAccountButton extends StatelessWidget {
   }
 
   void _onCreateAccountPressed(BuildContext context) {
-    Navigator.of(context).push(
-      MaterialPageRoute(
-        builder: (context) => const RegisterScreen(),
-      ),
-    );
+    Navigator.of(
+      context,
+    ).push(MaterialPageRoute(builder: (context) => const RegisterScreen()));
   }
 }
 
@@ -601,10 +610,7 @@ class _FieldLabel extends StatelessWidget {
     final appColors = Theme.of(context).extension<AppColors>()!;
     return Text(
       label,
-      style: TextStyle(
-        color: appColors.textSecondary,
-        fontSize: 13,
-      ),
+      style: TextStyle(color: appColors.textSecondary, fontSize: 13),
     );
   }
 }
@@ -643,16 +649,10 @@ class _StyledTextField extends StatelessWidget {
       onChanged: onChanged,
       validator: validator,
       autovalidateMode: AutovalidateMode.onUserInteraction,
-      style: TextStyle(
-        color: appColors.textPrimary,
-        fontSize: 15,
-      ),
+      style: TextStyle(color: appColors.textPrimary, fontSize: 15),
       decoration: InputDecoration(
         hintText: hintText,
-        hintStyle: TextStyle(
-          color: appColors.textHint,
-          fontSize: 15,
-        ),
+        hintStyle: TextStyle(color: appColors.textHint, fontSize: 15),
         prefixIcon: prefixIcon,
         suffixIcon: suffixIcon,
         filled: true,

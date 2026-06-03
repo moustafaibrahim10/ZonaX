@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:dio/dio.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:hive_flutter/hive_flutter.dart';
+import 'package:zona_x_16_4/core/network/dio_factory.dart';
 import 'package:zona_x_16_4/core/theme/app_colors.dart';
 import 'package:zona_x_16_4/features/auth/data/datasources/local/auth_local_data_source.dart';
 import 'package:zona_x_16_4/features/auth/data/datasources/remote/auth_api_service.dart';
@@ -26,8 +26,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
     super.initState();
     _phoneController = TextEditingController();
     
-    final dio = Dio();
-    dio.interceptors.add(LogInterceptor(requestBody: true, responseBody: true));
+    final dio = DioFactory.getDio();
     final apiService = AuthApiService(dio);
     final localDataSource = AuthLocalDataSourceImpl(const FlutterSecureStorage(), Hive.box('app_box'));
     _authRepository = AuthRepositoryImpl(apiService, localDataSource);

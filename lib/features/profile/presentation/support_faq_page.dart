@@ -57,28 +57,30 @@ class _SupportFAQPageState extends State<SupportFAQPage> {
           ),
         ),
       ),
-      body: SingleChildScrollView(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Quick Contact Section
-            Padding(
-              padding: EdgeInsets.all(20.w),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'Contact Us',
-                    style: TextStyle(
-                      fontSize: 18.sp,
-                      fontWeight: FontWeight.bold,
-                      color: appColors.textPrimary,
+      body: SafeArea(
+        top: false,
+        child: SingleChildScrollView(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Quick Contact Section
+              Padding(
+                padding: EdgeInsets.all(20.w),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Contact Us',
+                      style: TextStyle(
+                        fontSize: 18.sp,
+                        fontWeight: FontWeight.bold,
+                        color: appColors.textPrimary,
+                      ),
                     ),
-                  ),
-                  SizedBox(height: 12.h),
-                  _buildContactTile(
-                    appColors,
-                    Icons.email,
+                    SizedBox(height: 12.h),
+                    _buildContactTile(
+                      appColors,
+                      Icons.email,
                     'Email',
                     'support@zonax.com',
                   ),
@@ -127,6 +129,7 @@ class _SupportFAQPageState extends State<SupportFAQPage> {
             SizedBox(height: 20.h),
           ],
         ),
+      ),
       ),
     );
   }

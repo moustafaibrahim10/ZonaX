@@ -36,28 +36,30 @@ class _ExportReportsPageState extends State<ExportReportsPage> {
           ),
         ),
       ),
-      body: SingleChildScrollView(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Select Period Section
-            Padding(
-              padding: EdgeInsets.all(20.w),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'Select Period',
-                    style: TextStyle(
-                      fontSize: 16.sp,
-                      fontWeight: FontWeight.bold,
-                      color: appColors.textPrimary,
+      body: SafeArea(
+        top: false,
+        child: SingleChildScrollView(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Select Period Section
+              Padding(
+                padding: EdgeInsets.all(20.w),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Select Period',
+                      style: TextStyle(
+                        fontSize: 16.sp,
+                        fontWeight: FontWeight.bold,
+                        color: appColors.textPrimary,
+                      ),
                     ),
-                  ),
-                  SizedBox(height: 12.h),
-                  Wrap(
-                    spacing: 10.w,
-                    runSpacing: 10.h,
+                    SizedBox(height: 12.h),
+                    Wrap(
+                      spacing: 10.w,
+                      runSpacing: 10.h,
                     children: [
                       _buildPeriodButton(appColors, 'This Week', 'weekly'),
                       _buildPeriodButton(appColors, 'This Month', 'monthly'),
@@ -204,6 +206,7 @@ class _ExportReportsPageState extends State<ExportReportsPage> {
             SizedBox(height: 20.h),
           ],
         ),
+      ),
       ),
       bottomNavigationBar: Container(
         padding: EdgeInsets.all(20.w),
