@@ -11,6 +11,7 @@ import '../data/repositories/auth_repository_impl.dart';
 import 'bloc/register_bloc.dart';
 import 'bloc/register_event.dart';
 import 'bloc/register_state.dart';
+import 'terms_acceptance_screen.dart';
 
 class RegisterScreen extends StatelessWidget {
   const RegisterScreen({super.key});
@@ -126,7 +127,10 @@ class _RegisterViewState extends State<_RegisterView> {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(content: Text('Registration Successful!'), backgroundColor: Colors.green),
           );
-          Navigator.pop(context); // Pop back to login or home
+          Navigator.of(context).pushAndRemoveUntil(
+            MaterialPageRoute(builder: (context) => const TermsAcceptanceScreen()),
+            (route) => false,
+          );
         }
       },
       builder: (context, state) {

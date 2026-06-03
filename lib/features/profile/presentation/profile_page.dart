@@ -1,7 +1,11 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:hive_flutter/hive_flutter.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:zona_x_16_4/core/network/dio_factory.dart';
 import 'package:zona_x_16_4/features/auth/data/auth_service.dart';
 import 'package:zona_x_16_4/features/auth/data/datasources/local/auth_local_data_source.dart';
@@ -23,6 +27,73 @@ class ProfilePage extends StatefulWidget {
 
 class _ProfilePageState extends State<ProfilePage> {
   final authService = AuthService();
+
+  Future<void> _pickProfilePicture(String userId) async {
+    final box = Hive.box('app_box');
+    final hasAcceptedGallery = box.get('gallery_permission_accepted', defaultValue: false) as bool;
+    final appColors = Theme.of(context).extension<AppColors>()!;
+
+    if (!hasAcceptedGallery) {
+      final shouldAccept = await showDialog<bool>(
+        context: context,
+        builder: (context) => AlertDialog(
+          backgroundColor: appColors.surface,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16.r)),
+          title: Text(
+            'Gallery Access Required',
+            style: TextStyle(color: appColors.textPrimary, fontWeight: FontWeight.bold, fontSize: 18.sp),
+          ),
+          content: Text(
+            'ZonaX requires access to your photo gallery so you can choose a profile picture. Do you agree?',
+            style: TextStyle(color: appColors.textSecondary, fontSize: 14.sp, height: 1.4),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: Text('Decline', style: TextStyle(color: appColors.textSecondary)),
+            ),
+            TextButton(
+              onPressed: () => Navigator.pop(context, true),
+              child: Text('Agree', style: TextStyle(color: appColors.accent, fontWeight: FontWeight.bold)),
+            ),
+          ],
+        ),
+      );
+
+      if (shouldAccept == true) {
+        await box.put('gallery_permission_accepted', true);
+      } else {
+        return; // Declined
+      }
+    }
+
+    try {
+      final picker = ImagePicker();
+      final pickedFile = await picker.pickImage(source: ImageSource.gallery, imageQuality: 85);
+      if (pickedFile != null) {
+        final appDocDir = await getApplicationDocumentsDirectory();
+        final fileName = 'profile_picture_${userId}_${DateTime.now().millisecondsSinceEpoch}.jpg';
+        final savedFile = await File(pickedFile.path).copy('${appDocDir.path}/$fileName');
+        
+        await box.put('profile_picture_path_$userId', savedFile.path);
+        
+        setState(() {}); // Trigger rebuild to read new path from Hive
+
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Profile picture updated successfully!'), behavior: SnackBarBehavior.floating),
+          );
+        }
+      }
+    } catch (e) {
+      debugPrint('Error picking profile picture: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to pick image: $e'), backgroundColor: Colors.red),
+        );
+      }
+    }
+  }
 
   void logout() async {
     try {
@@ -89,6 +160,10 @@ class _ProfilePageState extends State<ProfilePage> {
               return Center(child: Text(state.message, style: const TextStyle(color: Colors.red)));
             } else if (state is ProfileLoaded) {
               final profile = state.profile;
+              final user = Supabase.instance.client.auth.currentUser;
+              final userId = user?.id ?? 'default';
+              final box = Hive.box('app_box');
+              final profilePicturePath = box.get('profile_picture_path_$userId') as String?;
               return SingleChildScrollView(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -114,17 +189,46 @@ class _ProfilePageState extends State<ProfilePage> {
                   // User Avatar and Info
                   Row(
                     children: [
-                      Container(
-                        width: 70.w,
-                        height: 70.w,
-                        decoration: BoxDecoration(
-                          color: appColors.accent.withValues(alpha: 0.2),
-                          shape: BoxShape.circle,
-                        ),
-                        child: Icon(
-                          Icons.person,
-                          size: 40.sp,
-                          color: appColors.accent,
+                      GestureDetector(
+                        onTap: () => _pickProfilePicture(userId),
+                        child: Stack(
+                          children: [
+                            Container(
+                              width: 70.w,
+                              height: 70.w,
+                              decoration: BoxDecoration(
+                                color: appColors.accent.withValues(alpha: 0.2),
+                                shape: BoxShape.circle,
+                                border: Border.all(color: appColors.accent, width: 2.w),
+                                image: profilePicturePath != null
+                                    ? DecorationImage(
+                                        image: FileImage(File(profilePicturePath)),
+                                        fit: BoxFit.cover,
+                                      )
+                                    : null,
+                              ),
+                              child: profilePicturePath == null
+                                  ? Icon(
+                                      Icons.person,
+                                      size: 40.sp,
+                                      color: appColors.accent,
+                                    )
+                                  : null,
+                            ),
+                            Positioned(
+                              bottom: 0,
+                              right: 0,
+                              child: CircleAvatar(
+                                radius: 10.r,
+                                backgroundColor: appColors.accent,
+                                child: Icon(
+                                  Icons.edit,
+                                  size: 11.sp,
+                                  color: appColors.background,
+                                ),
+                              ),
+                            ),
+                          ],
                         ),
                       ),
                       SizedBox(width: 16.w),
@@ -276,7 +380,7 @@ class _ProfilePageState extends State<ProfilePage> {
                   _buildStatCard(
                     appColors,
                     Icons.monetization_on,
-                    '\$${profile.totalEarnings.toStringAsFixed(0)}',
+                    '${profile.totalEarnings.toStringAsFixed(0)} EGP',
                     'Earnings',
                   ),
                   _buildStatCard(
@@ -336,12 +440,7 @@ class _ProfilePageState extends State<ProfilePage> {
                     _navigateToSupportFAQ,
                   ),
                   SizedBox(height: 12.h),
-                  _buildMenuItem(
-                    appColors,
-                    Icons.play_circle_outline,
-                    'Tutorial Videos',
-                  ),
-                  SizedBox(height: 12.h),
+
                   _buildMenuItem(
                     appColors,
                     Icons.cloud_off,

@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:hive_flutter/hive_flutter.dart';
-import 'package:flutter_screenutil/flutter_screenutil.dart';
+
 
 import '../../../core/network/dio_factory.dart';
 import '../../../core/theme/app_colors.dart';
@@ -79,6 +79,7 @@ class _LoginView extends StatelessWidget {
     if (state.status == LoginStatus.failure && state.errorMessage != null) {
       _showErrorDialog(context, state.errorMessage!, appColors);
     } else if (state.status == LoginStatus.success) {
+      Hive.box('app_box').put('terms_accepted', true);
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: const Text('Signed in successfully!'),

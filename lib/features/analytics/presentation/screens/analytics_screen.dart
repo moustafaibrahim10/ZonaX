@@ -260,40 +260,52 @@ class AnalyticsScreen extends StatelessWidget {
   }
 
   Widget _buildPeakHoursList(AppColors appColors, WeeklySummaryEntity summary) {
+    // Use real data if available; otherwise fallback to mock data for development.
+    final List<dynamic> peakHours = summary.peakHours.isNotEmpty
+        ? summary.peakHours
+        : [
+            {
+              'hour': 0,
+              'calculatedTripCount': 7,
+              'calculatedTotalRevenue': 1178.33,
+            },
+            {
+              'hour': 1,
+              'calculatedTripCount': 1,
+              'calculatedTotalRevenue': 63.04,
+            },
+            {
+              'hour': 2,
+              'calculatedTripCount': 5,
+              'calculatedTotalRevenue': 753.98,
+            },
+            {
+              'hour': 3,
+              'calculatedTripCount': 3,
+              'calculatedTotalRevenue': 200.0,
+            },
+          ];
+
+    // Find max trips for progress scaling
+    final int maxTrips = peakHours
+        .map((e) => (e['calculatedTripCount'] as int?) ?? 0)
+        .fold(0, (prev, element) => element > prev ? element : prev);
+
     return Column(
-      children: [
-        _buildPeakHourItem(
-          appColors,
-          "6 AM - 9 AM",
-          "12 trips - 520 EGP",
-          0.85,
-          appColors.accent,
-        ),
-        SizedBox(height: 12.h),
-        _buildPeakHourItem(
-          appColors,
-          "12 PM - 2 PM",
-          "8 trips - 360 EGP",
-          0.70,
-          appColors.accent,
-        ),
-        SizedBox(height: 12.h),
-        _buildPeakHourItem(
-          appColors,
-          "5 PM - 8 PM",
-          "18 trips - 850 EGP",
-          0.95,
-          appColors.accent,
-        ),
-        SizedBox(height: 12.h),
-        _buildPeakHourItem(
-          appColors,
-          "9 PM - 12 AM",
-          "10 trips - 450 EGP",
-          0.75,
-          appColors.accent,
-        ),
-      ],
+      children: peakHours.map((e) {
+        final int hour = (e['hour'] as int?) ?? 0;
+        final int trips = (e['calculatedTripCount'] as int?) ?? 0;
+        final double revenue = (e['calculatedTotalRevenue'] as num?)?.toDouble() ?? 0.0;
+        final String timeLabel = '${hour}:00 - ${hour + 1}:00';
+        final String stats = '$trips trips - ${revenue.toStringAsFixed(0)} EGP';
+        final double progress = maxTrips > 0 ? trips / maxTrips : 0.0;
+        return Column(
+          children: [
+            _buildPeakHourItem(appColors, timeLabel, stats, progress, appColors.accent),
+            SizedBox(height: 12.h),
+          ],
+        );
+      }).toList(),
     );
   }
 

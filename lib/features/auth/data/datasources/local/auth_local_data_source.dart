@@ -60,5 +60,7 @@ class AuthLocalDataSourceImpl implements AuthLocalDataSource {
   Future<void> clearAllData() async {
     await deleteToken();
     await _hiveBox.delete(_profileKey);
+    await _hiveBox.delete('terms_accepted');
+    await _hiveBox.delete('gallery_permission_accepted');
   }
 }

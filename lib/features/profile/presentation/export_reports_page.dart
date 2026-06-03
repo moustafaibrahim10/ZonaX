@@ -144,7 +144,7 @@ class _ExportReportsPageState extends State<ExportReportsPage> {
                     _buildPreviewRow(
                       appColors,
                       'Total Earnings:',
-                      '\$14,500.00',
+                      '14,500.00 EGP',
                     ),
                     SizedBox(height: 12.h),
                     _buildPreviewRow(appColors, 'Total Trips:', '324'),

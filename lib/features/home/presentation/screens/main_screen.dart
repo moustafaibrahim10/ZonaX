@@ -4,7 +4,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:zona_x_16_4/features/analytics/presentation/screens/analytics_screen.dart';
 import 'package:zona_x_16_4/features/map/presentation/screens/heatmap_screen.dart';
 import 'package:zona_x_16_4/features/earnings/presentation/screens/earnings_screen.dart';
-import 'package:zona_x_16_4/features/leaderboard/presentation/screens/leaderboard_screen.dart';
+
 import 'package:zona_x_16_4/features/profile/presentation/profile_page.dart';
 import 'package:zona_x_16_4/features/profile/presentation/bloc/profile_bloc.dart';
 import 'package:zona_x_16_4/features/profile/presentation/bloc/profile_event.dart';
