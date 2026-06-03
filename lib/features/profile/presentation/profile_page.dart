@@ -6,7 +6,10 @@ import 'package:zona_x_16_4/core/network/dio_factory.dart';
 import 'package:zona_x_16_4/features/auth/data/auth_service.dart';
 import 'package:zona_x_16_4/features/auth/data/datasources/local/auth_local_data_source.dart';
 import 'package:zona_x_16_4/core/theme/app_colors.dart';
-import 'package:zona_x_16_4/features/profile/domain/models/profile_model.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:zona_x_16_4/features/profile/presentation/bloc/profile_bloc.dart';
+import 'package:zona_x_16_4/features/profile/presentation/bloc/profile_state.dart';
+import 'package:zona_x_16_4/features/profile/presentation/bloc/profile_event.dart';
 import 'package:zona_x_16_4/features/profile/presentation/settings_page.dart';
 import 'package:zona_x_16_4/features/profile/presentation/export_reports_page.dart';
 import 'package:zona_x_16_4/features/profile/presentation/support_faq_page.dart';
@@ -20,41 +23,6 @@ class ProfilePage extends StatefulWidget {
 
 class _ProfilePageState extends State<ProfilePage> {
   final authService = AuthService();
-  late ProfileModel _profileData;
-
-  @override
-  void initState() {
-    super.initState();
-    // Initialize with dummy data
-    _profileData = ProfileModel(
-      id: 'dummy-id-123',
-      name: 'Ahmed Hassan',
-      email: authService.getCurrentUserEmail() ?? 'user@example.com',
-      rating: 4.8,
-      rank: 5,
-      vehicleModel: 'Toyota Camry 2023',
-      vehiclePlate: 'ABC 1234',
-      earnedThisMonth: 14500,
-      tripsThisMonth: 324,
-      onlineHoursThisMonth: 186,
-      achievements: [
-        Achievement(
-          id: '1',
-          title: 'Rising Star',
-          description: 'Earnings increased by 20% this week',
-          icon: 'star',
-          unlockedAt: DateTime.now().subtract(const Duration(days: 7)),
-        ),
-        Achievement(
-          id: '2',
-          title: '5-Star Service',
-          description: 'Maintained 4.8+ rating for 30 days',
-          icon: 'grade',
-          unlockedAt: DateTime.now().subtract(const Duration(days: 30)),
-        ),
-      ],
-    );
-  }
 
   void logout() async {
     try {
@@ -109,12 +77,19 @@ class _ProfilePageState extends State<ProfilePage> {
   @override
   Widget build(BuildContext context) {
     final appColors = Theme.of(context).extension<AppColors>()!;
-    final profile = _profileData;
 
     return Scaffold(
       backgroundColor: appColors.background,
       body: SafeArea(
-        child: SingleChildScrollView(
+        child: BlocBuilder<ProfileBloc, ProfileState>(
+          builder: (context, state) {
+            if (state is ProfileLoading) {
+              return const Center(child: CircularProgressIndicator());
+            } else if (state is ProfileError) {
+              return Center(child: Text(state.message, style: const TextStyle(color: Colors.red)));
+            } else if (state is ProfileLoaded) {
+              final profile = state.profile;
+              return SingleChildScrollView(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -158,7 +133,7 @@ class _ProfilePageState extends State<ProfilePage> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              profile.name,
+                              profile.fullName,
                               style: TextStyle(
                                 fontSize: 20.sp,
                                 fontWeight: FontWeight.bold,
@@ -167,7 +142,7 @@ class _ProfilePageState extends State<ProfilePage> {
                             ),
                             SizedBox(height: 4.h),
                             Text(
-                              profile.email,
+                              'License: ${profile.licenseNumber}',
                               style: TextStyle(
                                 fontSize: 12.sp,
                                 color: appColors.textSecondary,
@@ -180,27 +155,52 @@ class _ProfilePageState extends State<ProfilePage> {
                   ),
                   SizedBox(height: 16.h),
 
-                  // Rating and Rank
+                  // Rating and Status Toggle
                   Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Icon(Icons.star, color: appColors.accent, size: 18.sp),
-                      SizedBox(width: 6.w),
-                      Text(
-                        profile.rating.toStringAsFixed(1),
-                        style: TextStyle(
-                          fontSize: 14.sp,
-                          fontWeight: FontWeight.bold,
-                          color: appColors.textPrimary,
-                        ),
+                      Row(
+                        children: [
+                          Icon(Icons.star, color: appColors.accent, size: 18.sp),
+                          SizedBox(width: 6.w),
+                          Text(
+                            profile.rating.toStringAsFixed(1),
+                            style: TextStyle(
+                              fontSize: 14.sp,
+                              fontWeight: FontWeight.bold,
+                              color: appColors.textPrimary,
+                            ),
+                          ),
+                        ],
                       ),
-                      SizedBox(width: 24.w),
-                      Text(
-                        'Rank #${profile.rank}',
-                        style: TextStyle(
-                          fontSize: 14.sp,
-                          fontWeight: FontWeight.bold,
-                          color: appColors.textPrimary,
-                        ),
+                      Row(
+                        children: [
+                          Text(
+                            profile.status == 'Available' ? 'Online' : 'Offline',
+                            style: TextStyle(
+                              fontSize: 14.sp,
+                              fontWeight: FontWeight.bold,
+                              color: profile.status == 'Available' ? Colors.green : Colors.red,
+                            ),
+                          ),
+                          SizedBox(width: 8.w),
+                          Switch.adaptive(
+                            value: profile.status == 'Available',
+                            activeColor: Colors.green,
+                            inactiveThumbColor: Colors.red,
+                            inactiveTrackColor: Colors.red.withValues(alpha: 0.3),
+                            onChanged: (bool value) {
+                              final newStatus = value ? 'Available' : 'Offline';
+                              context.read<ProfileBloc>().add(
+                                UpdateDriverStatusEvent(
+                                  newStatus: newStatus,
+                                  lat: 30.0444, // Tahrir Square
+                                  lng: 31.2357, // Tahrir Square
+                                ),
+                              );
+                            },
+                          ),
+                        ],
                       ),
                     ],
                   ),
@@ -226,7 +226,7 @@ class _ProfilePageState extends State<ProfilePage> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              profile.vehicleModel,
+                              'Vehicle Plate',
                               style: TextStyle(
                                 fontSize: 14.sp,
                                 fontWeight: FontWeight.bold,
@@ -234,7 +234,7 @@ class _ProfilePageState extends State<ProfilePage> {
                               ),
                             ),
                             Text(
-                              profile.vehiclePlate,
+                              profile.plateNumber,
                               style: TextStyle(
                                 fontSize: 12.sp,
                                 color: appColors.textSecondary,
@@ -276,20 +276,20 @@ class _ProfilePageState extends State<ProfilePage> {
                   _buildStatCard(
                     appColors,
                     Icons.monetization_on,
-                    '\$${(profile.earnedThisMonth / 1000).toStringAsFixed(1)}K',
-                    'Earned',
+                    '\$${profile.totalEarnings.toStringAsFixed(0)}',
+                    'Earnings',
                   ),
                   _buildStatCard(
                     appColors,
                     Icons.trending_up,
-                    '${profile.tripsThisMonth}',
+                    '${profile.completedTrips}',
                     'Trips',
                   ),
                   _buildStatCard(
                     appColors,
-                    Icons.schedule,
-                    '${profile.onlineHoursThisMonth}h',
-                    'Online',
+                    Icons.star,
+                    profile.rating.toStringAsFixed(1),
+                    'Rating',
                   ),
                 ],
               ),
@@ -297,40 +297,7 @@ class _ProfilePageState extends State<ProfilePage> {
 
             SizedBox(height: 32.h),
 
-            // Recent Achievements
-            if (profile.achievements.isNotEmpty) ...[
-              Padding(
-                padding: EdgeInsets.only(left: 20.w, bottom: 12.h),
-                child: Text(
-                  'Recent Achievements',
-                  style: TextStyle(
-                    fontSize: 18.sp,
-                    fontWeight: FontWeight.bold,
-                    color: appColors.textPrimary,
-                  ),
-                ),
-              ),
-              Padding(
-                padding: EdgeInsets.symmetric(horizontal: 20.w),
-                child: Column(
-                  children: profile.achievements.take(2).map((achievement) {
-                    return Column(
-                      children: [
-                        _buildAchievementCard(
-                          appColors,
-                          Icons.star_outline,
-                          achievement.title,
-                          achievement.description,
-                        ),
-                        SizedBox(height: 12.h),
-                      ],
-                    );
-                  }).toList(),
-                ),
-              ),
-            ],
 
-            SizedBox(height: 32.h),
 
             // More Section
             Padding(
@@ -374,6 +341,24 @@ class _ProfilePageState extends State<ProfilePage> {
                     Icons.play_circle_outline,
                     'Tutorial Videos',
                   ),
+                  SizedBox(height: 12.h),
+                  _buildMenuItem(
+                    appColors,
+                    Icons.cloud_off,
+                    'Offline Mode',
+                  ),
+                  SizedBox(height: 12.h),
+                  _buildMenuItem(
+                    appColors,
+                    Icons.battery_charging_full,
+                    'Battery Saver',
+                  ),
+                  SizedBox(height: 12.h),
+                  _buildMenuItem(
+                    appColors,
+                    Icons.insert_chart,
+                    'Data Usage',
+                  ),
                 ],
               ),
             ),
@@ -415,7 +400,11 @@ class _ProfilePageState extends State<ProfilePage> {
             SizedBox(height: 80.h), // Space for bottom nav
           ],
         ),
-      ),
+      );
+            }
+            return const SizedBox.shrink(); // Initial State
+          },
+        ),
       ),
     );
   }

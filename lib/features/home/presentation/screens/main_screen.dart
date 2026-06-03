@@ -4,7 +4,14 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:zona_x_16_4/features/analytics/presentation/screens/analytics_screen.dart';
 import 'package:zona_x_16_4/features/map/presentation/screens/heatmap_screen.dart';
 import 'package:zona_x_16_4/features/earnings/presentation/screens/earnings_screen.dart';
+import 'package:zona_x_16_4/features/leaderboard/presentation/screens/leaderboard_screen.dart';
 import 'package:zona_x_16_4/features/profile/presentation/profile_page.dart';
+import 'package:zona_x_16_4/features/profile/presentation/bloc/profile_bloc.dart';
+import 'package:zona_x_16_4/features/profile/presentation/bloc/profile_event.dart';
+import 'package:zona_x_16_4/features/profile/domain/usecases/get_driver_profile_usecase.dart';
+import 'package:zona_x_16_4/features/profile/domain/usecases/update_driver_status_usecase.dart';
+import 'package:zona_x_16_4/features/profile/data/repositories/driver_profile_repository_impl.dart';
+import 'package:zona_x_16_4/features/profile/data/datasources/profile_remote_data_source.dart';
 import 'package:zona_x_16_4/features/map/presentation/cubit/map_cubit.dart';
 import 'package:zona_x_16_4/features/map/data/repositories/map_repository_impl.dart';
 import 'package:zona_x_16_4/features/map/data/datasources/map_mock_data_source.dart';
@@ -31,7 +38,18 @@ class _MainScreenState extends State<MainScreen> {
       create: (context) => LeaderboardCubit(LeaderboardRepositoryImpl()),
       child: const LeaderboardPage(),
     ),
-    const ProfilePage(),
+    BlocProvider(
+      create: (context) {
+        final profileRepository = DriverProfileRepositoryImpl(
+          ProfileRemoteDataSourceImpl(),
+        );
+        return ProfileBloc(
+          getDriverProfileUseCase: GetDriverProfileUseCase(profileRepository),
+          updateDriverStatusUseCase: UpdateDriverStatusUseCase(profileRepository),
+        )..add(FetchProfile());
+      },
+      child: const ProfilePage(),
+    ),
   ];
 
   @override

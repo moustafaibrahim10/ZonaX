@@ -1,11 +1,20 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter/services.dart';
+
 import 'package:mapbox_maps_flutter/mapbox_maps_flutter.dart';
 import 'package:zona_x_16_4/core/utils/app_images.dart';
 import 'package:zona_x_16_4/features/map/domain/entities/zone_entity.dart';
 import 'package:zona_x_16_4/features/map/presentation/cubit/map_cubit.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:zona_x_16_4/features/demand_grid/presentation/bloc/map_grid_bloc.dart';
+import 'package:zona_x_16_4/features/demand_grid/presentation/bloc/map_grid_event.dart';
+import 'package:zona_x_16_4/features/demand_grid/presentation/bloc/map_grid_state.dart';
+import 'package:zona_x_16_4/features/demand_grid/presentation/widgets/demand_grid_integration.dart';
+import 'package:zona_x_16_4/features/demand_grid/data/repositories/zone_repository_impl.dart';
+import 'package:zona_x_16_4/features/profile/domain/usecases/update_driver_status_usecase.dart';
+import 'package:zona_x_16_4/features/profile/data/repositories/driver_profile_repository_impl.dart';
+import 'package:zona_x_16_4/features/profile/data/datasources/profile_remote_data_source.dart';
 
 class HeatmapScreen extends StatefulWidget {
   const HeatmapScreen({super.key});
@@ -14,8 +23,9 @@ class HeatmapScreen extends StatefulWidget {
   State<HeatmapScreen> createState() => _HeatmapScreenState();
 }
 
-class _HeatmapScreenState extends State<HeatmapScreen> {
+class _HeatmapScreenState extends State<HeatmapScreen> with WidgetsBindingObserver {
   MapboxMap? mapboxMap;
+  late final UpdateDriverStatusUseCase _updateStatusUseCase;
   PointAnnotationManager? pointAnnotationManager;
   CircleAnnotationManager? circleAnnotationManager;
   PolygonAnnotationManager? polygonAnnotationManager;
@@ -24,31 +34,89 @@ class _HeatmapScreenState extends State<HeatmapScreen> {
   Uint8List? carIconBytes;
 
   @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+    
+    _updateStatusUseCase = UpdateDriverStatusUseCase(
+      DriverProfileRepositoryImpl(
+        ProfileRemoteDataSourceImpl(),
+      ),
+    );
+    
+    // Initial status update
+    _sendStatusUpdate("Available");
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      _sendStatusUpdate("Available");
+    } else if (state == AppLifecycleState.paused) {
+      _sendStatusUpdate("Offline");
+    }
+  }
+
+  void _sendStatusUpdate(String status) {
+    // Tahrir Square fallback coordinates
+    _updateStatusUseCase(status, 30.0444, 31.2357).then((result) {
+      result.fold(
+        (l) => debugPrint("Status update failed: ${l.message}"),
+        (r) => debugPrint("Status updated to $status successfully."),
+      );
+    });
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFF0F111A), // Dark background for nav area
-      body: Stack(
-        children: [
-          // 1. Mapbox Layer (Traffic Dark Mode)
-          MapWidget(
-            key: const ValueKey("mapWidget"),
-            styleUri:
-                'mapbox://styles/mapbox/traffic-night-v2', // Live Traffic Dark Theme
-            onMapCreated: (map) async {
-              mapboxMap = map;
-            },
-            onStyleLoadedListener: (styleLoadedEvent) async {
-              isStyleLoaded = true;
-              final mapCubit = context.read<MapCubit>();
-              await _initAnnotationManagers();
-              await _setupUserLocation();
-              if (mounted) {
-                mapCubit.getZones();
-                // Draw car initially at starting point without moving
-                _updateCarPosition(30.14488, 31.63581);
-              }
-            },
-          ),
+      body: BlocProvider(
+        create: (context) => MapGridBloc(repository: ZoneRepositoryImpl())..add(InitializeGrid()),
+        child: SafeArea(
+          child: BlocBuilder<MapGridBloc, MapGridState>(
+            buildWhen: (previous, current) => current is GridReady && previous is! GridReady,
+            builder: (context, gridState) {
+              return Stack(
+                children: [
+                  // 1. Mapbox Layer (Traffic Dark Mode)
+                  MapWidget(
+                    key: const ValueKey("mapWidget"),
+                    cameraOptions: CameraOptions(
+                      center: Point(coordinates: Position(31.2357, 30.0444)), // Tahrir Square
+                      zoom: 12.5,
+                    ),
+                    styleUri: 'mapbox://styles/mapbox/traffic-night-v2', // Live Traffic Dark Theme
+                    onMapCreated: (map) async {
+                      setState(() {
+                        mapboxMap = map;
+                      });
+                    },
+              onStyleLoadedListener: (styleLoadedEvent) async {
+                isStyleLoaded = true;
+                final mapCubit = context.read<MapCubit>();
+                await _initAnnotationManagers();
+                await _setupUserLocation();
+                if (mounted) {
+                  mapCubit.getZones();
+                  // Draw car initially at Tahrir Square without moving
+                  _updateCarPosition(30.0444, 31.2357);
+                }
+              },
+            ),
+
+            // 1.5. Demand Grid Layer
+            if (mapboxMap != null && gridState is GridReady)
+              DemandGridMapIntegration(
+                mapboxMap: mapboxMap!,
+                initialState: gridState,
+              ),
 
           // Bloc Listener for map updates
           BlocListener<MapCubit, MapState>(
@@ -85,23 +153,25 @@ class _HeatmapScreenState extends State<HeatmapScreen> {
                   child: _buildVoiceAssistantBar(),
                 ),
 
-                // 3. Left Sidebar Buttons
-                Positioned(top: 100.h, left: 15.w, child: _buildSidebar()),
-
-                // 4. Bottom Insight Card
-                Positioned(
-                  bottom: 15.h,
-                  left: 15.w,
-                  right: 15.w,
-                  child: _buildInsightCard(),
-                ),
+            // 4. Bottom Insight Card
+            Positioned(
+              bottom: 15.h,
+              left: 15.w,
+              right: 15.w,
+              child: _buildInsightCard(),
+            ),
               ],
             ),
           ),
         ],
-      ),
+      );
+      },
+    ),
+  ),
+),
     );
   }
+
 
   // --- UI Components ---
 
@@ -145,48 +215,7 @@ class _HeatmapScreenState extends State<HeatmapScreen> {
     );
   }
 
-  Widget _buildSidebar() {
-    return Column(
-      children: [
-        _buildSideButton(Icons.cloud_off, "Offline\nMode", Colors.grey),
-        SizedBox(height: 10.h),
-        _buildSideButton(
-          Icons.battery_charging_full,
-          "Battery\nSaver",
-          Colors.green,
-        ),
-        SizedBox(height: 10.h),
-        _buildSideButton(Icons.insert_chart, "Data\nUsage", Colors.blueAccent),
-      ],
-    );
-  }
 
-  Widget _buildSideButton(IconData icon, String label, Color iconColor) {
-    return Container(
-      width: 60.w,
-      padding: EdgeInsets.symmetric(vertical: 10.h),
-      decoration: BoxDecoration(
-        color: const Color(0xFF1E1E2A).withValues(alpha: 0.9),
-        borderRadius: BorderRadius.circular(12.r),
-        border: Border.all(color: Colors.white10),
-      ),
-      child: Column(
-        children: [
-          Icon(icon, color: iconColor, size: 24.sp),
-          SizedBox(height: 4.h),
-          Text(
-            label,
-            textAlign: TextAlign.center,
-            style: TextStyle(
-              color: Colors.white70,
-              fontSize: 10.sp,
-              height: 1.2,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
 
   Widget _buildInsightCard() {
     // We add a GestureDetector to toggle simulation here as a bonus!
