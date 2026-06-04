@@ -36,33 +36,27 @@ class _LeaderboardPageState extends State<LeaderboardPage> {
             );
           }
 
-          if (state is LeaderboardError) {
-            return Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(Icons.error_outline, color: Colors.red, size: 60.sp),
-                  SizedBox(height: 16.h),
-                  Text(
-                    'Error loading leaderboard',
-                    style: TextStyle(
-                      color: appColors.textPrimary,
-                      fontSize: 16.sp,
-                    ),
-                  ),
-                  SizedBox(height: 8.h),
-                  ElevatedButton(
-                    onPressed: () => context.read<LeaderboardCubit>().getLeaderboard(),
-                    child: const Text('Retry'),
-                  ),
-                ],
-              ),
-            );
-          }
+          var topThree = <DriverEntity>[];
+          var allDrivers = <DriverEntity>[];
 
           if (state is LeaderboardLoaded) {
-            final topThree = state.drivers.take(3).toList();
-            final allDrivers = state.drivers;
+            topThree = state.drivers.take(3).toList();
+            allDrivers = state.drivers;
+          } else {
+            allDrivers = List.generate(
+              10,
+              (index) => DriverEntity(
+                id: 'dummy_$index',
+                name: index == 0 ? 'Mohamed' : index == 1 ? 'Ahmed' : index == 2 ? 'Omar' : 'Driver ${index + 4}',
+                rank: index + 1,
+                earnings: 5000.0 - (index * 150),
+                trips: 150 - (index * 5),
+                rating: 4.8,
+                isCurrentUser: index == 4,
+              ),
+            );
+            topThree = allDrivers.take(3).toList();
+          }
 
               return SingleChildScrollView(
                 child: Column(
@@ -278,14 +272,6 @@ class _LeaderboardPageState extends State<LeaderboardPage> {
                 ],
               ),
             );
-          }
-
-          return Center(
-            child: Text(
-              'No data',
-              style: TextStyle(color: appColors.textPrimary),
-            ),
-          );
         },
       ),
       ),

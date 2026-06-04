@@ -17,6 +17,7 @@ import 'package:zona_x_16_4/features/profile/presentation/bloc/profile_event.dar
 import 'package:zona_x_16_4/features/profile/presentation/settings_page.dart';
 import 'package:zona_x_16_4/features/profile/presentation/export_reports_page.dart';
 import 'package:zona_x_16_4/features/profile/presentation/support_faq_page.dart';
+import 'package:zona_x_16_4/features/profile/domain/entities/driver_profile_entity.dart';
 
 class ProfilePage extends StatefulWidget {
   const ProfilePage({super.key});
@@ -154,12 +155,23 @@ class _ProfilePageState extends State<ProfilePage> {
       body: SafeArea(
         child: BlocBuilder<ProfileBloc, ProfileState>(
           builder: (context, state) {
-            if (state is ProfileLoading) {
-              return const Center(child: CircularProgressIndicator());
-            } else if (state is ProfileError) {
-              return Center(child: Text(state.message, style: const TextStyle(color: Colors.red)));
-            } else if (state is ProfileLoaded) {
-              final profile = state.profile;
+              if (state is ProfileLoading) {
+                return const Center(child: CircularProgressIndicator());
+              }
+              
+              var profile = state is ProfileLoaded 
+                  ? state.profile 
+                  : const DriverProfileEntity(
+                      driverId: 'dummy_id',
+                      fullName: 'Ahmed Mohamed',
+                      plateNumber: 'ABC 123',
+                      licenseNumber: 'LIC-987654321',
+                      rating: 4.9,
+                      status: 'Available',
+                      completedTrips: 243,
+                      totalEarnings: 5240.0,
+                    );
+                    
               final user = Supabase.instance.client.auth.currentUser;
               final userId = user?.id ?? 'default';
               final box = Hive.box('app_box');
@@ -500,8 +512,7 @@ class _ProfilePageState extends State<ProfilePage> {
           ],
         ),
       );
-            }
-            return const SizedBox.shrink(); // Initial State
+
           },
         ),
       ),
