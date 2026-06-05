@@ -31,7 +31,8 @@ class _ProfilePageState extends State<ProfilePage> {
 
   Future<void> _pickProfilePicture(String userId) async {
     final box = Hive.box('app_box');
-    final hasAcceptedGallery = box.get('gallery_permission_accepted', defaultValue: false) as bool;
+    final hasAcceptedGallery =
+        box.get('gallery_permission_accepted', defaultValue: false) as bool;
     final appColors = Theme.of(context).extension<AppColors>()!;
 
     if (!hasAcceptedGallery) {
@@ -39,23 +40,42 @@ class _ProfilePageState extends State<ProfilePage> {
         context: context,
         builder: (context) => AlertDialog(
           backgroundColor: appColors.surface,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16.r)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16.r),
+          ),
           title: Text(
             'Gallery Access Required',
-            style: TextStyle(color: appColors.textPrimary, fontWeight: FontWeight.bold, fontSize: 18.sp),
+            style: TextStyle(
+              color: appColors.textPrimary,
+              fontWeight: FontWeight.bold,
+              fontSize: 18.sp,
+            ),
           ),
           content: Text(
             'ZonaX requires access to your photo gallery so you can choose a profile picture. Do you agree?',
-            style: TextStyle(color: appColors.textSecondary, fontSize: 14.sp, height: 1.4),
+            style: TextStyle(
+              color: appColors.textSecondary,
+              fontSize: 14.sp,
+              height: 1.4,
+            ),
           ),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context, false),
-              child: Text('Decline', style: TextStyle(color: appColors.textSecondary)),
+              child: Text(
+                'Decline',
+                style: TextStyle(color: appColors.textSecondary),
+              ),
             ),
             TextButton(
               onPressed: () => Navigator.pop(context, true),
-              child: Text('Agree', style: TextStyle(color: appColors.accent, fontWeight: FontWeight.bold)),
+              child: Text(
+                'Agree',
+                style: TextStyle(
+                  color: appColors.accent,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
             ),
           ],
         ),
@@ -70,19 +90,28 @@ class _ProfilePageState extends State<ProfilePage> {
 
     try {
       final picker = ImagePicker();
-      final pickedFile = await picker.pickImage(source: ImageSource.gallery, imageQuality: 85);
+      final pickedFile = await picker.pickImage(
+        source: ImageSource.gallery,
+        imageQuality: 85,
+      );
       if (pickedFile != null) {
         final appDocDir = await getApplicationDocumentsDirectory();
-        final fileName = 'profile_picture_${userId}_${DateTime.now().millisecondsSinceEpoch}.jpg';
-        final savedFile = await File(pickedFile.path).copy('${appDocDir.path}/$fileName');
-        
+        final fileName =
+            'profile_picture_${userId}_${DateTime.now().millisecondsSinceEpoch}.jpg';
+        final savedFile = await File(
+          pickedFile.path,
+        ).copy('${appDocDir.path}/$fileName');
+
         await box.put('profile_picture_path_$userId', savedFile.path);
-        
+
         setState(() {}); // Trigger rebuild to read new path from Hive
 
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Profile picture updated successfully!'), behavior: SnackBarBehavior.floating),
+            const SnackBar(
+              content: Text('Profile picture updated successfully!'),
+              behavior: SnackBarBehavior.floating,
+            ),
           );
         }
       }
@@ -90,7 +119,10 @@ class _ProfilePageState extends State<ProfilePage> {
       debugPrint('Error picking profile picture: $e');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to pick image: $e'), backgroundColor: Colors.red),
+          SnackBar(
+            content: Text('Failed to pick image: $e'),
+            backgroundColor: Colors.red,
+          ),
         );
       }
     }
@@ -155,364 +187,391 @@ class _ProfilePageState extends State<ProfilePage> {
       body: SafeArea(
         child: BlocBuilder<ProfileBloc, ProfileState>(
           builder: (context, state) {
-              if (state is ProfileLoading) {
-                return const Center(child: CircularProgressIndicator());
-              }
-              
-              var profile = state is ProfileLoaded 
-                  ? state.profile 
-                  : const DriverProfileEntity(
-                      driverId: 'dummy_id',
-                      fullName: 'Ahmed Mohamed',
-                      plateNumber: 'ABC 123',
-                      licenseNumber: 'LIC-987654321',
-                      rating: 4.9,
-                      status: 'Available',
-                      completedTrips: 243,
-                      totalEarnings: 5240.0,
-                    );
-                    
-              final user = Supabase.instance.client.auth.currentUser;
-              final userId = user?.id ?? 'default';
-              final box = Hive.box('app_box');
-              final profilePicturePath = box.get('profile_picture_path_$userId') as String?;
-              return SingleChildScrollView(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Header with "Profile" title
-              Padding(
-                padding: EdgeInsets.only(left: 20.w, top: 16.h, bottom: 24.h),
-                child: Text(
-                  'Profile',
-                  style: TextStyle(
-                    fontSize: 24.sp,
-                    fontWeight: FontWeight.bold,
-                    color: appColors.textPrimary,
-                  ),
-                ),
-              ),
+            if (state is ProfileLoading) {
+              return const Center(child: CircularProgressIndicator());
+            }
 
-              // User Profile Section
-              Padding(
-                padding: EdgeInsets.symmetric(horizontal: 20.w),
-                child: Column(
-                  children: [
-                  // User Avatar and Info
-                  Row(
-                    children: [
-                      GestureDetector(
-                        onTap: () => _pickProfilePicture(userId),
-                        child: Stack(
-                          children: [
-                            Container(
-                              width: 70.w,
-                              height: 70.w,
-                              decoration: BoxDecoration(
-                                color: appColors.accent.withValues(alpha: 0.2),
-                                shape: BoxShape.circle,
-                                border: Border.all(color: appColors.accent, width: 2.w),
-                                image: profilePicturePath != null
-                                    ? DecorationImage(
-                                        image: FileImage(File(profilePicturePath)),
-                                        fit: BoxFit.cover,
-                                      )
-                                    : null,
-                              ),
-                              child: profilePicturePath == null
-                                  ? Icon(
-                                      Icons.person,
-                                      size: 40.sp,
-                                      color: appColors.accent,
-                                    )
-                                  : null,
-                            ),
-                            Positioned(
-                              bottom: 0,
-                              right: 0,
-                              child: CircleAvatar(
-                                radius: 10.r,
-                                backgroundColor: appColors.accent,
-                                child: Icon(
-                                  Icons.edit,
-                                  size: 11.sp,
-                                  color: appColors.background,
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      SizedBox(width: 16.w),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              profile.fullName,
-                              style: TextStyle(
-                                fontSize: 20.sp,
-                                fontWeight: FontWeight.bold,
-                                color: appColors.textPrimary,
-                              ),
-                            ),
-                            SizedBox(height: 4.h),
-                            Text(
-                              'License: ${profile.licenseNumber}',
-                              style: TextStyle(
-                                fontSize: 12.sp,
-                                color: appColors.textSecondary,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                  SizedBox(height: 16.h),
+            var profile = state is ProfileLoaded
+                ? state.profile
+                : const DriverProfileEntity(
+                    driverId: 'dummy_id',
+                    fullName: 'Ahmed Mohamed',
+                    plateNumber: 'ABC 123',
+                    licenseNumber: 'LIC-987654321',
+                    rating: 4.9,
+                    status: 'Available',
+                    completedTrips: 243,
+                    totalEarnings: 5240.0,
+                  );
 
-                  // Rating and Status Toggle
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Row(
-                        children: [
-                          Icon(Icons.star, color: appColors.accent, size: 18.sp),
-                          SizedBox(width: 6.w),
-                          Text(
-                            profile.rating.toStringAsFixed(1),
-                            style: TextStyle(
-                              fontSize: 14.sp,
-                              fontWeight: FontWeight.bold,
-                              color: appColors.textPrimary,
-                            ),
-                          ),
-                        ],
-                      ),
-                      Row(
-                        children: [
-                          Text(
-                            profile.status == 'Available' ? 'Online' : 'Offline',
-                            style: TextStyle(
-                              fontSize: 14.sp,
-                              fontWeight: FontWeight.bold,
-                              color: profile.status == 'Available' ? Colors.green : Colors.red,
-                            ),
-                          ),
-                          SizedBox(width: 8.w),
-                          Switch.adaptive(
-                            value: profile.status == 'Available',
-                            activeColor: Colors.green,
-                            inactiveThumbColor: Colors.red,
-                            inactiveTrackColor: Colors.red.withValues(alpha: 0.3),
-                            onChanged: (bool value) {
-                              final newStatus = value ? 'Available' : 'Offline';
-                              context.read<ProfileBloc>().add(
-                                UpdateDriverStatusEvent(
-                                  newStatus: newStatus,
-                                  lat: 30.0444, // Tahrir Square
-                                  lng: 31.2357, // Tahrir Square
-                                ),
-                              );
-                            },
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-                  SizedBox(height: 16.h),
-
-                  // Vehicle Info
-                  Container(
-                    padding: EdgeInsets.all(12.w),
-                    decoration: BoxDecoration(
-                      color: appColors.surface,
-                      borderRadius: BorderRadius.circular(12.r),
-                      border: Border.all(color: appColors.inputBorder),
-                    ),
-                    child: Row(
-                      children: [
-                        Icon(
-                          Icons.directions_car,
-                          color: appColors.accent,
-                          size: 24.sp,
-                        ),
-                        SizedBox(width: 12.w),
-                        Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              'Vehicle Plate',
-                              style: TextStyle(
-                                fontSize: 14.sp,
-                                fontWeight: FontWeight.bold,
-                                color: appColors.textPrimary,
-                              ),
-                            ),
-                            Text(
-                              profile.plateNumber,
-                              style: TextStyle(
-                                fontSize: 12.sp,
-                                color: appColors.textSecondary,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-            ),
-
-            SizedBox(height: 32.h),
-
-            // This Month Section
-            Padding(
-              padding: EdgeInsets.only(left: 20.w, bottom: 12.h),
-              child: Text(
-                'This Month',
-                style: TextStyle(
-                  fontSize: 18.sp,
-                  fontWeight: FontWeight.bold,
-                  color: appColors.textPrimary,
-                ),
-              ),
-            ),
-            Padding(
-              padding: EdgeInsets.symmetric(horizontal: 20.w),
-              child: GridView.count(
-                crossAxisCount: 3,
-                shrinkWrap: true,
-                physics: const NeverScrollableScrollPhysics(),
-                mainAxisSpacing: 12.h,
-                crossAxisSpacing: 12.w,
-                childAspectRatio: 1,
-                children: [
-                  _buildStatCard(
-                    appColors,
-                    Icons.monetization_on,
-                    '${profile.totalEarnings.toStringAsFixed(0)} EGP',
-                    'Earnings',
-                  ),
-                  _buildStatCard(
-                    appColors,
-                    Icons.trending_up,
-                    '${profile.completedTrips}',
-                    'Trips',
-                  ),
-                  _buildStatCard(
-                    appColors,
-                    Icons.star,
-                    profile.rating.toStringAsFixed(1),
-                    'Rating',
-                  ),
-                ],
-              ),
-            ),
-
-            SizedBox(height: 32.h),
-
-
-
-            // More Section
-            Padding(
-              padding: EdgeInsets.only(left: 20.w, bottom: 12.h),
-              child: Text(
-                'More',
-                style: TextStyle(
-                  fontSize: 18.sp,
-                  fontWeight: FontWeight.bold,
-                  color: appColors.textPrimary,
-                ),
-              ),
-            ),
-            Padding(
-              padding: EdgeInsets.symmetric(horizontal: 20.w),
+            final user = Supabase.instance.client.auth.currentUser;
+            final userId = user?.id ?? 'default';
+            final box = Hive.box('app_box');
+            final profilePicturePath =
+                box.get('profile_picture_path_$userId') as String?;
+            return SingleChildScrollView(
               child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  _buildMenuItemWithNavigation(
-                    appColors,
-                    Icons.settings,
-                    'Settings',
-                    _navigateToSettings,
+                  // Header with "Profile" title
+                  Padding(
+                    padding: EdgeInsets.only(
+                      left: 20.w,
+                      top: 16.h,
+                      bottom: 24.h,
+                    ),
+                    child: Text(
+                      'Profile',
+                      style: TextStyle(
+                        fontSize: 24.sp,
+                        fontWeight: FontWeight.bold,
+                        color: appColors.textPrimary,
+                      ),
+                    ),
                   ),
-                  SizedBox(height: 12.h),
-                  _buildMenuItemWithNavigation(
-                    appColors,
-                    Icons.download,
-                    'Export Reports',
-                    _navigateToExportReports,
-                  ),
-                  SizedBox(height: 12.h),
-                  _buildMenuItemWithNavigation(
-                    appColors,
-                    Icons.help_outline,
-                    'Support & FAQ',
-                    _navigateToSupportFAQ,
-                  ),
-                  SizedBox(height: 12.h),
 
-                  _buildMenuItem(
-                    appColors,
-                    Icons.cloud_off,
-                    'Offline Mode',
-                  ),
-                  SizedBox(height: 12.h),
-                  _buildMenuItem(
-                    appColors,
-                    Icons.battery_charging_full,
-                    'Battery Saver',
-                  ),
-                  SizedBox(height: 12.h),
-                  _buildMenuItem(
-                    appColors,
-                    Icons.insert_chart,
-                    'Data Usage',
-                  ),
-                ],
-              ),
-            ),
-
-            SizedBox(height: 20.h),
-
-            // Logout Button
-            Padding(
-              padding: EdgeInsets.symmetric(horizontal: 20.w),
-              child: Container(
-                width: double.infinity,
-                decoration: BoxDecoration(
-                  border: Border(top: BorderSide(color: appColors.inputBorder)),
-                ),
-                child: Padding(
-                  padding: EdgeInsets.symmetric(vertical: 16.h),
-                  child: InkWell(
-                    onTap: logout,
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
+                  // User Profile Section
+                  Padding(
+                    padding: EdgeInsets.symmetric(horizontal: 20.w),
+                    child: Column(
                       children: [
-                        Icon(Icons.logout, color: Colors.red, size: 20.sp),
-                        SizedBox(width: 8.w),
-                        Text(
-                          'Logout',
-                          style: TextStyle(
-                            fontSize: 16.sp,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.red,
+                        // User Avatar and Info
+                        Row(
+                          children: [
+                            GestureDetector(
+                              onTap: () => _pickProfilePicture(userId),
+                              child: Stack(
+                                children: [
+                                  Container(
+                                    width: 70.w,
+                                    height: 70.w,
+                                    decoration: BoxDecoration(
+                                      color: appColors.accent.withValues(
+                                        alpha: 0.2,
+                                      ),
+                                      shape: BoxShape.circle,
+                                      border: Border.all(
+                                        color: appColors.accent,
+                                        width: 2.w,
+                                      ),
+                                      image: profilePicturePath != null
+                                          ? DecorationImage(
+                                              image: FileImage(
+                                                File(profilePicturePath),
+                                              ),
+                                              fit: BoxFit.cover,
+                                            )
+                                          : null,
+                                    ),
+                                    child: profilePicturePath == null
+                                        ? Icon(
+                                            Icons.person,
+                                            size: 40.sp,
+                                            color: appColors.accent,
+                                          )
+                                        : null,
+                                  ),
+                                  Positioned(
+                                    bottom: 0,
+                                    right: 0,
+                                    child: CircleAvatar(
+                                      radius: 10.r,
+                                      backgroundColor: appColors.accent,
+                                      child: Icon(
+                                        Icons.edit,
+                                        size: 11.sp,
+                                        color: appColors.background,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            SizedBox(width: 16.w),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    profile.fullName,
+                                    style: TextStyle(
+                                      fontSize: 20.sp,
+                                      fontWeight: FontWeight.bold,
+                                      color: appColors.textPrimary,
+                                    ),
+                                  ),
+                                  SizedBox(height: 4.h),
+                                  Text(
+                                    'License: ${profile.licenseNumber}',
+                                    style: TextStyle(
+                                      fontSize: 12.sp,
+                                      color: appColors.textSecondary,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                        SizedBox(height: 16.h),
+
+                        // Rating and Status Toggle
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Row(
+                              children: [
+                                Icon(
+                                  Icons.star,
+                                  color: appColors.accent,
+                                  size: 18.sp,
+                                ),
+                                SizedBox(width: 6.w),
+                                Text(
+                                  profile.rating.toStringAsFixed(1),
+                                  style: TextStyle(
+                                    fontSize: 14.sp,
+                                    fontWeight: FontWeight.bold,
+                                    color: appColors.textPrimary,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            Row(
+                              children: [
+                                Text(
+                                  profile.status == 'Available'
+                                      ? 'Online'
+                                      : 'Offline',
+                                  style: TextStyle(
+                                    fontSize: 14.sp,
+                                    fontWeight: FontWeight.bold,
+                                    color: profile.status == 'Available'
+                                        ? Colors.green
+                                        : Colors.red,
+                                  ),
+                                ),
+                                SizedBox(width: 8.w),
+                                Switch.adaptive(
+                                  value: profile.status == 'Available',
+                                  activeColor: Colors.green,
+                                  inactiveThumbColor: Colors.red,
+                                  inactiveTrackColor: Colors.red.withValues(
+                                    alpha: 0.3,
+                                  ),
+                                  onChanged: (bool value) {
+                                    final newStatus = value
+                                        ? 'Available'
+                                        : 'Offline';
+                                    context.read<ProfileBloc>().add(
+                                      UpdateDriverStatusEvent(
+                                        newStatus: newStatus,
+                                        lat: 30.0444, // Tahrir Square
+                                        lng: 31.2357, // Tahrir Square
+                                      ),
+                                    );
+                                  },
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
+                        SizedBox(height: 16.h),
+
+                        // Vehicle Info
+                        Container(
+                          padding: EdgeInsets.all(12.w),
+                          decoration: BoxDecoration(
+                            color: appColors.surface,
+                            borderRadius: BorderRadius.circular(12.r),
+                            border: Border.all(color: appColors.inputBorder),
+                          ),
+                          child: Row(
+                            children: [
+                              Icon(
+                                Icons.directions_car,
+                                color: appColors.accent,
+                                size: 24.sp,
+                              ),
+                              SizedBox(width: 12.w),
+                              Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    'Vehicle Plate',
+                                    style: TextStyle(
+                                      fontSize: 14.sp,
+                                      fontWeight: FontWeight.bold,
+                                      color: appColors.textPrimary,
+                                    ),
+                                  ),
+                                  Text(
+                                    profile.plateNumber,
+                                    style: TextStyle(
+                                      fontSize: 12.sp,
+                                      color: appColors.textSecondary,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ],
                           ),
                         ),
                       ],
                     ),
                   ),
-                ),
+
+                  SizedBox(height: 32.h),
+
+                  // This Month Section
+                  Padding(
+                    padding: EdgeInsets.only(left: 20.w, bottom: 12.h),
+                    child: Text(
+                      'This Month',
+                      style: TextStyle(
+                        fontSize: 18.sp,
+                        fontWeight: FontWeight.bold,
+                        color: appColors.textPrimary,
+                      ),
+                    ),
+                  ),
+                  Padding(
+                    padding: EdgeInsets.symmetric(horizontal: 20.w),
+                    child: GridView.count(
+                      crossAxisCount: 3,
+                      shrinkWrap: true,
+                      physics: const NeverScrollableScrollPhysics(),
+                      mainAxisSpacing: 12.h,
+                      crossAxisSpacing: 12.w,
+                      childAspectRatio: 1,
+                      children: [
+                        _buildStatCard(
+                          appColors,
+                          Icons.monetization_on,
+                          '${profile.totalEarnings.toStringAsFixed(0)} EGP',
+                          'Earnings',
+                        ),
+                        _buildStatCard(
+                          appColors,
+                          Icons.trending_up,
+                          '${profile.completedTrips}',
+                          'Trips',
+                        ),
+                        _buildStatCard(
+                          appColors,
+                          Icons.star,
+                          profile.rating.toStringAsFixed(1),
+                          'Rating',
+                        ),
+                      ],
+                    ),
+                  ),
+
+                  SizedBox(height: 32.h),
+
+                  // More Section
+                  Padding(
+                    padding: EdgeInsets.only(left: 20.w, bottom: 12.h),
+                    child: Text(
+                      'More',
+                      style: TextStyle(
+                        fontSize: 18.sp,
+                        fontWeight: FontWeight.bold,
+                        color: appColors.textPrimary,
+                      ),
+                    ),
+                  ),
+                  Padding(
+                    padding: EdgeInsets.symmetric(horizontal: 20.w),
+                    child: Column(
+                      children: [
+                        _buildMenuItemWithNavigation(
+                          appColors,
+                          Icons.settings,
+                          'Settings',
+                          _navigateToSettings,
+                        ),
+                        SizedBox(height: 12.h),
+                        _buildMenuItemWithNavigation(
+                          appColors,
+                          Icons.download,
+                          'Export Reports',
+                          _navigateToExportReports,
+                        ),
+                        SizedBox(height: 12.h),
+                        _buildMenuItemWithNavigation(
+                          appColors,
+                          Icons.help_outline,
+                          'Support & FAQ',
+                          _navigateToSupportFAQ,
+                        ),
+                        SizedBox(height: 12.h),
+
+                        _buildMenuItem(
+                          appColors,
+                          Icons.cloud_off,
+                          'Offline Mode',
+                        ),
+                        SizedBox(height: 12.h),
+                        _buildMenuItem(
+                          appColors,
+                          Icons.battery_charging_full,
+                          'Battery Saver',
+                        ),
+                        SizedBox(height: 12.h),
+                        _buildMenuItem(
+                          appColors,
+                          Icons.insert_chart,
+                          'Data Usage',
+                        ),
+                      ],
+                    ),
+                  ),
+
+                  SizedBox(height: 20.h),
+
+                  // Logout Button
+                  Padding(
+                    padding: EdgeInsets.symmetric(horizontal: 20.w),
+                    child: Container(
+                      width: double.infinity,
+                      decoration: BoxDecoration(
+                        border: Border(
+                          top: BorderSide(color: appColors.inputBorder),
+                        ),
+                      ),
+                      child: Padding(
+                        padding: EdgeInsets.symmetric(vertical: 16.h),
+                        child: InkWell(
+                          onTap: logout,
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(
+                                Icons.logout,
+                                color: Colors.red,
+                                size: 20.sp,
+                              ),
+                              SizedBox(width: 8.w),
+                              Text(
+                                'Logout',
+                                style: TextStyle(
+                                  fontSize: 16.sp,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.red,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+
+                  SizedBox(height: 80.h), // Space for bottom nav
+                ],
               ),
-            ),
-
-            SizedBox(height: 80.h), // Space for bottom nav
-          ],
-        ),
-      );
-
+            );
           },
         ),
       ),

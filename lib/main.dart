@@ -11,8 +11,13 @@ import 'package:mapbox_maps_flutter/mapbox_maps_flutter.dart' as mapbox;
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:zona_x_16_4/features/auth/presentation/auth_gate.dart';
 
+import 'package:zona_x_16_4/injection_container.dart' as di;
+
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  // Initialize Dependency Injection
+  await di.init();
 
   // Preserve splash screen while initializing
   FlutterNativeSplash.preserve(widgetsBinding: WidgetsBinding.instance);

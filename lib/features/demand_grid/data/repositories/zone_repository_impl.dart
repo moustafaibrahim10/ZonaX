@@ -1,8 +1,65 @@
 import 'dart:async';
+import 'package:dartz/dartz.dart';
 
+import '../../../../core/error/failures.dart';
 import '../../domain/repositories/zone_repository.dart';
+import '../datasources/zone_remote_data_source.dart';
+import '../models/zone_model.dart';
+import '../models/zone_heatmap_model.dart';
+import '../models/zone_insights_model.dart';
+
+import 'package:dio/dio.dart';
+import '../../../../core/network/api_constants.dart';
 
 class ZoneRepositoryImpl implements ZoneRepository {
+  final ZoneRemoteDataSource remoteDataSource;
+  final Dio dio;
+
+  ZoneRepositoryImpl({
+    required this.remoteDataSource,
+    required this.dio,
+  });
+
+  @override
+  Future<Either<Failure, List<ZoneModel>>> getZones() async {
+    try {
+      final response = await remoteDataSource.getZones();
+      return Right(response.data ?? []);
+    } catch (e) {
+      return Left(ServerFailure(e.toString()));
+    }
+  }
+
+  @override
+  Future<Either<Failure, List<ZoneHeatmapModel>>> getZonesHeatmap() async {
+    try {
+      dio.options.receiveTimeout = const Duration(milliseconds: 300000);
+      dio.options.connectTimeout = const Duration(milliseconds: 300000);
+      
+      final response = await remoteDataSource.getZonesHeatmap();
+      return Right(response.data ?? []);
+    } catch (e) {
+      return Left(ServerFailure(e.toString()));
+    } finally {
+      dio.options.receiveTimeout = const Duration(milliseconds: ApiConstants.apiTimeOut);
+      dio.options.connectTimeout = const Duration(milliseconds: ApiConstants.apiTimeOut);
+    }
+  }
+
+  @override
+  Future<Either<Failure, ZoneInsightsModel>> getZoneInsights(int zoneId) async {
+    try {
+      final response = await remoteDataSource.getZoneInsights(zoneId);
+      if (response.data != null) {
+        return Right(response.data!);
+      } else {
+        return const Left(ServerFailure('Insights data is null'));
+      }
+    } catch (e) {
+      return Left(ServerFailure(e.toString()));
+    }
+  }
+
   @override
   Stream<List<Map<String, dynamic>>> getLiveDemandUpdates() async* {
     // Disabled automated random ticker so the map remains perfectly static
@@ -26,3 +83,4 @@ class ZoneRepositoryImpl implements ZoneRepository {
     // }
   }
 }
+

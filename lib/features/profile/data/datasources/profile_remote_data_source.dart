@@ -1,6 +1,5 @@
 import 'package:dio/dio.dart';
 import '../../../../core/network/dio_factory.dart';
-import '../../../../core/network/api_constants.dart';
 import '../models/driver_profile_model.dart';
 import '../../../../core/error/exceptions.dart';
 
@@ -20,7 +19,7 @@ class ProfileRemoteDataSourceImpl implements ProfileRemoteDataSource {
     const fallbackDriverId = '559a7baf-4163-4353-852b-bf5091e20ffc';
     
     try {
-      final response = await _dio.get('${ApiConstants.baseUrl}/drivers/$fallbackDriverId');
+      final response = await _dio.get('/drivers/$fallbackDriverId');
       
       if (response.statusCode == 200) {
         // Handle case where API response wraps data inside a "data" field or directly returns it
@@ -42,7 +41,7 @@ class ProfileRemoteDataSourceImpl implements ProfileRemoteDataSource {
     const fallbackDriverId = '559a7baf-4163-4353-852b-bf5091e20ffc';
     try {
       final response = await _dio.put(
-        '${ApiConstants.baseUrl}/drivers/$fallbackDriverId/status',
+        '/drivers/$fallbackDriverId/status',
         data: {
           'status': status,
           'currentLat': lat,

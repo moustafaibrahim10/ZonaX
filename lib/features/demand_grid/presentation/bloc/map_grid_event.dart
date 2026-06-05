@@ -17,3 +17,21 @@ class UpdateLiveDemand extends MapGridEvent {
   @override
   List<Object> get props => [demandUpdates];
 }
+
+class ZoneSelected extends MapGridEvent {
+  final int zoneId;
+
+  const ZoneSelected(this.zoneId);
+
+  @override
+  List<Object> get props => [zoneId];
+}
+
+class FetchZoneInsights extends MapGridEvent {
+  final int zoneId;
+
+  const FetchZoneInsights({required this.zoneId});
+
+  @override
+  List<Object> get props => [zoneId];
+}

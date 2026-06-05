@@ -11,7 +11,7 @@ class LeaderboardRemoteDataSourceImpl implements LeaderboardRemoteDataSource {
   Future<List<DriverEntity>> getLeaderboard() async {
     try {
       final dio = DioFactory.getDio();
-      final response = await dio.get('/api/v1/trips/statistics/drivers');
+      final response = await dio.get('/trips/statistics/drivers');
       if (response.statusCode == 200 && response.data != null) {
         final List<dynamic> dataList = response.data['data'] ?? response.data;
         return dataList.map((json) => DriverEntity.fromJson(json as Map<String, dynamic>)).toList();

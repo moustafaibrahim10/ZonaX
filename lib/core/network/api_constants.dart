@@ -1,8 +1,9 @@
 abstract final class ApiConstants {
   static const String baseUrl = 'https://zonax.runasp.net/api/v1';
-  static const String zonesEndpoint = '/zones';
 
-  // Auth endpoints
+  static const String zonesEndpoint = '/zones';
+  static const String zonesMetadataEndpoint = '/zones/metadata';
+
   static const String authLoginEndpoint = '/auth/login';
   static const String authRegisterEndpoint = '/auth/register/driver';
   static const String authOtpSendEndpoint = '/auth/otp/send';

@@ -11,10 +11,11 @@ import 'package:zona_x_16_4/features/demand_grid/presentation/bloc/map_grid_bloc
 import 'package:zona_x_16_4/features/demand_grid/presentation/bloc/map_grid_event.dart';
 import 'package:zona_x_16_4/features/demand_grid/presentation/bloc/map_grid_state.dart';
 import 'package:zona_x_16_4/features/demand_grid/presentation/widgets/demand_grid_integration.dart';
-import 'package:zona_x_16_4/features/demand_grid/data/repositories/zone_repository_impl.dart';
 import 'package:zona_x_16_4/features/profile/domain/usecases/update_driver_status_usecase.dart';
 import 'package:zona_x_16_4/features/profile/data/repositories/driver_profile_repository_impl.dart';
 import 'package:zona_x_16_4/features/profile/data/datasources/profile_remote_data_source.dart';
+import 'package:zona_x_16_4/features/demand_grid/domain/repositories/zone_repository.dart';
+import 'package:zona_x_16_4/injection_container.dart' as di;
 
 class HeatmapScreen extends StatefulWidget {
   const HeatmapScreen({super.key});
@@ -78,7 +79,7 @@ class _HeatmapScreenState extends State<HeatmapScreen> with WidgetsBindingObserv
     return Scaffold(
       backgroundColor: const Color(0xFF0F111A), // Dark background for nav area
       body: BlocProvider(
-        create: (context) => MapGridBloc(repository: ZoneRepositoryImpl())..add(InitializeGrid()),
+        create: (context) => MapGridBloc(repository: di.sl<ZoneRepository>())..add(InitializeGrid()),
         child: SafeArea(
           child: BlocBuilder<MapGridBloc, MapGridState>(
             buildWhen: (previous, current) => current is GridReady && previous is! GridReady,
@@ -98,17 +99,39 @@ class _HeatmapScreenState extends State<HeatmapScreen> with WidgetsBindingObserv
                         mapboxMap = map;
                       });
                     },
-              onStyleLoadedListener: (styleLoadedEvent) async {
-                isStyleLoaded = true;
-                final mapCubit = context.read<MapCubit>();
-                await _initAnnotationManagers();
-                await _setupUserLocation();
-                if (mounted) {
-                  mapCubit.getZones();
-                  // Draw car initially at Tahrir Square without moving
-                  _updateCarPosition(30.0444, 31.2357);
-                }
-              },
+                    onTapListener: (MapContentGestureContext tapContext) {
+                      mapboxMap?.queryRenderedFeatures(
+                        RenderedQueryGeometry.fromScreenCoordinate(tapContext.touchPosition),
+                        RenderedQueryOptions(layerIds: ['demand-grid-layer'], filter: null),
+                      ).then((features) {
+                        if (features.isNotEmpty) {
+                          final first = features.first;
+                          if (first != null) {
+                            final feature = first.queriedFeature.feature;
+                            if (feature['properties'] != null) {
+                              final zoneId = int.tryParse(feature['id']?.toString() ?? '');
+                              if (zoneId != null) {
+                                if (!mounted) return;
+                                context.read<MapGridBloc>().add(FetchZoneInsights(zoneId: zoneId));
+                                _showInsightsBottomSheet(context);
+                              }
+                            }
+                          }
+                        }
+                      });
+                    },
+
+                    onStyleLoadedListener: (styleLoadedEvent) async {
+                      isStyleLoaded = true;
+                      final mapCubit = context.read<MapCubit>();
+                      await _initAnnotationManagers();
+                      await _setupUserLocation();
+                      if (mounted) {
+                        mapCubit.getZones();
+                        // Draw car initially at Tahrir Square without moving
+                        _updateCarPosition(30.0444, 31.2357);
+                      }
+                    },
             ),
 
             // 1.5. Demand Grid Layer
@@ -121,9 +144,6 @@ class _HeatmapScreenState extends State<HeatmapScreen> with WidgetsBindingObserv
           // Bloc Listener for map updates
           BlocListener<MapCubit, MapState>(
             listener: (context, state) {
-              if (state is MapZonesLoaded && isStyleLoaded) {
-                _drawHeatmapPolygons(state.zones);
-              }
               if (state is MapCarMoving && isStyleLoaded) {
                 _updateCarPosition(state.lat, state.lng);
               }
@@ -218,79 +238,96 @@ class _HeatmapScreenState extends State<HeatmapScreen> with WidgetsBindingObserv
 
 
   Widget _buildInsightCard() {
-    // We add a GestureDetector to toggle simulation here as a bonus!
     final isSimulating = context.watch<MapCubit>().isSimulating;
 
-    return GestureDetector(
-      onTap: () {
-        context.read<MapCubit>().toggleSimulation();
-      },
-      child: Container(
-        padding: EdgeInsets.all(15.w),
-        decoration: BoxDecoration(
-          color: const Color(0xFF191B28).withValues(alpha: 0.95),
-          borderRadius: BorderRadius.circular(20.r),
-          border: Border.all(color: Colors.white12),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black54,
-              blurRadius: 10,
-              offset: Offset(0, 5),
-            ),
-          ],
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Center(
-              child: Container(
-                width: 40.w,
-                height: 4.h,
-                margin: EdgeInsets.only(bottom: 10.h),
-                decoration: BoxDecoration(
-                  color: Colors.grey[700],
-                  borderRadius: BorderRadius.circular(2),
-                ),
-              ),
-            ),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Expanded(
-                  child: Text(
-                    "Head to Zone 102 (Midtown East).",
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 16.sp,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ),
-                // Simulation Status Icon
-                Icon(
-                  isSimulating ? Icons.stop_circle : Icons.play_circle_fill,
-                  color: isSimulating ? Colors.red : Colors.green,
+    return BlocBuilder<MapGridBloc, MapGridState>(
+      builder: (context, gridState) {
+        String zoneName = "Tap a zone to see insights";
+        String revenuePrediction = "EGP 0.00";
+        String passengerProbability = "0% Passenger Probability";
+        String waitTimeInfo = "ETA: N/A";
+        String aiInsight = "Select a zone to get AI insights.";
+
+        if (gridState is GridReady && gridState.selectedZone != null) {
+          final zone = gridState.selectedZone!;
+          zoneName = zone.zoneName;
+          revenuePrediction = "EGP ${zone.revenuePrediction.toStringAsFixed(2)}";
+          passengerProbability = "${(100 - zone.predictedStockoutProbability * 100).toInt()}% Passenger Probability";
+          waitTimeInfo = "Trips: ${zone.predictedTripCount} | Wait: ~${(zone.predictedStockoutProbability * 10).toInt()} mins";
+          aiInsight = "Demand Level is ${zone.demandLevel} with a ${zone.surgeMultiplier}x surge multiplier.";
+        }
+
+        return GestureDetector(
+          onTap: () {
+            context.read<MapCubit>().toggleSimulation();
+          },
+          child: Container(
+            padding: EdgeInsets.all(15.w),
+            decoration: BoxDecoration(
+              color: const Color(0xFF191B28).withValues(alpha: 0.95),
+              borderRadius: BorderRadius.circular(20.r),
+              border: Border.all(color: Colors.white12),
+              boxShadow: const [
+                BoxShadow(
+                  color: Colors.black54,
+                  blurRadius: 10,
+                  offset: Offset(0, 5),
                 ),
               ],
             ),
-            SizedBox(height: 5.h),
-            Text(
-              "90% Passenger Probability.",
-              style: TextStyle(color: Colors.white70, fontSize: 14.sp),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Center(
+                  child: Container(
+                    width: 40.w,
+                    height: 4.h,
+                    margin: EdgeInsets.only(bottom: 10.h),
+                    decoration: BoxDecoration(
+                      color: Colors.grey[700],
+                      borderRadius: BorderRadius.circular(2),
+                    ),
+                  ),
+                ),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Expanded(
+                      child: Text(
+                        zoneName,
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 16.sp,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                    Icon(
+                      isSimulating ? Icons.stop_circle : Icons.play_circle_fill,
+                      color: isSimulating ? Colors.red : Colors.green,
+                    ),
+                  ],
+                ),
+                SizedBox(height: 5.h),
+                Text(
+                  passengerProbability,
+                  style: TextStyle(color: Colors.white70, fontSize: 14.sp),
+                ),
+                Text(
+                  "Avg. Fare: $revenuePrediction. $waitTimeInfo.",
+                  style: TextStyle(color: Colors.white70, fontSize: 14.sp),
+                ),
+                SizedBox(height: 10.h),
+                Text(
+                  aiInsight,
+                  style: TextStyle(color: Colors.grey, fontSize: 12.sp),
+                ),
+              ],
             ),
-            Text(
-              "Avg. Fare: \$25. ETA: 5 mins.",
-              style: TextStyle(color: Colors.white70, fontSize: 14.sp),
-            ),
-            SizedBox(height: 10.h),
-            Text(
-              "AI Insight: High evening commute traffic & weather forecast suggests surge in 10 mins.",
-              style: TextStyle(color: Colors.grey, fontSize: 12.sp),
-            ),
-          ],
-        ),
-      ),
+          ),
+        );
+      },
     );
   }
 
@@ -305,50 +342,7 @@ class _HeatmapScreenState extends State<HeatmapScreen> with WidgetsBindingObserv
         .createCircleAnnotationManager();
   }
 
-  void _drawHeatmapPolygons(List<ZoneEntity> zones) async {
-    polygonAnnotationManager?.deleteAll();
 
-    for (var zone in zones) {
-      double offset = 0.002; // Decreased size to prevent overlapping
-      List<Position> polygonPoints = [
-        Position(zone.lng - offset, zone.lat - offset),
-        Position(zone.lng + offset, zone.lat - offset),
-        Position(zone.lng + offset, zone.lat + offset),
-        Position(zone.lng - offset, zone.lat + offset),
-        Position(zone.lng - offset, zone.lat - offset),
-      ];
-
-      int fillColor;
-      if (zone.demandLevel > 7) {
-        fillColor = Colors.red.toARGB32();
-      } else if (zone.demandLevel > 4) {
-        fillColor = Colors.orangeAccent.toARGB32();
-      } else {
-        fillColor = Colors.green.withValues(alpha: 0.5).toARGB32();
-      }
-
-      // 1. Draw glowing polygon
-      polygonAnnotationManager?.create(
-        PolygonAnnotationOptions(
-          geometry: Polygon(coordinates: [polygonPoints]),
-          fillColor: fillColor,
-          fillOpacity: 0.3,
-          fillOutlineColor: fillColor, // Match outline to create glow effect
-        ),
-      );
-
-      // 2. Draw $ pin inside the polygon
-      pointAnnotationManager?.create(
-        PointAnnotationOptions(
-          geometry: Point(coordinates: Position(zone.lng, zone.lat)),
-          textField: "💲",
-          textSize: 22.0,
-          textHaloColor: Colors.black87.toARGB32(),
-          textHaloWidth: 1.0,
-        ),
-      );
-    }
-  }
 
   void _updateCarPosition(double lat, double lng) async {
     final position = Position(lng, lat);
@@ -410,5 +404,90 @@ class _HeatmapScreenState extends State<HeatmapScreen> with WidgetsBindingObserv
     } catch (e) {
       debugPrint("Error loading advanced user location puck: $e");
     }
+  }
+  void _showInsightsBottomSheet(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (ctx) {
+        return BlocProvider.value(
+          value: context.read<MapGridBloc>(),
+          child: Container(
+            padding: const EdgeInsets.all(20),
+            decoration: const BoxDecoration(
+              color: Color(0xFF1E1E2A),
+              borderRadius: BorderRadius.vertical(top: Radius.circular(25)),
+            ),
+            child: SafeArea(
+              child: BlocBuilder<MapGridBloc, MapGridState>(
+                builder: (context, state) {
+                  if (state is ZoneInsightsLoading) {
+                    return const SizedBox(
+                      height: 200,
+                      child: Center(child: CircularProgressIndicator(color: Colors.blueAccent)),
+                    );
+                  } else if (state is ZoneInsightsLoaded) {
+                    final insights = state.insights;
+                    return Column(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Center(
+                          child: Container(
+                            width: 40, height: 4,
+                            margin: const EdgeInsets.only(bottom: 20),
+                            decoration: BoxDecoration(color: Colors.grey[600], borderRadius: BorderRadius.circular(2)),
+                          ),
+                        ),
+                        Text(
+                          "AI Zone Insights",
+                          style: const TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold),
+                        ),
+                        const SizedBox(height: 15),
+                        _buildInsightRow(Icons.lightbulb_outline, Colors.amber, "AI Insight", insights.aiInsightText ?? "No specific insight available."),
+                        const SizedBox(height: 10),
+                        _buildInsightRow(Icons.trending_up, Colors.greenAccent, "Demand Growth", "${insights.demandGrowthPercentage ?? 0.0}%"),
+                        const SizedBox(height: 10),
+                        _buildInsightRow(Icons.check_circle_outline, Colors.blueAccent, "Recommendation", insights.recommendedAction ?? "Maintain current operations."),
+                        const SizedBox(height: 20),
+                      ],
+                    );
+                  } else if (state is ZoneInsightsError) {
+                    return SizedBox(
+                      height: 200,
+                      child: Center(
+                        child: Text("Error: ${state.message}", style: const TextStyle(color: Colors.redAccent)),
+                      ),
+                    );
+                  }
+                  return const SizedBox(height: 200, child: Center(child: CircularProgressIndicator()));
+                },
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildInsightRow(IconData icon, Color color, String title, String value) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Icon(icon, color: color, size: 24),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(title, style: TextStyle(color: Colors.grey[400], fontSize: 14)),
+              const SizedBox(height: 4),
+              Text(value, style: const TextStyle(color: Colors.white, fontSize: 16)),
+            ],
+          ),
+        ),
+      ],
+    );
   }
 }

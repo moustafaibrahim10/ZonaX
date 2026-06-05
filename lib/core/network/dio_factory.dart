@@ -9,14 +9,12 @@ class DioFactory {
   static String? _authToken;
 
   static Dio getDio() {
-    Duration timeOut = const Duration(milliseconds: ApiConstants.apiTimeOut);
-
     if (_dio == null) {
-      _dio = Dio();
-      _dio!
-        ..options.baseUrl = ApiConstants.baseUrl
-        ..options.connectTimeout = timeOut
-        ..options.receiveTimeout = timeOut;
+      _dio = Dio(BaseOptions(
+        baseUrl: ApiConstants.baseUrl,
+        connectTimeout: const Duration(milliseconds: ApiConstants.apiTimeOut),
+        receiveTimeout: const Duration(milliseconds: ApiConstants.apiTimeOut),
+      ));
 
       _addInterceptors();
     }
@@ -44,9 +42,21 @@ class DioFactory {
           }
           options.headers['Accept'] = 'application/json';
           options.headers['Content-Type'] = 'application/json';
+          // Record start time to measure duration on error
+          options.extra['startTime'] = DateTime.now().millisecondsSinceEpoch;
           return handler.next(options);
         },
         onError: (error, handler) {
+          // Check for timeout
+          if (error.type == DioExceptionType.connectionTimeout || 
+              error.type == DioExceptionType.receiveTimeout || 
+              error.type == DioExceptionType.sendTimeout) {
+            final startTime = error.requestOptions.extra['startTime'] as int?;
+            if (startTime != null) {
+              final duration = DateTime.now().millisecondsSinceEpoch - startTime;
+              debugPrint('Network Timeout Error! Waited for $duration ms before timing out on ${error.requestOptions.path}');
+            }
+          }
           // Handle 401 Unauthorized (token expired)
           if (error.response?.statusCode == 401) {
             clearAuthToken();

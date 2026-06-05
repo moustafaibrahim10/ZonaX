@@ -162,6 +162,7 @@ class ProfileService {
         body: {'user_id': user.id},
       );
 
+      // ignore: unnecessary_null_comparison
       return response != null;
     } catch (e) {
       print('Error exporting data: $e');
