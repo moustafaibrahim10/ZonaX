@@ -15,23 +15,9 @@ class _SupportFAQPageState extends State<SupportFAQPage> {
   // TODO: Replace with API call to fetch FAQs from backend
   final List<Map<String, String>> faqs = [
     {
-      'question': 'How do I update my payment method?',
-      'answer':
-          'Go to Settings > Payment Methods to add or update your payment methods.',
-    },
-    {
-      'question': 'What fees does ZonaX charge?',
-      'answer': 'ZonaX takes a 15% commission from your earnings.',
-    },
-    {
-      'question': 'How long does withdrawal take?',
-      'answer':
-          'Withdrawals typically take 2-3 business days to appear in your account.',
-    },
-    {
       'question': 'How is my rating calculated?',
       'answer':
-          'Your rating is based on passenger feedback, punctuality, and vehicle cleanliness.',
+          'Your rating is calculated based on the total number of completed trips and the proportion of your overall revenue relative to the total number of trips.',
     },
   ];
 
@@ -82,21 +68,14 @@ class _SupportFAQPageState extends State<SupportFAQPage> {
                       appColors,
                       Icons.email,
                     'Email',
-                    'support@zonax.com',
+                    'ZonaXV1@gmail.com',
                   ),
                   SizedBox(height: 8.h),
                   _buildContactTile(
                     appColors,
                     Icons.phone,
                     'Phone',
-                    '+1-800-ZONAX',
-                  ),
-                  SizedBox(height: 8.h),
-                  _buildContactTile(
-                    appColors,
-                    Icons.chat,
-                    'Live Chat',
-                    'Available 24/7',
+                    '+201151812797',
                   ),
                 ],
               ),
