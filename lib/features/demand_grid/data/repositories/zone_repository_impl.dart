@@ -11,6 +11,7 @@ import '../models/top_demand_zone_model.dart';
 import '../models/recommended_zone_model.dart';
 import '../models/peak_hour_model.dart';
 import '../models/driver_distribution_model.dart';
+import '../models/zone_comparison_model.dart';
 
 import 'package:dio/dio.dart';
 import '../../../../core/network/api_constants.dart';
@@ -110,6 +111,20 @@ class ZoneRepositoryImpl implements ZoneRepository {
         return Right(response.data!);
       } else {
         return const Left(ServerFailure('Driver distribution data is null'));
+      }
+    } catch (e) {
+      return Left(ServerFailure(e.toString()));
+    }
+  }
+
+  @override
+  Future<Either<Failure, List<ZoneComparisonModel>>> compareZones(List<int> zoneIds) async {
+    try {
+      final response = await remoteDataSource.compareZones(zoneIds);
+      if (response.data != null) {
+        return Right(response.data!.comparisonData);
+      } else {
+        return const Left(ServerFailure('Zone comparison data is null'));
       }
     } catch (e) {
       return Left(ServerFailure(e.toString()));

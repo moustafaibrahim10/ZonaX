@@ -7,11 +7,15 @@ import 'map_grid_state.dart';
 import '../../data/models/zone_model.dart';
 import '../../data/models/zone_heatmap_model.dart';
 import '../../data/models/top_demand_zone_model.dart';
+import '../../data/models/zone_insights_model.dart';
 import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 
+import '../../data/models/zone_comparison_model.dart';
 import '../../data/datasources/zone_boundary_service.dart';
+import 'package:dartz/dartz.dart';
+import '../../../../core/error/failures.dart';
 
 /// Data class to pass to the isolate (compute requires a single argument)
 class _GeoJsonParams {
@@ -290,10 +294,36 @@ class MapGridBloc extends Bloc<MapGridEvent, MapGridState> {
     final currentState = state;
     if (currentState is GridReady) {
       emit(currentState.copyWith(isLoadingInsights: true, insightsError: null));
-      final result = await repository.getZoneInsights(event.zoneId);
-      result.fold(
+      
+      final results = await Future.wait([
+        repository.getZoneInsights(event.zoneId),
+        repository.compareZones([event.zoneId]),
+      ]);
+      
+      final insightsResult = results[0] as Either<Failure, ZoneInsightsModel>;
+      final compareResult = results[1] as Either<Failure, List<ZoneComparisonModel>>;
+
+      insightsResult.fold(
         (failure) => emit(currentState.copyWith(isLoadingInsights: false, insightsError: failure.message)),
-        (insights) => emit(currentState.copyWith(isLoadingInsights: false, insights: insights, insightsError: null)),
+        (insights) {
+          List<ZoneComparisonModel>? comparisons;
+          compareResult.fold(
+            (failure) {
+              debugPrint('Compare API Error: \${failure.message}');
+            }, 
+            (data) {
+              comparisons = data;
+              debugPrint('Compare API Success! Got \${data.length} comparisons.');
+            }
+          );
+          
+          emit(currentState.copyWith(
+            isLoadingInsights: false, 
+            insights: insights, 
+            comparisons: comparisons,
+            insightsError: null
+          ));
+        },
       );
     }
   }

@@ -1,6 +1,7 @@
 import 'package:equatable/equatable.dart';
 import '../../data/models/zone_heatmap_model.dart';
 import '../../data/models/zone_insights_model.dart';
+import '../../data/models/zone_comparison_model.dart';
 
 abstract class MapGridState extends Equatable {
   const MapGridState();
@@ -22,6 +23,7 @@ class GridReady extends MapGridState {
   final bool isLoadingInsights;
   final String? insightsError;
   final bool isRefreshing; // Tracks offline-first cache updates
+  final List<ZoneComparisonModel>? comparisons;
 
   const GridReady({
     required this.geoJson,
@@ -32,6 +34,7 @@ class GridReady extends MapGridState {
     this.isLoadingInsights = false,
     this.insightsError,
     this.isRefreshing = false,
+    this.comparisons,
   });
 
   GridReady copyWith({
@@ -43,6 +46,7 @@ class GridReady extends MapGridState {
     bool? isLoadingInsights,
     String? insightsError,
     bool? isRefreshing,
+    List<ZoneComparisonModel>? comparisons,
   }) {
     return GridReady(
       geoJson: geoJson ?? this.geoJson,
@@ -53,6 +57,7 @@ class GridReady extends MapGridState {
       isLoadingInsights: isLoadingInsights ?? this.isLoadingInsights,
       insightsError: insightsError ?? this.insightsError,
       isRefreshing: isRefreshing ?? this.isRefreshing,
+      comparisons: comparisons ?? this.comparisons,
     );
   }
 
@@ -66,6 +71,7 @@ class GridReady extends MapGridState {
     isLoadingInsights,
     insightsError,
     isRefreshing,
+    comparisons,
   ];
 }
 
@@ -81,6 +87,7 @@ class DemandUpdated extends GridReady {
     super.isLoadingInsights,
     super.insightsError,
     super.isRefreshing,
+    super.comparisons,
     required this.latestUpdates,
   });
 
@@ -94,6 +101,7 @@ class DemandUpdated extends GridReady {
     isLoadingInsights,
     insightsError,
     isRefreshing,
+    comparisons,
     latestUpdates
   ];
 }

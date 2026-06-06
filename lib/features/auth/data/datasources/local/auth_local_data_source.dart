@@ -39,6 +39,7 @@ class AuthLocalDataSourceImpl implements AuthLocalDataSource {
   @override
   Future<void> saveUserProfile(AuthResponse profile) async {
     await _hiveBox.put(_profileKey, {
+      'id': profile.id,
       'role': profile.role,
       'fullName': profile.fullName,
     });
@@ -49,6 +50,7 @@ class AuthLocalDataSourceImpl implements AuthLocalDataSource {
     final Map<dynamic, dynamic>? data = _hiveBox.get(_profileKey);
     if (data != null) {
       return AuthResponse(
+        id: data['id'] as String?,
         role: data['role'] as String?,
         fullName: data['fullName'] as String?,
       );

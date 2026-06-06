@@ -5,6 +5,7 @@ import '../../data/models/top_demand_zone_model.dart';
 import '../../data/models/recommended_zone_model.dart';
 import '../../data/models/peak_hour_model.dart';
 import '../../data/models/driver_distribution_model.dart';
+import '../../data/models/zone_comparison_model.dart';
 import 'package:dartz/dartz.dart';
 import '../../../../core/error/failures.dart';
 
@@ -24,6 +25,8 @@ abstract class ZoneRepository {
   Future<Either<Failure, List<PeakHourModel>>> getPeakHours();
 
   Future<Either<Failure, List<DriverDistributionModel>>> getDriverDistribution();
+
+  Future<Either<Failure, List<ZoneComparisonModel>>> compareZones(List<int> zoneIds);
 
   /// Exposes a stream of zone updates simulating live API demand data.
   /// Each update is a list of maps containing {"zoneId": int, "demandLevel": int}

@@ -124,11 +124,11 @@ class _SimulationMapLayerState extends State<SimulationMapLayer> {
   }
 
   String _color(double d) {
-    if (d >= 40) return 'rgba(220, 20, 60, 0.15)';  // Crimson
-    if (d >= 25) return 'rgba(255, 69, 0, 0.12)';   // OrangeRed
-    if (d >= 12) return 'rgba(255, 165, 0, 0.10)';  // Orange
-    if (d >= 5)  return 'rgba(255, 215, 0, 0.08)';  // Gold
-    return 'rgba(50, 205, 50, 0.05)';               // LimeGreen
+    if (d >= 40) return '#DC143C';  // Crimson
+    if (d >= 25) return '#FF4500';  // OrangeRed
+    if (d >= 12) return '#FFA500';  // Orange
+    if (d >= 5)  return '#FFD700';  // Gold
+    return '#32CD32';               // LimeGreen
   }
 
   @override

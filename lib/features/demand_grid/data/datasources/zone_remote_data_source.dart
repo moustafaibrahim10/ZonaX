@@ -7,6 +7,8 @@ import '../models/top_demand_zone_model.dart';
 import '../models/recommended_zone_model.dart';
 import '../models/peak_hour_model.dart';
 import '../models/driver_distribution_model.dart';
+import '../models/zone_comparison_model.dart';
+import '../models/zone_comparison_response.dart';
 import '../../../../core/network/api_constants.dart';
 import '../../../../core/network/models/base_response.dart';
 
@@ -36,4 +38,7 @@ abstract class ZoneRemoteDataSource {
 
   @GET('/zones/driver-distribution')
   Future<BaseResponse<List<DriverDistributionModel>>> getDriverDistribution();
+
+  @GET('/zones/compare')
+  Future<BaseResponse<ZoneComparisonResponse>> compareZones(@Query("zoneIds") List<int> zoneIds);
 }

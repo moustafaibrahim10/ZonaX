@@ -201,6 +201,7 @@ class _ProfilePageState extends State<ProfilePage> {
                     rating: 4.9,
                     status: 'Available',
                     completedTrips: 243,
+                    activeTrips: 0,
                     totalEarnings: 5240.0,
                   );
 

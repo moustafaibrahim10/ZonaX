@@ -55,7 +55,7 @@ class AuthRepositoryImpl implements AuthRepository {
         await _localDataSource.saveUserProfile(authData);
         return Right(authData);
       } else {
-        return Left(ServerFailure(response.data?.message ?? "Login failed"));
+        return Left(ServerFailure(response.message ?? response.data?.message ?? "Login failed"));
       }
     } catch (e) {
       return Left(ServerFailure(_extractErrorMessage(e)));
@@ -74,7 +74,7 @@ class AuthRepositoryImpl implements AuthRepository {
         await _localDataSource.saveUserProfile(authData);
         return Right(authData);
       } else {
-        return Left(ServerFailure(response.data?.message ?? "Registration failed"));
+        return Left(ServerFailure(response.message ?? response.data?.message ?? "Registration failed"));
       }
     } catch (e) {
       return Left(ServerFailure(_extractErrorMessage(e)));
@@ -131,7 +131,7 @@ class AuthRepositoryImpl implements AuthRepository {
         await _localDataSource.saveUserProfile(response.data!);
         return Right(response.data!);
       } else {
-        return Left(ServerFailure(response.data?.message ?? "Failed to fetch profile"));
+        return Left(ServerFailure(response.message ?? response.data?.message ?? "Failed to fetch profile"));
       }
     } catch (e) {
       return Left(ServerFailure(_extractErrorMessage(e)));

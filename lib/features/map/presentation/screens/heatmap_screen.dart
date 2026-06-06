@@ -35,6 +35,7 @@ import 'package:zona_x_16_4/injection_container.dart' as di;
 import 'package:zona_x_16_4/features/trips/presentation/bloc/trip_state.dart';
 import 'package:zona_x_16_4/features/trips/presentation/bloc/trip_event.dart';
 import 'package:dio/dio.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class HeatmapScreen extends StatefulWidget {
   const HeatmapScreen({super.key});
@@ -50,14 +51,18 @@ class _HeatmapScreenState extends State<HeatmapScreen> with WidgetsBindingObserv
   CircleAnnotationManager? circleAnnotationManager;
   PolygonAnnotationManager? polygonAnnotationManager;
   PolylineAnnotationManager? polylineAnnotationManager;
-  PointAnnotation? carPointAnnotation;
+  CircleAnnotation? carCircleAnnotation;
+  CircleAnnotation? carHaloAnnotation;
   PolylineAnnotation? routePolyline;
   bool isStyleLoaded = false;
   Uint8List? carIconBytes;
 
-  final int _currentDriverZoneId = 185;
+  int _currentDriverZoneId = 1;
+  double _lastLat = 30.0444;
+  double _lastLng = 31.2357;
   bool _isTrackingCar = true; // Default starting zone
   bool _isSelectingDropoff = false;
+  int? _pendingDropoffZoneId;
 
   @override
   void initState() {
@@ -70,8 +75,26 @@ class _HeatmapScreenState extends State<HeatmapScreen> with WidgetsBindingObserv
       ),
     );
     
+    // Load last location
+    _loadLastLocation();
+    
     // Initial status update
     _sendStatusUpdate("Available");
+  }
+
+  Future<void> _loadLastLocation() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      if (mounted) {
+        setState(() {
+          _currentDriverZoneId = prefs.getInt('last_zone_id') ?? 1;
+          _lastLat = prefs.getDouble('last_lat') ?? 30.0444;
+          _lastLng = prefs.getDouble('last_lng') ?? 31.2357;
+        });
+      }
+    } catch (e) {
+      debugPrint("Error loading last location: $e");
+    }
   }
 
   @override
@@ -207,8 +230,8 @@ class _HeatmapScreenState extends State<HeatmapScreen> with WidgetsBindingObserv
                       await _setupUserLocation();
                       if (mounted) {
                         mapCubit.getZones();
-                        // Draw car initially at Tahrir Square without moving
-                        _updateCarPosition(30.0444, 31.2357);
+                        // Draw car initially at the last known location
+                        _updateCarPosition(_lastLat, _lastLng);
                       }
                     },
             ),
@@ -230,6 +253,8 @@ class _HeatmapScreenState extends State<HeatmapScreen> with WidgetsBindingObserv
               BlocListener<MapCubit, MapState>(
                 listener: (context, state) {
                   if (state is MapCarMoving) {
+                    _lastLat = state.lat;
+                    _lastLng = state.lng;
                     _updateCarPosition(state.lat, state.lng, state.bearing);
                   } else if (state is MapFlyToLocation) {
                     mapboxMap?.flyTo(
@@ -246,6 +271,17 @@ class _HeatmapScreenState extends State<HeatmapScreen> with WidgetsBindingObserv
                     }
                     final tripState = context.read<TripBloc>().state;
                     if (tripState is TripStarted) {
+                      setState(() {
+                        if (_pendingDropoffZoneId != null) {
+                          _currentDriverZoneId = _pendingDropoffZoneId!;
+                          _pendingDropoffZoneId = null;
+                        }
+                      });
+                      SharedPreferences.getInstance().then((prefs) {
+                        prefs.setInt('last_zone_id', _currentDriverZoneId);
+                        prefs.setDouble('last_lat', _lastLat);
+                        prefs.setDouble('last_lng', _lastLng);
+                      });
                       context.read<TripBloc>().add(EndTripRequested(tripState.tripId));
                     }
                     ScaffoldMessenger.of(context).showSnackBar(
@@ -305,9 +341,9 @@ class _HeatmapScreenState extends State<HeatmapScreen> with WidgetsBindingObserv
                       setState(() {
                         _isTrackingCar = !_isTrackingCar;
                       });
-                      if (_isTrackingCar && carPointAnnotation != null) {
+                      if (_isTrackingCar && carCircleAnnotation != null) {
                         mapboxMap?.easeTo(
-                          CameraOptions(center: carPointAnnotation!.geometry as Point),
+                          CameraOptions(center: carCircleAnnotation!.geometry as Point),
                           MapAnimationOptions(duration: 500),
                         );
                       }
@@ -577,20 +613,31 @@ class _HeatmapScreenState extends State<HeatmapScreen> with WidgetsBindingObserv
   void _updateCarPosition(double lat, double lng, [double bearing = 0.0]) async {
     final position = Position(lng, lat);
 
-    if (carPointAnnotation == null) {
-      if (carIconBytes == null) return; // Wait for asset to load
-      carPointAnnotation = await pointAnnotationManager?.create(
-        PointAnnotationOptions(
+    if (carCircleAnnotation == null) {
+      // Create halo first so it's under
+      carHaloAnnotation = await circleAnnotationManager?.create(
+        CircleAnnotationOptions(
           geometry: Point(coordinates: position),
-          image: carIconBytes,
-          iconSize: 0.04, // Size matched to normal Uber-like apps
-          iconRotate: bearing - 90.0, // Offset for sideways asset
+          circleRadius: 18.0,
+          circleColor: Colors.blueAccent.withAlpha(50).toARGB32(),
+        ),
+      );
+      // Create center puck
+      carCircleAnnotation = await circleAnnotationManager?.create(
+        CircleAnnotationOptions(
+          geometry: Point(coordinates: position),
+          circleRadius: 8.0,
+          circleColor: Colors.blueAccent.toARGB32(),
+          circleStrokeColor: Colors.white.toARGB32(),
+          circleStrokeWidth: 3.0,
         ),
       );
     } else {
-      carPointAnnotation?.geometry = Point(coordinates: position);
-      carPointAnnotation?.iconRotate = bearing - 90.0;
-      pointAnnotationManager?.update(carPointAnnotation!);
+      carHaloAnnotation?.geometry = Point(coordinates: position);
+      circleAnnotationManager?.update(carHaloAnnotation!);
+
+      carCircleAnnotation?.geometry = Point(coordinates: position);
+      circleAnnotationManager?.update(carCircleAnnotation!);
     }
 
     if (_isTrackingCar) {
@@ -702,6 +749,7 @@ class _HeatmapScreenState extends State<HeatmapScreen> with WidgetsBindingObserv
   }
 
   void _startMapboxRouteSimulation(BuildContext context, int startZoneId, int endZoneId) async {
+    _pendingDropoffZoneId = endZoneId;
     final distState = context.read<DriverDistributionBloc>().state;
     if (distState is! DriverDistributionLoaded) return;
 
@@ -711,8 +759,8 @@ class _HeatmapScreenState extends State<HeatmapScreen> with WidgetsBindingObserv
       double startLat;
       double startLng;
 
-      if (carPointAnnotation != null && carPointAnnotation!.geometry is Point) {
-        final point = carPointAnnotation!.geometry as Point;
+      if (carCircleAnnotation != null && carCircleAnnotation!.geometry is Point) {
+        final point = carCircleAnnotation!.geometry as Point;
         startLat = (point.coordinates as Position).lat.toDouble();
         startLng = (point.coordinates as Position).lng.toDouble();
       } else {
@@ -783,8 +831,15 @@ class _HeatmapScreenState extends State<HeatmapScreen> with WidgetsBindingObserv
           context.read<MapGridBloc>().add(FetchZoneInsights(zoneId: bestZone.zoneId));
           _showUnifiedZoneBottomSheet(context, bestZone.zoneId, bestZone.zoneName);
           
-          // Draw route to it
-          _startMapboxRouteSimulation(context, _currentDriverZoneId, bestZone.zoneId);
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('Found \${bestZone.zoneName}. Please confirm to start trip.'), 
+                backgroundColor: Colors.green,
+                duration: const Duration(seconds: 4),
+              ),
+            );
+          }
         }
       }
     );
@@ -812,8 +867,16 @@ class _HeatmapScreenState extends State<HeatmapScreen> with WidgetsBindingObserv
                 builder: (context, driverState) {
                   ZoneInsightsModel? insights;
                   DriverDistributionModel? driverDistribution;
+                  ZoneComparisonModel? comparison;
                   if (mapState is GridReady) {
                     insights = mapState.insights;
+                    if (mapState.comparisons != null && mapState.comparisons!.isNotEmpty) {
+                      try {
+                        comparison = mapState.comparisons!.firstWhere((c) => c.zoneId == zoneId);
+                      } catch (_) {
+                        comparison = mapState.comparisons!.first; // Fallback if zoneId doesn't strictly match but we only fetched 1
+                      }
+                    }
                   }
                   
                   if (driverState is DriverDistributionLoaded) {
@@ -851,11 +914,7 @@ class _HeatmapScreenState extends State<HeatmapScreen> with WidgetsBindingObserv
                     zoneId: zoneId,
                     insights: insights,
                     driverDistribution: driverDistribution,
-                    comparison: ZoneComparisonModel(
-                      totalRevenue: 2500.50,
-                      expectedRevenue6H: 3100.00,
-                      stockoutProbability: 0.15,
-                    ),
+                    comparison: comparison,
                     onCreateTripTap: () {
                       Navigator.pop(ctx);
                       setState(() {

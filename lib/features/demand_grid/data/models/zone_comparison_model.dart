@@ -1,25 +1,34 @@
-import 'package:json_annotation/json_annotation.dart';
-
-part 'zone_comparison_model.g.dart';
-
-@JsonSerializable()
 class ZoneComparisonModel {
-  @JsonKey(name: 'totalRevenue')
+  final int zoneId;
   final double totalRevenue;
-
-  @JsonKey(name: 'expectedRevenue6H')
   final double expectedRevenue6H;
-
-  @JsonKey(name: 'stockoutProbability')
   final double stockoutProbability;
 
   ZoneComparisonModel({
+    required this.zoneId,
     required this.totalRevenue,
     required this.expectedRevenue6H,
     required this.stockoutProbability,
   });
 
-  factory ZoneComparisonModel.fromJson(Map<String, dynamic> json) => _$ZoneComparisonModelFromJson(json);
+  factory ZoneComparisonModel.fromJson(Map<String, dynamic> json) {
+    final predicted = json['predicted'] as Map<String, dynamic>?;
+    return ZoneComparisonModel(
+      zoneId: (json['zoneId'] as num?)?.toInt() ?? 0,
+      totalRevenue: (json['totalRevenue'] as num?)?.toDouble() ?? 0.0,
+      expectedRevenue6H: predicted != null ? ((predicted['expectedRevenue6H'] as num?)?.toDouble() ?? 0.0) : 0.0,
+      stockoutProbability: predicted != null ? ((predicted['stockoutProbability'] as num?)?.toDouble() ?? 0.0) : 0.0,
+    );
+  }
 
-  Map<String, dynamic> toJson() => _$ZoneComparisonModelToJson(this);
+  Map<String, dynamic> toJson() {
+    return {
+      'zoneId': zoneId,
+      'totalRevenue': totalRevenue,
+      'predicted': {
+        'expectedRevenue6H': expectedRevenue6H,
+        'stockoutProbability': stockoutProbability,
+      }
+    };
+  }
 }
