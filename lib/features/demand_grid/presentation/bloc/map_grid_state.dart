@@ -6,7 +6,7 @@ abstract class MapGridState extends Equatable {
   const MapGridState();
   
   @override
-  List<Object> get props => [];
+  List<Object?> get props => [];
 }
 
 class GridInitial extends MapGridState {}
@@ -15,22 +15,56 @@ class GridLoading extends MapGridState {}
 
 class GridReady extends MapGridState {
   final String geoJson; // Grid GeoJSON
+  final String? topDemandGeoJson; // High Demand Points GeoJSON
   final Map<int, int> demandLookUp; // O(1) lookup table
   final ZoneHeatmapModel? selectedZone;
+  final ZoneInsightsModel? insights;
+  final bool isLoadingInsights;
+  final String? insightsError;
   final bool isRefreshing; // Tracks offline-first cache updates
 
   const GridReady({
     required this.geoJson,
+    this.topDemandGeoJson,
     required this.demandLookUp,
     this.selectedZone,
+    this.insights,
+    this.isLoadingInsights = false,
+    this.insightsError,
     this.isRefreshing = false,
   });
 
+  GridReady copyWith({
+    String? geoJson,
+    String? topDemandGeoJson,
+    Map<int, int>? demandLookUp,
+    ZoneHeatmapModel? selectedZone,
+    ZoneInsightsModel? insights,
+    bool? isLoadingInsights,
+    String? insightsError,
+    bool? isRefreshing,
+  }) {
+    return GridReady(
+      geoJson: geoJson ?? this.geoJson,
+      topDemandGeoJson: topDemandGeoJson ?? this.topDemandGeoJson,
+      demandLookUp: demandLookUp ?? this.demandLookUp,
+      selectedZone: selectedZone ?? this.selectedZone,
+      insights: insights ?? this.insights,
+      isLoadingInsights: isLoadingInsights ?? this.isLoadingInsights,
+      insightsError: insightsError ?? this.insightsError,
+      isRefreshing: isRefreshing ?? this.isRefreshing,
+    );
+  }
+
   @override
-  List<Object> get props => [
+  List<Object?> get props => [
     geoJson, 
+    topDemandGeoJson,
     demandLookUp, 
-    if (selectedZone != null) selectedZone!,
+    selectedZone,
+    insights,
+    isLoadingInsights,
+    insightsError,
     isRefreshing,
   ];
 }
@@ -40,38 +74,26 @@ class DemandUpdated extends GridReady {
 
   const DemandUpdated({
     required super.geoJson,
+    super.topDemandGeoJson,
     required super.demandLookUp,
     super.selectedZone,
+    super.insights,
+    super.isLoadingInsights,
+    super.insightsError,
     super.isRefreshing,
     required this.latestUpdates,
   });
 
   @override
-  List<Object> get props => [
+  List<Object?> get props => [
     geoJson, 
+    topDemandGeoJson,
     demandLookUp, 
-    if (selectedZone != null) selectedZone!,
+    selectedZone,
+    insights,
+    isLoadingInsights,
+    insightsError,
     isRefreshing,
     latestUpdates
   ];
-}
-
-class ZoneInsightsLoading extends MapGridState {}
-
-class ZoneInsightsLoaded extends MapGridState {
-  final ZoneInsightsModel insights;
-
-  const ZoneInsightsLoaded(this.insights);
-
-  @override
-  List<Object> get props => [insights];
-}
-
-class ZoneInsightsError extends MapGridState {
-  final String message;
-
-  const ZoneInsightsError(this.message);
-
-  @override
-  List<Object> get props => [message];
 }

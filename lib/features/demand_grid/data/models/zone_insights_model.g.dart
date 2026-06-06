@@ -8,17 +8,14 @@ part of 'zone_insights_model.dart';
 
 ZoneInsightsModel _$ZoneInsightsModelFromJson(Map<String, dynamic> json) =>
     ZoneInsightsModel(
-      zoneId: (json['zoneId'] as num).toInt(),
-      aiInsightText: json['aiInsightText'] as String?,
-      demandGrowthPercentage: (json['demandGrowthPercentage'] as num?)
-          ?.toDouble(),
-      recommendedAction: json['recommendedAction'] as String?,
+      avgWaitTimeMinutes: (json['avgWaitTimeMinutes'] as num).toInt(),
+      peakPeriodName: json['peakPeriodName'] as String,
+      driverEfficiencyScore: (json['driverEfficiencyScore'] as num).toDouble(),
     );
 
 Map<String, dynamic> _$ZoneInsightsModelToJson(ZoneInsightsModel instance) =>
     <String, dynamic>{
-      'zoneId': instance.zoneId,
-      'aiInsightText': instance.aiInsightText,
-      'demandGrowthPercentage': instance.demandGrowthPercentage,
-      'recommendedAction': instance.recommendedAction,
+      'avgWaitTimeMinutes': instance.avgWaitTimeMinutes,
+      'peakPeriodName': instance.peakPeriodName,
+      'driverEfficiencyScore': instance.driverEfficiencyScore,
     };

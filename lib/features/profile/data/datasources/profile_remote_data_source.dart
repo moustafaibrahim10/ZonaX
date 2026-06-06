@@ -16,7 +16,7 @@ class ProfileRemoteDataSourceImpl implements ProfileRemoteDataSource {
   @override
   Future<DriverProfileModel> getDriverProfile() async {
     // Temporary fallback solution as per requirements
-    const fallbackDriverId = '559a7baf-4163-4353-852b-bf5091e20ffc';
+    const fallbackDriverId = '49a07bbc-b80a-4d36-b171-3a9c29bd6ff3';
     
     try {
       final response = await _dio.get('/drivers/$fallbackDriverId');
@@ -38,7 +38,7 @@ class ProfileRemoteDataSourceImpl implements ProfileRemoteDataSource {
 
   @override
   Future<bool> updateDriverStatus(String status, double lat, double lng) async {
-    const fallbackDriverId = '559a7baf-4163-4353-852b-bf5091e20ffc';
+    const fallbackDriverId = '49a07bbc-b80a-4d36-b171-3a9c29bd6ff3';
     try {
       final response = await _dio.put(
         '/drivers/$fallbackDriverId/status',

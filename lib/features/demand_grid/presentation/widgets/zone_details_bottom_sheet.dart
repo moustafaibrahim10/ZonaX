@@ -1,0 +1,167 @@
+import 'package:flutter/material.dart';
+import '../../data/models/zone_insights_model.dart';
+import '../../data/models/zone_comparison_model.dart';
+
+class ZoneDetailsBottomSheet extends StatelessWidget {
+  final ZoneInsightsModel insights;
+  final ZoneComparisonModel comparison;
+
+  const ZoneDetailsBottomSheet({
+    super.key,
+    required this.insights,
+    required this.comparison,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.only(top: 16),
+      decoration: const BoxDecoration(
+        color: Color(0xFF1E1E2A),
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      child: SafeArea(
+        child: DefaultTabController(
+          length: 2,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Drag Handle
+              Container(
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: Colors.grey[600],
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+              const SizedBox(height: 16),
+              
+              // TabBar
+              const TabBar(
+                indicatorColor: Colors.blueAccent,
+                labelColor: Colors.white,
+                unselectedLabelColor: Colors.grey,
+                tabs: [
+                  Tab(text: "Performance", icon: Icon(Icons.analytics_outlined)),
+                  Tab(text: "Comparison", icon: Icon(Icons.compare_arrows)),
+                ],
+              ),
+              
+              // TabBarView
+              SizedBox(
+                height: 300, // Fixed height for content
+                child: TabBarView(
+                  children: [
+                    _buildPerformanceInsightsTab(),
+                    _buildComparisonStrategyTab(),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildPerformanceInsightsTab() {
+    return Padding(
+      padding: const EdgeInsets.all(16.0),
+      child: Column(
+        children: [
+          _buildInfoCard(
+            title: "Avg Wait Time",
+            value: "${insights.avgWaitTimeMinutes} mins",
+            icon: Icons.timer,
+            iconColor: Colors.orangeAccent,
+          ),
+          const SizedBox(height: 12),
+          _buildInfoCard(
+            title: "Peak Period",
+            value: insights.peakPeriodName,
+            icon: Icons.access_time_filled,
+            iconColor: Colors.purpleAccent,
+          ),
+          const SizedBox(height: 12),
+          _buildInfoCard(
+            title: "Driver Efficiency",
+            value: "${insights.driverEfficiencyScore.toStringAsFixed(1)} / 10",
+            icon: Icons.speed,
+            iconColor: Colors.greenAccent,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildComparisonStrategyTab() {
+    return Padding(
+      padding: const EdgeInsets.all(16.0),
+      child: Column(
+        children: [
+          Card(
+            color: const Color(0xFF2A2A3A),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+            child: Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    "Revenue Strategy",
+                    style: TextStyle(color: Colors.grey, fontSize: 14, fontWeight: FontWeight.bold),
+                  ),
+                  const Divider(color: Colors.white12, height: 24),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      _buildMetricColumn("Current Total", "EGP ${comparison.totalRevenue.toStringAsFixed(2)}", Colors.white),
+                      const Icon(Icons.arrow_forward_ios, color: Colors.grey, size: 16),
+                      _buildMetricColumn("Predicted (6H)", "EGP ${comparison.expectedRevenue6H.toStringAsFixed(2)}", Colors.blueAccent),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(height: 12),
+          _buildInfoCard(
+            title: "Stockout Probability",
+            value: "${(comparison.stockoutProbability * 100).toStringAsFixed(1)}%",
+            icon: Icons.warning_amber_rounded,
+            iconColor: comparison.stockoutProbability > 0.5 ? Colors.redAccent : Colors.greenAccent,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildInfoCard({required String title, required String value, required IconData icon, required Color iconColor}) {
+    return Card(
+      color: const Color(0xFF2A2A3A),
+      elevation: 0,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      child: ListTile(
+        leading: Container(
+          padding: const EdgeInsets.all(8),
+          decoration: BoxDecoration(color: iconColor.withOpacity(0.2), shape: BoxShape.circle),
+          child: Icon(icon, color: iconColor),
+        ),
+        title: Text(title, style: const TextStyle(color: Colors.grey, fontSize: 13)),
+        subtitle: Text(value, style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w600)),
+      ),
+    );
+  }
+
+  Widget _buildMetricColumn(String label, String value, Color valueColor) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(label, style: const TextStyle(color: Colors.grey, fontSize: 12)),
+        const SizedBox(height: 4),
+        Text(value, style: TextStyle(color: valueColor, fontSize: 16, fontWeight: FontWeight.bold)),
+      ],
+    );
+  }
+}

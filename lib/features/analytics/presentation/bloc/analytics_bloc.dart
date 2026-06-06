@@ -6,7 +6,7 @@ import 'analytics_state.dart';
 class AnalyticsBloc extends Bloc<AnalyticsEvent, AnalyticsState> {
   final GetDriverAnalyticsUseCase getDriverAnalyticsUseCase;
   // Hardcoded fallback driver id as per instructions
-  final String _fallbackDriverId = '559a7baf-4163-4353-852b-bf5091e20ffc';
+  final String _fallbackDriverId = '49a07bbc-b80a-4d36-b171-3a9c29bd6ff3';
 
   AnalyticsBloc({required this.getDriverAnalyticsUseCase}) : super(AnalyticsInitial()) {
     on<FetchAnalytics>((event, emit) async {

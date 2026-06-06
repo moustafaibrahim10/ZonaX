@@ -5,6 +5,9 @@ import 'package:zona_x_16_4/features/analytics/presentation/screens/analytics_sc
 import 'package:zona_x_16_4/features/map/presentation/screens/heatmap_screen.dart';
 import 'package:zona_x_16_4/features/earnings/presentation/screens/earnings_screen.dart';
 
+import 'package:zona_x_16_4/features/voice_assistant/presentation/bloc/voice_cubit.dart';
+import 'package:zona_x_16_4/features/voice_assistant/presentation/bloc/voice_state.dart';
+
 import 'package:zona_x_16_4/features/profile/presentation/profile_page.dart';
 import 'package:zona_x_16_4/features/profile/presentation/bloc/profile_bloc.dart';
 import 'package:zona_x_16_4/features/profile/presentation/bloc/profile_event.dart';
@@ -24,6 +27,9 @@ import 'package:zona_x_16_4/features/analytics/presentation/bloc/analytics_event
 import 'package:zona_x_16_4/features/analytics/domain/usecases/get_driver_analytics_usecase.dart';
 import 'package:zona_x_16_4/features/analytics/data/repositories/analytics_repository_impl.dart';
 import 'package:zona_x_16_4/features/analytics/data/datasources/analytics_remote_data_source.dart';
+import 'package:zona_x_16_4/features/analytics/presentation/bloc/peak_hours_bloc.dart';
+import 'package:zona_x_16_4/features/demand_grid/domain/repositories/zone_repository.dart';
+import 'package:zona_x_16_4/injection_container.dart' as di;
 
 class MainScreen extends StatefulWidget {
   const MainScreen({super.key});
@@ -37,15 +43,24 @@ class _MainScreenState extends State<MainScreen> {
 
   final List<Widget> _screens = [
     const HeatmapScreen(),
-    BlocProvider(
-      create: (context) {
-        final repository = AnalyticsRepositoryImpl(
-          AnalyticsRemoteDataSourceImpl(),
-        );
-        return AnalyticsBloc(
-          getDriverAnalyticsUseCase: GetDriverAnalyticsUseCase(repository),
-        )..add(FetchAnalytics());
-      },
+    MultiBlocProvider(
+      providers: [
+        BlocProvider(
+          create: (context) {
+            final repository = AnalyticsRepositoryImpl(
+              AnalyticsRemoteDataSourceImpl(),
+            );
+            return AnalyticsBloc(
+              getDriverAnalyticsUseCase: GetDriverAnalyticsUseCase(repository),
+            )..add(FetchAnalytics());
+          },
+        ),
+        BlocProvider(
+          create: (context) => PeakHoursBloc(
+            repository: di.sl<ZoneRepository>(),
+          )..add(FetchPeakHours()),
+        ),
+      ],
       child: const AnalyticsScreen(),
     ), // Second page as requested
     const EarningsScreen(),
@@ -76,9 +91,27 @@ class _MainScreenState extends State<MainScreen> {
         final hiveLocalDataSource = HiveLocalDataSourceImpl();
         return MapCubit(mapRepository, hiveLocalDataSource);
       },
-      child: Scaffold(
-        backgroundColor: const Color(0xFF0F111A),
-        body: IndexedStack(index: _currentIndex, children: _screens),
+      child: BlocProvider<VoiceCubit>(
+        create: (context) => di.sl<VoiceCubit>(),
+        child: Scaffold(
+          backgroundColor: const Color(0xFF0F111A),
+          body: BlocListener<VoiceCubit, VoiceState>(
+            listener: (context, state) {
+              if (state is VoiceActionTriggered) {
+                if (state.action == 'navigate_to_demand') {
+                  setState(() => _currentIndex = 0);
+                } else if (state.action == 'navigate_to_earnings') {
+                  setState(() => _currentIndex = 2);
+                } else if (state.action == 'navigate_to_profile') {
+                  setState(() => _currentIndex = 4);
+                } else if (state.action == 'navigate_to_trips') {
+                  // Assuming Trips might be leaderboard or map. Since there's no trip tab, we fallback to 0
+                  setState(() => _currentIndex = 0);
+                }
+              }
+            },
+            child: IndexedStack(index: _currentIndex, children: _screens),
+          ),
       bottomNavigationBar: Theme(
         data: Theme.of(context).copyWith(
           splashColor: Colors.transparent,
@@ -124,6 +157,6 @@ class _MainScreenState extends State<MainScreen> {
           ],
         ),
       ),
-    ));
+    )));
   }
 }

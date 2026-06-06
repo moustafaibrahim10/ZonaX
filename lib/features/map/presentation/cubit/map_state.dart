@@ -43,3 +43,15 @@ class MapError extends MapState {
   @override
   List<Object?> get props => [message];
 }
+
+class MapFlyToLocation extends MapState {
+  final double lat;
+  final double lng;
+
+  const MapFlyToLocation(this.lat, this.lng);
+
+  @override
+  List<Object?> get props => [lat, lng];
+}
+
+class MapSimulationCompleted extends MapState {}
