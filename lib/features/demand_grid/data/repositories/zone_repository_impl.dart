@@ -7,6 +7,10 @@ import '../datasources/zone_remote_data_source.dart';
 import '../models/zone_model.dart';
 import '../models/zone_heatmap_model.dart';
 import '../models/zone_insights_model.dart';
+import '../models/top_demand_zone_model.dart';
+import '../models/recommended_zone_model.dart';
+import '../models/peak_hour_model.dart';
+import '../models/driver_distribution_model.dart';
 
 import 'package:dio/dio.dart';
 import '../../../../core/network/api_constants.dart';
@@ -54,6 +58,58 @@ class ZoneRepositoryImpl implements ZoneRepository {
         return Right(response.data!);
       } else {
         return const Left(ServerFailure('Insights data is null'));
+      }
+      } catch (e) {
+        return Left(ServerFailure(e.toString()));
+      }
+    }
+
+    @override
+    Future<Either<Failure, List<TopDemandZoneModel>>> getTopDemandZones() async {
+      try {
+        final response = await remoteDataSource.getTopDemandZones();
+        return Right(response.data ?? []);
+      } catch (e) {
+        return Left(ServerFailure(e.toString()));
+      }
+    }
+
+  @override
+  Future<Either<Failure, List<RecommendedZoneModel>>> getRecommendedZones() async {
+    try {
+      final response = await remoteDataSource.getRecommendedZones();
+      if (response.data != null) {
+        return Right(response.data!);
+      } else {
+        return const Left(ServerFailure('Recommended zones data is null'));
+      }
+    } catch (e) {
+      return Left(ServerFailure(e.toString()));
+    }
+  }
+
+  @override
+  Future<Either<Failure, List<PeakHourModel>>> getPeakHours() async {
+    try {
+      final response = await remoteDataSource.getPeakHours();
+      if (response.data != null) {
+        return Right(response.data!);
+      } else {
+        return const Left(ServerFailure('Peak hours data is null'));
+      }
+    } catch (e) {
+      return Left(ServerFailure(e.toString()));
+    }
+  }
+
+  @override
+  Future<Either<Failure, List<DriverDistributionModel>>> getDriverDistribution() async {
+    try {
+      final response = await remoteDataSource.getDriverDistribution();
+      if (response.data != null) {
+        return Right(response.data!);
+      } else {
+        return const Left(ServerFailure('Driver distribution data is null'));
       }
     } catch (e) {
       return Left(ServerFailure(e.toString()));

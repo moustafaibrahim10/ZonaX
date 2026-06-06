@@ -4,23 +4,19 @@ part 'zone_insights_model.g.dart';
 
 @JsonSerializable()
 class ZoneInsightsModel {
-  @JsonKey(name: 'zoneId')
-  final int zoneId;
+  @JsonKey(name: 'avgWaitTimeMinutes')
+  final int avgWaitTimeMinutes;
 
-  @JsonKey(name: 'aiInsightText')
-  final String? aiInsightText;
+  @JsonKey(name: 'peakPeriodName')
+  final String peakPeriodName;
 
-  @JsonKey(name: 'demandGrowthPercentage')
-  final double? demandGrowthPercentage;
-
-  @JsonKey(name: 'recommendedAction')
-  final String? recommendedAction;
+  @JsonKey(name: 'driverEfficiencyScore')
+  final double driverEfficiencyScore;
 
   ZoneInsightsModel({
-    required this.zoneId,
-    this.aiInsightText,
-    this.demandGrowthPercentage,
-    this.recommendedAction,
+    required this.avgWaitTimeMinutes,
+    required this.peakPeriodName,
+    required this.driverEfficiencyScore,
   });
 
   factory ZoneInsightsModel.fromJson(Map<String, dynamic> json) => _$ZoneInsightsModelFromJson(json);

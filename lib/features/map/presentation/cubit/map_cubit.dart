@@ -34,6 +34,10 @@ class MapCubit extends Cubit<MapState> {
     }
   }
 
+  void flyToZone(double lat, double lng) {
+    emit(MapFlyToLocation(lat, lng));
+  }
+
   // Simulate network connection toggle
   void toggleConnection() async {
     isConnected = !isConnected;

@@ -6,42 +6,72 @@ import 'map_grid_event.dart';
 import 'map_grid_state.dart';
 import '../../data/models/zone_model.dart';
 import '../../data/models/zone_heatmap_model.dart';
+import '../../data/models/top_demand_zone_model.dart';
 import 'dart:convert';
+import 'package:flutter/foundation.dart';
+import 'package:hive_flutter/hive_flutter.dart';
 
-/// Generates a GeoJSON FeatureCollection of square polygons from a list of real zones and their heatmap data.
-String generateGeoJsonFromZones(List<ZoneModel> zones, List<ZoneHeatmapModel> heatmaps) {
+import '../../data/datasources/zone_boundary_service.dart';
+
+/// Data class to pass to the isolate (compute requires a single argument)
+class _GeoJsonParams {
+  final List<Map<String, dynamic>> zonesJson;
+  final List<Map<String, dynamic>> heatmapsJson;
+  final Map<String, String> cachedBoundaries; // osmId -> geoJson string
+
+  _GeoJsonParams({
+    required this.zonesJson,
+    required this.heatmapsJson,
+    required this.cachedBoundaries,
+  });
+}
+
+/// Pure function that runs in an isolate to generate GeoJSON without blocking UI.
+String _generateGeoJsonInIsolate(_GeoJsonParams params) {
   final List<Map<String, dynamic>> features = [];
-  final heatmapMap = {for (var h in heatmaps) h.zoneId: h};
 
-  for (var zone in zones) {
-    final heatmap = heatmapMap[zone.zoneId];
-    final demandLevel = heatmap?.demandLevel ?? 'NORMAL';
-    final surgeMultiplierText = heatmap != null ? '${heatmap.surgeMultiplier}x' : '1.0x';
-    final revenuePrediction = heatmap?.revenuePrediction ?? 0.0;
+  final heatmapMap = <int, Map<String, dynamic>>{};
+  for (var h in params.heatmapsJson) {
+    heatmapMap[h['zoneId'] as int] = h;
+  }
 
-    double offset = 0.002; // Square cell radius/offset
-    double lat = zone.centerLatitude;
-    double lng = zone.centerLongitude;
+  for (var zone in params.zonesJson) {
+    final zoneId = zone['zoneId'] as int;
+    final osmId = zone['osmId'] as int;
+    final lat = (zone['centerLatitude'] as num).toDouble();
+    final lng = (zone['centerLongitude'] as num).toDouble();
+    final zoneName = zone['zoneName'] as String? ?? '';
+
+    final heatmap = heatmapMap[zoneId];
+    final demandLevel = heatmap?['demandLevel'] ?? 'NORMAL';
+    final surgeMultiplier = heatmap?['surgeMultiplier'] ?? 1.0;
+    final surgeMultiplierText = '${surgeMultiplier}x';
+    final revenuePrediction = (heatmap?['revenuePrediction'] as num?)?.toDouble() ?? 0.0;
+
+    // Try to use cached boundary geometry
+    Map<String, dynamic>? geometry;
+    final cachedGeo = params.cachedBoundaries[osmId.toString()];
+    if (cachedGeo != null) {
+      try {
+        geometry = jsonDecode(cachedGeo) as Map<String, dynamic>;
+      } catch (_) {}
+    }
+
+    // Skip zones without real OSM boundaries — no more ugly squares
+    if (geometry == null || geometry['type'] == null) {
+      continue;
+    }
 
     features.add({
       "type": "Feature",
-      "id": zone.zoneId.toString(),
+      "id": zoneId.toString(),
       "properties": {
         "demandLevel": demandLevel,
         "surgeMultiplierText": surgeMultiplierText,
         "revenuePrediction": revenuePrediction,
-        "zoneName": zone.zoneName,
+        "zoneName": zoneName,
       },
-      "geometry": {
-        "type": "Polygon",
-        "coordinates": [[
-          [lng - offset, lat + offset], // Top-Left
-          [lng + offset, lat + offset], // Top-Right
-          [lng + offset, lat - offset], // Bottom-Right
-          [lng - offset, lat - offset], // Bottom-Left
-          [lng - offset, lat + offset], // Top-Left
-        ]]
-      }
+      "geometry": geometry,
     });
   }
 
@@ -51,8 +81,75 @@ String generateGeoJsonFromZones(List<ZoneModel> zones, List<ZoneHeatmapModel> he
   });
 }
 
+/// Generates a GeoJSON FeatureCollection using an isolate for performance.
+Future<String> generateGeoJsonFromZones(
+    List<ZoneModel> zones, List<ZoneHeatmapModel> heatmaps, ZoneBoundaryService boundaryService) async {
+
+  // Pre-fetch all cached boundaries from Hive (on main thread, fast since it's local)
+  final cachedBoundaries = <String, String>{};
+  await boundaryService.initHive();
+  final box = Hive.box<String>('zone_boundaries');
+  for (var zone in zones) {
+    final cached = box.get(zone.osmId.toString());
+    if (cached != null) {
+      cachedBoundaries[zone.osmId.toString()] = cached;
+    }
+  }
+
+  // Serialize models to plain Maps for the isolate (Models can't cross isolate boundaries)
+  final zonesJson = zones.map((z) => {
+    'zoneId': z.zoneId,
+    'osmId': z.osmId,
+    'centerLatitude': z.centerLatitude,
+    'centerLongitude': z.centerLongitude,
+    'zoneName': z.zoneName,
+  }).toList();
+
+  final heatmapsJson = heatmaps.map((h) => {
+    'zoneId': h.zoneId,
+    'demandLevel': h.demandLevel,
+    'surgeMultiplier': h.surgeMultiplier,
+    'revenuePrediction': h.revenuePrediction,
+  }).toList();
+
+  return compute(
+    _generateGeoJsonInIsolate,
+    _GeoJsonParams(
+      zonesJson: zonesJson,
+      heatmapsJson: heatmapsJson,
+      cachedBoundaries: cachedBoundaries,
+    ),
+  );
+}
+
+/// Generates a GeoJSON FeatureCollection of Points for Top Demand Zones
+String generateTopDemandGeoJson(List<TopDemandZoneModel> topDemandZones) {
+  final List<Map<String, dynamic>> features = topDemandZones.map((zone) {
+    return {
+      "type": "Feature",
+      "id": "top_demand_${zone.zoneId}",
+      "properties": {
+        "zoneId": zone.zoneId,
+        "zoneName": zone.zoneName,
+        "demandPrediction": zone.demandPrediction,
+        "percentageOfTotalPredicted": zone.percentageOfTotalPredicted,
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [zone.centerLongitude, zone.centerLatitude],
+      },
+    };
+  }).toList();
+
+  return jsonEncode({
+    "type": "FeatureCollection",
+    "features": features,
+  });
+}
+
 class MapGridBloc extends Bloc<MapGridEvent, MapGridState> {
   final ZoneRepository repository;
+  final ZoneBoundaryService boundaryService;
   StreamSubscription? _demandSubscription;
   
   // In-memory Look-up Table for O(1) time complexity mapping zoneId -> demandLevel
@@ -61,7 +158,7 @@ class MapGridBloc extends Bloc<MapGridEvent, MapGridState> {
   
   String _currentGeoJson = "";
 
-  MapGridBloc({required this.repository}) : super(GridInitial()) {
+  MapGridBloc({required this.repository, required this.boundaryService}) : super(GridInitial()) {
     on<InitializeGrid>(_onInitializeGrid);
     on<UpdateLiveDemand>(_onUpdateLiveDemand);
     on<ZoneSelected>(_onZoneSelected);
@@ -73,48 +170,77 @@ class MapGridBloc extends Bloc<MapGridEvent, MapGridState> {
     try {
       final prefs = await SharedPreferences.getInstance();
       final cachedGeoJson = prefs.getString('cached_heatmap');
+      final cachedTopDemandGeoJson = prefs.getString('cached_top_demand');
       if (cachedGeoJson != null && cachedGeoJson.isNotEmpty) {
         _currentGeoJson = cachedGeoJson;
-        emit(GridReady(
-          geoJson: _currentGeoJson,
-          demandLookUp: Map.from(_demandLookUp),
-          isRefreshing: true, // Show "Updating..." indicator
-        ));
+        if (!emit.isDone) {
+          emit(GridReady(
+            geoJson: _currentGeoJson,
+            topDemandGeoJson: cachedTopDemandGeoJson,
+            demandLookUp: Map.from(_demandLookUp),
+            isRefreshing: true, // Show "Updating..." indicator
+          ));
+        }
       } else {
-        emit(GridLoading());
+        if (!emit.isDone) emit(GridLoading());
       }
     } catch (e) {
-      emit(GridLoading());
+      if (!emit.isDone) emit(GridLoading());
     }
     
     try {
-      // 2. Fetch real zones and heatmap from API sequentially with breathers
+      // 2. Fetch real zones, heatmap, and top demand from API
       final zonesResult = await repository.getZones();
       await Future.delayed(const Duration(milliseconds: 500)); // Server breather
       
       final heatmapResult = await repository.getZonesHeatmap();
+      await Future.delayed(const Duration(milliseconds: 500)); // Server breather
+
+      final topDemandResult = await repository.getTopDemandZones();
       
-      zonesResult.fold(
-        (failure) {},
-        (zones) {
-          heatmapResult.fold(
-            (failure) {},
-            (heatmaps) {
+      await zonesResult.fold(
+        (failure) async {},
+        (zones) async {
+          await heatmapResult.fold(
+            (failure) async {},
+            (heatmaps) async {
               for (var h in heatmaps) {
                 _heatmapLookUp[h.zoneId] = h;
               }
-              _currentGeoJson = generateGeoJsonFromZones(zones, heatmaps);
+
+              // Bulk fetch OSM boundaries if not cached
+              final osmIds = zones.map((z) => z.osmId).toList();
+              try {
+                await boundaryService.fetchAndCacheBoundaries(osmIds);
+              } catch (e) {
+                debugPrint("Boundary bulk fetch failed: $e");
+              }
+
+              _currentGeoJson = await generateGeoJsonFromZones(zones, heatmaps, boundaryService);
               
+              String? topDemandGeoJson;
+              topDemandResult.fold(
+                (failure) => null,
+                (topDemandZones) {
+                  topDemandGeoJson = generateTopDemandGeoJson(topDemandZones);
+                }
+              );
+
               // 3. Update cache
-              SharedPreferences.getInstance().then((prefs) {
-                prefs.setString('cached_heatmap', _currentGeoJson);
-              });
+              final prefs = await SharedPreferences.getInstance();
+              prefs.setString('cached_heatmap', _currentGeoJson);
+              if (topDemandGeoJson != null) {
+                prefs.setString('cached_top_demand', topDemandGeoJson!);
+              }
               
-              emit(GridReady(
-                geoJson: _currentGeoJson,
-                demandLookUp: Map.from(_demandLookUp),
-                isRefreshing: false,
-              ));
+              if (!emit.isDone) {
+                emit(GridReady(
+                  geoJson: _currentGeoJson,
+                  topDemandGeoJson: topDemandGeoJson,
+                  demandLookUp: Map.from(_demandLookUp),
+                  isRefreshing: false,
+                ));
+              }
             }
           );
         }
@@ -160,15 +286,15 @@ class MapGridBloc extends Bloc<MapGridEvent, MapGridState> {
   }
 
   Future<void> _onFetchZoneInsights(FetchZoneInsights event, Emitter<MapGridState> emit) async {
-    // We emit the loading state but we don't want to wipe out the GridReady state from the UI if possible.
-    // However, since MapGridState is replaced, the UI might need to handle this or we just emit a side-effect state.
-    // Let's just emit ZoneInsightsLoading.
-    emit(ZoneInsightsLoading());
-    final result = await repository.getZoneInsights(event.zoneId);
-    result.fold(
-      (failure) => emit(ZoneInsightsError(failure.message)),
-      (insights) => emit(ZoneInsightsLoaded(insights)),
-    );
+    final currentState = state;
+    if (currentState is GridReady) {
+      emit(currentState.copyWith(isLoadingInsights: true, insightsError: null));
+      final result = await repository.getZoneInsights(event.zoneId);
+      result.fold(
+        (failure) => emit(currentState.copyWith(isLoadingInsights: false, insightsError: failure.message)),
+        (insights) => emit(currentState.copyWith(isLoadingInsights: false, insights: insights, insightsError: null)),
+      );
+    }
   }
   
   @override

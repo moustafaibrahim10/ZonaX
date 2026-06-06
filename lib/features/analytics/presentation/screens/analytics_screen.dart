@@ -5,6 +5,13 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import '../bloc/analytics_bloc.dart';
 import '../bloc/analytics_state.dart';
 import '../../domain/entities/analytics_entity.dart';
+import 'package:zona_x_16_4/features/demand_grid/presentation/screens/recommended_zones_screen.dart';
+import 'package:zona_x_16_4/features/demand_grid/presentation/bloc/recommended_zones_bloc.dart';
+import 'package:zona_x_16_4/features/demand_grid/presentation/bloc/recommended_zones_event.dart';
+import 'package:zona_x_16_4/features/demand_grid/domain/repositories/zone_repository.dart';
+import 'package:zona_x_16_4/features/analytics/presentation/bloc/peak_hours_bloc.dart';
+import 'package:zona_x_16_4/features/map/presentation/cubit/map_cubit.dart';
+import 'package:zona_x_16_4/injection_container.dart' as di;
 
 class AnalyticsScreen extends StatelessWidget {
   const AnalyticsScreen({super.key});
@@ -36,6 +43,8 @@ class AnalyticsScreen extends StatelessWidget {
                   children: [
                     _buildHeader(appColors),
                     SizedBox(height: 24.h),
+                    _buildRecommendedZonesBigButton(context, appColors),
+                    SizedBox(height: 24.h),
                     Text(
                       "This Week",
                       style: TextStyle(
@@ -51,7 +60,7 @@ class AnalyticsScreen extends StatelessWidget {
                     _buildEarningsTrendChart(appColors, analytics.weeklySummary),
                     SizedBox(height: 24.h),
                     _buildSectionTitle(appColors, "Peak Hours Performance"),
-                    _buildPeakHoursList(appColors, analytics.weeklySummary),
+                    _buildPeakHoursList(appColors),
                     SizedBox(height: 24.h),
                     _buildSectionTitle(appColors, "Top Earning Routes"),
                     _buildTopRoutesList(appColors, analytics.weeklySummary),
@@ -259,53 +268,55 @@ class AnalyticsScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildPeakHoursList(AppColors appColors, WeeklySummaryEntity summary) {
-    // Use real data if available; otherwise fallback to mock data for development.
-    final List<dynamic> peakHours = summary.peakHours.isNotEmpty
-        ? summary.peakHours
-        : [
-            {
-              'hour': 0,
-              'calculatedTripCount': 7,
-              'calculatedTotalRevenue': 1178.33,
-            },
-            {
-              'hour': 1,
-              'calculatedTripCount': 1,
-              'calculatedTotalRevenue': 63.04,
-            },
-            {
-              'hour': 2,
-              'calculatedTripCount': 5,
-              'calculatedTotalRevenue': 753.98,
-            },
-            {
-              'hour': 3,
-              'calculatedTripCount': 3,
-              'calculatedTotalRevenue': 200.0,
-            },
-          ];
+  Widget _buildPeakHoursList(AppColors appColors) {
+    return BlocBuilder<PeakHoursBloc, PeakHoursState>(
+      builder: (context, state) {
+        if (state is PeakHoursLoading) {
+          return const Center(child: CircularProgressIndicator());
+        } else if (state is PeakHoursError) {
+          return Center(
+            child: Text(
+              "Failed to load peak hours.",
+              style: TextStyle(color: Colors.redAccent, fontSize: 14.sp),
+            ),
+          );
+        } else if (state is PeakHoursLoaded) {
+          if (state.peakHours.isEmpty) {
+            return Center(
+              child: Text(
+                "No peak hours data available.",
+                style: TextStyle(color: appColors.textSecondary, fontSize: 14.sp),
+              ),
+            );
+          }
 
-    // Find max trips for progress scaling
-    final int maxTrips = peakHours
-        .map((e) => (e['calculatedTripCount'] as int?) ?? 0)
-        .fold(0, (prev, element) => element > prev ? element : prev);
+          // Find max predicted trips for progress scaling
+          final int maxTrips = state.peakHours
+              .map((e) => e.predictedTripCount)
+              .fold(0, (prev, element) => element > prev ? element : prev);
 
-    return Column(
-      children: peakHours.map((e) {
-        final int hour = (e['hour'] as int?) ?? 0;
-        final int trips = (e['calculatedTripCount'] as int?) ?? 0;
-        final double revenue = (e['calculatedTotalRevenue'] as num?)?.toDouble() ?? 0.0;
-        final String timeLabel = '${hour}:00 - ${hour + 1}:00';
-        final String stats = '$trips trips - ${revenue.toStringAsFixed(0)} EGP';
-        final double progress = maxTrips > 0 ? trips / maxTrips : 0.0;
-        return Column(
-          children: [
-            _buildPeakHourItem(appColors, timeLabel, stats, progress, appColors.accent),
-            SizedBox(height: 12.h),
-          ],
-        );
-      }).toList(),
+          return Column(
+            children: state.peakHours.map((e) {
+              final int hour = e.hour;
+              final int trips = e.predictedTripCount;
+              final double revenue = e.predictedTotalRevenue;
+              
+              // Format time to 12-hour AM/PM if needed, or keep 24-hour. We'll keep 24-hour as requested.
+              final String timeLabel = '${hour.toString().padLeft(2, '0')}:00 - ${(hour + 1).toString().padLeft(2, '0')}:00';
+              final String stats = '$trips predicted trips - ${revenue.toStringAsFixed(0)} EGP';
+              
+              final double progress = maxTrips > 0 ? trips / maxTrips : 0.0;
+              return Column(
+                children: [
+                  _buildPeakHourItem(appColors, timeLabel, stats, progress, appColors.accent),
+                  SizedBox(height: 12.h),
+                ],
+              );
+            }).toList(),
+          );
+        }
+        return const SizedBox.shrink();
+      },
     );
   }
 
@@ -532,6 +543,84 @@ class AnalyticsScreen extends StatelessWidget {
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildRecommendedZonesBigButton(BuildContext context, AppColors appColors) {
+    return InkWell(
+      onTap: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (ctx) => MultiBlocProvider(
+              providers: [
+                BlocProvider(
+                  create: (_) => RecommendedZonesBloc(
+                    repository: di.sl<ZoneRepository>(),
+                  )..add(FetchRecommendedZones()),
+                ),
+                BlocProvider.value(
+                  value: context.read<MapCubit>(),
+                ),
+              ],
+              child: const RecommendedZonesScreen(),
+            ),
+          ),
+        );
+      },
+      borderRadius: BorderRadius.circular(16.r),
+      child: Container(
+        padding: EdgeInsets.all(16.w),
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            colors: [
+              appColors.surface,
+              appColors.accent.withOpacity(0.1),
+            ],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+          borderRadius: BorderRadius.circular(16.r),
+          border: Border.all(color: appColors.accent.withOpacity(0.5), width: 1.5),
+        ),
+        child: Row(
+          children: [
+            Container(
+              padding: EdgeInsets.all(10.w),
+              decoration: BoxDecoration(
+                color: appColors.accent.withOpacity(0.2),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(Icons.star_rounded, color: appColors.accent, size: 28.sp),
+            ),
+            SizedBox(width: 16.w),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    "Recommended Zones",
+                    style: TextStyle(
+                      color: appColors.textPrimary,
+                      fontSize: 16.sp,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  SizedBox(height: 4.h),
+                  Text(
+                    "Discover high-demand areas to maximize your earnings.",
+                    style: TextStyle(
+                      color: appColors.textSecondary,
+                      fontSize: 12.sp,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            Icon(Icons.arrow_forward_ios, color: appColors.accent, size: 16.sp),
+          ],
+        ),
       ),
     );
   }

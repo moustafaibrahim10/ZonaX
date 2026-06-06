@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter/services.dart';
+import 'dart:ui' as ui;
 
 import 'package:mapbox_maps_flutter/mapbox_maps_flutter.dart';
 import 'package:zona_x_16_4/core/utils/app_images.dart';
@@ -10,11 +11,19 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:zona_x_16_4/features/demand_grid/presentation/bloc/map_grid_bloc.dart';
 import 'package:zona_x_16_4/features/demand_grid/presentation/bloc/map_grid_event.dart';
 import 'package:zona_x_16_4/features/demand_grid/presentation/bloc/map_grid_state.dart';
+import 'package:zona_x_16_4/features/demand_grid/presentation/bloc/driver_distribution_bloc.dart';
+import 'package:zona_x_16_4/features/trips/presentation/bloc/trip_bloc.dart';
+import 'package:zona_x_16_4/features/trips/presentation/widgets/create_trip_bottom_sheet.dart';
 import 'package:zona_x_16_4/features/demand_grid/presentation/widgets/demand_grid_integration.dart';
+import 'package:zona_x_16_4/features/demand_grid/data/models/zone_comparison_model.dart';
+import 'package:zona_x_16_4/features/demand_grid/data/models/zone_insights_model.dart';
 import 'package:zona_x_16_4/features/profile/domain/usecases/update_driver_status_usecase.dart';
 import 'package:zona_x_16_4/features/profile/data/repositories/driver_profile_repository_impl.dart';
 import 'package:zona_x_16_4/features/profile/data/datasources/profile_remote_data_source.dart';
 import 'package:zona_x_16_4/features/demand_grid/domain/repositories/zone_repository.dart';
+import 'package:zona_x_16_4/features/demand_grid/data/datasources/zone_boundary_service.dart';
+import 'package:zona_x_16_4/features/demand_grid/presentation/widgets/unified_zone_details_bottom_sheet.dart';
+import 'package:zona_x_16_4/features/demand_grid/data/models/driver_distribution_model.dart';
 import 'package:zona_x_16_4/injection_container.dart' as di;
 
 class HeatmapScreen extends StatefulWidget {
@@ -78,8 +87,16 @@ class _HeatmapScreenState extends State<HeatmapScreen> with WidgetsBindingObserv
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFF0F111A), // Dark background for nav area
-      body: BlocProvider(
-        create: (context) => MapGridBloc(repository: di.sl<ZoneRepository>())..add(InitializeGrid()),
+      body: MultiBlocProvider(
+        providers: [
+          BlocProvider(
+            create: (context) => MapGridBloc(repository: di.sl<ZoneRepository>(), boundaryService: di.sl<ZoneBoundaryService>())..add(InitializeGrid()),
+          ),
+          BlocProvider(
+            create: (context) => DriverDistributionBloc(repository: di.sl<ZoneRepository>())
+              ..add(StartPollingDriverDistribution()),
+          ),
+        ],
         child: SafeArea(
           child: BlocBuilder<MapGridBloc, MapGridState>(
             buildWhen: (previous, current) => current is GridReady && previous is! GridReady,
@@ -102,18 +119,40 @@ class _HeatmapScreenState extends State<HeatmapScreen> with WidgetsBindingObserv
                     onTapListener: (MapContentGestureContext tapContext) {
                       mapboxMap?.queryRenderedFeatures(
                         RenderedQueryGeometry.fromScreenCoordinate(tapContext.touchPosition),
-                        RenderedQueryOptions(layerIds: ['demand-grid-layer'], filter: null),
+                        RenderedQueryOptions(layerIds: ['driver-distribution-layer', 'top-demand-layer', 'demand-grid-layer'], filter: null),
                       ).then((features) {
                         if (features.isNotEmpty) {
                           final first = features.first;
                           if (first != null) {
                             final feature = first.queriedFeature.feature;
                             if (feature['properties'] != null) {
-                              final zoneId = int.tryParse(feature['id']?.toString() ?? '');
-                              if (zoneId != null) {
+                              final props = feature['properties'] as Map;
+                              
+                              if (props.containsKey('availableDriversCount')) {
+                                // It's a driver distribution feature
+                                final zoneId = props['zoneId'] as int;
+                                final zoneName = props['zoneName']?.toString() ?? 'Unknown Zone';
                                 if (!mounted) return;
                                 context.read<MapGridBloc>().add(FetchZoneInsights(zoneId: zoneId));
-                                _showInsightsBottomSheet(context);
+                                _showUnifiedZoneBottomSheet(context, zoneId, zoneName);
+                              } else if (props.containsKey('demandPrediction') && props.containsKey('percentageOfTotalPredicted')) {
+                                // It's a top-demand feature
+                                final zoneId = props['zoneId'] as int;
+                                final zoneName = props['zoneName']?.toString() ?? 'Hotspot';
+                                if (!mounted) return;
+                                context.read<MapGridBloc>().add(FetchZoneInsights(zoneId: zoneId));
+                                // Highlight the zone explicitly (handled by bloc state update)
+                                context.read<MapGridBloc>().add(ZoneSelected(zoneId));
+                                _showUnifiedZoneBottomSheet(context, zoneId, zoneName);
+                              } else {
+                                // It's a zone feature
+                                final zoneId = int.tryParse(feature['id']?.toString() ?? '');
+                                final zoneName = props['zoneName']?.toString() ?? 'Zone $zoneId';
+                                if (zoneId != null) {
+                                  if (!mounted) return;
+                                  context.read<MapGridBloc>().add(FetchZoneInsights(zoneId: zoneId));
+                                  _showUnifiedZoneBottomSheet(context, zoneId, zoneName);
+                                }
                               }
                             }
                           }
@@ -142,12 +181,20 @@ class _HeatmapScreenState extends State<HeatmapScreen> with WidgetsBindingObserv
               ),
 
           // Bloc Listener for map updates
-          BlocListener<MapCubit, MapState>(
-            listener: (context, state) {
-              if (state is MapCarMoving && isStyleLoaded) {
-                _updateCarPosition(state.lat, state.lng);
-              }
-            },
+            BlocListener<MapCubit, MapState>(
+              listener: (context, state) {
+                if (state is MapCarMoving) {
+                  _updateCarPosition(state.lat, state.lng);
+                } else if (state is MapFlyToLocation) {
+                  mapboxMap?.flyTo(
+                    CameraOptions(
+                      center: Point(coordinates: Position(state.lng, state.lat)),
+                      zoom: 14.0,
+                    ),
+                    MapAnimationOptions(duration: 1500),
+                  );
+                }
+              },
             child: const SizedBox.shrink(),
           ),
 
@@ -323,6 +370,25 @@ class _HeatmapScreenState extends State<HeatmapScreen> with WidgetsBindingObserv
                   aiInsight,
                   style: TextStyle(color: Colors.grey, fontSize: 12.sp),
                 ),
+                SizedBox(height: 15.h),
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton.icon(
+                    onPressed: () {
+                      final zId = (gridState is GridReady && gridState.selectedZone != null) 
+                          ? gridState.selectedZone!.zoneId 
+                          : 0;
+                      _showCreateTripBottomSheet(context, zId);
+                    },
+                    icon: const Icon(Icons.add_road, color: Colors.white),
+                    label: const Text("Create Trip", style: TextStyle(color: Colors.white, fontSize: 16)),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.blueAccent,
+                      padding: EdgeInsets.symmetric(vertical: 12.h),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10.r)),
+                    ),
+                  ),
+                ),
               ],
             ),
           ),
@@ -374,16 +440,26 @@ class _HeatmapScreenState extends State<HeatmapScreen> with WidgetsBindingObserv
       final Uint8List list = bytes.buffer.asUint8List();
       carIconBytes = list;
 
-      // 2. Add style image
-      await mapboxMap?.style.addStyleImage(
-        'zona-x-driver-car',
-        1.0,
-        MbxImage(width: 100, height: 100, data: list),
-        false,
-        [],
-        [],
-        null,
-      );
+      // Decode the PNG to raw RGBA pixels
+      final ui.Codec codec = await ui.instantiateImageCodec(list);
+      final ui.FrameInfo frameInfo = await codec.getNextFrame();
+      final ui.Image image = frameInfo.image;
+      final ByteData? rawBytes = await image.toByteData(format: ui.ImageByteFormat.rawRgba);
+      
+      if (rawBytes != null) {
+        final Uint8List rawPixels = rawBytes.buffer.asUint8List();
+        
+        // 2. Add style image with raw RGBA data and correct dimensions
+        await mapboxMap?.style.addStyleImage(
+          'zona-x-driver-car',
+          1.0,
+          MbxImage(width: image.width, height: image.height, data: rawPixels),
+          false,
+          [],
+          [],
+          null,
+        );
+      }
 
       // 3. Configure LocationComponentSettings with the injected image
       await mapboxMap?.location.updateSettings(
@@ -405,89 +481,92 @@ class _HeatmapScreenState extends State<HeatmapScreen> with WidgetsBindingObserv
       debugPrint("Error loading advanced user location puck: $e");
     }
   }
-  void _showInsightsBottomSheet(BuildContext context) {
+
+  void _showCreateTripBottomSheet(BuildContext context, int initialZoneId) {
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.transparent,
       isScrollControlled: true,
       builder: (ctx) {
-        return BlocProvider.value(
-          value: context.read<MapGridBloc>(),
-          child: Container(
-            padding: const EdgeInsets.all(20),
-            decoration: const BoxDecoration(
-              color: Color(0xFF1E1E2A),
-              borderRadius: BorderRadius.vertical(top: Radius.circular(25)),
-            ),
-            child: SafeArea(
-              child: BlocBuilder<MapGridBloc, MapGridState>(
-                builder: (context, state) {
-                  if (state is ZoneInsightsLoading) {
-                    return const SizedBox(
-                      height: 200,
-                      child: Center(child: CircularProgressIndicator(color: Colors.blueAccent)),
-                    );
-                  } else if (state is ZoneInsightsLoaded) {
-                    final insights = state.insights;
-                    return Column(
-                      mainAxisSize: MainAxisSize.min,
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Center(
-                          child: Container(
-                            width: 40, height: 4,
-                            margin: const EdgeInsets.only(bottom: 20),
-                            decoration: BoxDecoration(color: Colors.grey[600], borderRadius: BorderRadius.circular(2)),
-                          ),
-                        ),
-                        Text(
-                          "AI Zone Insights",
-                          style: const TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold),
-                        ),
-                        const SizedBox(height: 15),
-                        _buildInsightRow(Icons.lightbulb_outline, Colors.amber, "AI Insight", insights.aiInsightText ?? "No specific insight available."),
-                        const SizedBox(height: 10),
-                        _buildInsightRow(Icons.trending_up, Colors.greenAccent, "Demand Growth", "${insights.demandGrowthPercentage ?? 0.0}%"),
-                        const SizedBox(height: 10),
-                        _buildInsightRow(Icons.check_circle_outline, Colors.blueAccent, "Recommendation", insights.recommendedAction ?? "Maintain current operations."),
-                        const SizedBox(height: 20),
-                      ],
-                    );
-                  } else if (state is ZoneInsightsError) {
-                    return SizedBox(
-                      height: 200,
-                      child: Center(
-                        child: Text("Error: ${state.message}", style: const TextStyle(color: Colors.redAccent)),
-                      ),
-                    );
-                  }
-                  return const SizedBox(height: 200, child: Center(child: CircularProgressIndicator()));
-                },
-              ),
-            ),
-          ),
+        return MultiBlocProvider(
+          providers: [
+            BlocProvider.value(value: context.read<MapGridBloc>()),
+            BlocProvider(create: (_) => TripBloc()),
+          ],
+          child: CreateTripBottomSheet(initialPickupZoneId: initialZoneId),
         );
       },
     );
   }
 
-  Widget _buildInsightRow(IconData icon, Color color, String title, String value) {
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Icon(icon, color: color, size: 24),
-        const SizedBox(width: 12),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(title, style: TextStyle(color: Colors.grey[400], fontSize: 14)),
-              const SizedBox(height: 4),
-              Text(value, style: const TextStyle(color: Colors.white, fontSize: 16)),
-            ],
+  void _showUnifiedZoneBottomSheet(BuildContext context, int zoneId, String zoneName) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (ctx) {
+        return MultiBlocProvider(
+          providers: [
+            BlocProvider.value(value: context.read<MapGridBloc>()),
+            BlocProvider.value(value: context.read<DriverDistributionBloc>()),
+          ],
+          child: BlocBuilder<MapGridBloc, MapGridState>(
+            builder: (context, mapState) {
+              return BlocBuilder<DriverDistributionBloc, DriverDistributionState>(
+                builder: (context, driverState) {
+                  ZoneInsightsModel? insights;
+                  DriverDistributionModel? driverDistribution;
+                  if (mapState is GridReady) {
+                    insights = mapState.insights;
+                  }
+                  
+                  if (driverState is DriverDistributionLoaded) {
+                    try {
+                      driverDistribution = driverState.distributions.firstWhere((d) => d.zoneId == zoneId);
+                    } catch (_) {}
+                  }
+
+                  if (mapState is GridReady && mapState.isLoadingInsights) {
+                    return Container(
+                      height: 200,
+                      decoration: const BoxDecoration(
+                        color: Color(0xFF1E1E2A),
+                        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+                      ),
+                      child: const Center(child: CircularProgressIndicator(color: Colors.blueAccent)),
+                    );
+                  }
+
+                  if (mapState is GridReady && mapState.insightsError != null) {
+                    return Container(
+                      height: 200,
+                      decoration: const BoxDecoration(
+                        color: Color(0xFF1E1E2A),
+                        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+                      ),
+                      child: Center(
+                        child: Text("Error: \${mapState.insightsError}", style: const TextStyle(color: Colors.redAccent)),
+                      ),
+                    );
+                  }
+
+                  return UnifiedZoneDetailsBottomSheet(
+                    zoneName: zoneName,
+                    zoneId: zoneId,
+                    insights: insights,
+                    driverDistribution: driverDistribution,
+                    comparison: ZoneComparisonModel(
+                      totalRevenue: 2500.50,
+                      expectedRevenue6H: 3100.00,
+                      stockoutProbability: 0.15,
+                    ),
+                  );
+                },
+              );
+            },
           ),
-        ),
-      ],
+        );
+      },
     );
   }
 }

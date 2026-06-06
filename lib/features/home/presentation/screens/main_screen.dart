@@ -24,6 +24,9 @@ import 'package:zona_x_16_4/features/analytics/presentation/bloc/analytics_event
 import 'package:zona_x_16_4/features/analytics/domain/usecases/get_driver_analytics_usecase.dart';
 import 'package:zona_x_16_4/features/analytics/data/repositories/analytics_repository_impl.dart';
 import 'package:zona_x_16_4/features/analytics/data/datasources/analytics_remote_data_source.dart';
+import 'package:zona_x_16_4/features/analytics/presentation/bloc/peak_hours_bloc.dart';
+import 'package:zona_x_16_4/features/demand_grid/domain/repositories/zone_repository.dart';
+import 'package:zona_x_16_4/injection_container.dart' as di;
 
 class MainScreen extends StatefulWidget {
   const MainScreen({super.key});
@@ -37,15 +40,24 @@ class _MainScreenState extends State<MainScreen> {
 
   final List<Widget> _screens = [
     const HeatmapScreen(),
-    BlocProvider(
-      create: (context) {
-        final repository = AnalyticsRepositoryImpl(
-          AnalyticsRemoteDataSourceImpl(),
-        );
-        return AnalyticsBloc(
-          getDriverAnalyticsUseCase: GetDriverAnalyticsUseCase(repository),
-        )..add(FetchAnalytics());
-      },
+    MultiBlocProvider(
+      providers: [
+        BlocProvider(
+          create: (context) {
+            final repository = AnalyticsRepositoryImpl(
+              AnalyticsRemoteDataSourceImpl(),
+            );
+            return AnalyticsBloc(
+              getDriverAnalyticsUseCase: GetDriverAnalyticsUseCase(repository),
+            )..add(FetchAnalytics());
+          },
+        ),
+        BlocProvider(
+          create: (context) => PeakHoursBloc(
+            repository: di.sl<ZoneRepository>(),
+          )..add(FetchPeakHours()),
+        ),
+      ],
       child: const AnalyticsScreen(),
     ), // Second page as requested
     const EarningsScreen(),

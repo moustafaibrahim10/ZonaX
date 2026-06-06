@@ -5,6 +5,8 @@ import 'dart:convert';
 import '../bloc/map_grid_bloc.dart';
 import '../bloc/map_grid_event.dart';
 import '../bloc/map_grid_state.dart';
+import '../bloc/driver_distribution_bloc.dart';
+import 'package:zona_x_16_4/features/demand_grid/data/models/zone_heatmap_model.dart';
 
 class DemandGridMapIntegration extends StatefulWidget {
   final MapboxMap mapboxMap;
@@ -24,7 +26,10 @@ class DemandGridMapIntegration extends StatefulWidget {
 class _DemandGridMapIntegrationState extends State<DemandGridMapIntegration> {
   static const String sourceId = 'demand-grid-source';
   static const String layerId = 'demand-grid-layer';
-
+  static const String driverSourceId = 'driver-distribution-source';
+  static const String driverLayerId = 'driver-distribution-layer';
+  static const String topDemandSourceId = 'top-demand-source';
+  static const String topDemandLayerId = 'top-demand-layer';
   @override
   void initState() {
     super.initState();
@@ -57,6 +62,19 @@ class _DemandGridMapIntegrationState extends State<DemandGridMapIntegration> {
 
         await _addFillLayer();
         await _addSymbolLayer();
+      }
+
+      // Handle Top Demand GeoJSON
+      if (state.topDemandGeoJson != null) {
+        if (await style.styleSourceExists(topDemandSourceId)) {
+          await style.setStyleSourceProperty(topDemandSourceId, "data", state.topDemandGeoJson!);
+          if (!(await style.styleLayerExists(topDemandLayerId))) {
+            await _addTopDemandLayer();
+          }
+        } else {
+          await style.addSource(GeoJsonSource(id: topDemandSourceId, data: state.topDemandGeoJson!));
+          await _addTopDemandLayer();
+        }
       }
 
       // 5. Apply any instant feature state lookup values if present
@@ -92,22 +110,20 @@ class _DemandGridMapIntegrationState extends State<DemandGridMapIntegration> {
       debugPrint("Error rendering demand grid: $e");
     }
   }
-
   Future<void> _addFillLayer() async {
     final style = widget.mapboxMap.style;
 
-    // الحل: ابدأ بلون مش شفاف عشان الماب بوكس "يشوف" الطبقة ويرسمها
+    // 1. Fill Layer
     await style.addLayer(
       FillLayer(
         id: layerId,
         sourceId: sourceId,
         fillColor: Colors.grey.toARGB32(), // Use integer representation instead of String hex
-        fillOpacity: 0.7,
         fillOutlineColor: Colors.white.toARGB32(),
       ),
     );
 
-    // الـ Expression ده هيلون المربعات فوراً فوق اللون الافتراضي
+    // Expression to color by demand level
     await style.setStyleLayerProperty(
       layerId,
       'fill-color',
@@ -126,6 +142,76 @@ class _DemandGridMapIntegrationState extends State<DemandGridMapIntegration> {
         '#808080' // Default grey fallback
       ],
     );
+
+    // Initial opacity state (0.35 for all)
+    await style.setStyleLayerProperty(layerId, 'fill-opacity', 0.35);
+
+    // 2. Line Layer (Highlight Outline)
+    await style.addLayer(
+      LineLayer(
+        id: 'demand-grid-outline-layer',
+        sourceId: sourceId,
+        lineWidth: 2.0,
+        lineColor: Colors.transparent.toARGB32(), // Invisible by default
+      ),
+    );
+  }
+
+  void _updateSelectedZoneHighlight(ZoneHeatmapModel? selectedZone) async {
+    try {
+      final style = widget.mapboxMap.style;
+      if (await style.styleLayerExists('demand-grid-outline-layer')) {
+        if (selectedZone != null) {
+          // Focus Mode: Dim all other zones, keep selected zone at 0.5
+          if (await style.styleLayerExists(layerId)) {
+            await style.setStyleLayerProperty(
+              layerId,
+              'fill-opacity',
+              [
+                'case',
+                ['==', ['get', 'zoneId'], selectedZone.zoneId],
+                0.5, // Selected zone opacity
+                0.15 // Unselected zones opacity
+              ]
+            );
+          }
+
+          // Highlight boundary
+          await style.setStyleLayerProperty(
+            'demand-grid-outline-layer',
+            'line-color',
+            [
+              'case',
+              ['==', ['get', 'zoneId'], selectedZone.zoneId],
+              '#FFC107', // Highlight color for selected zone (Amber)
+              'rgba(0,0,0,0)' // Invisible for others
+            ]
+          );
+          await style.setStyleLayerProperty(
+            'demand-grid-outline-layer',
+            'line-width',
+            [
+              'case',
+              ['==', ['get', 'zoneId'], selectedZone.zoneId],
+              4.0, // Thicker stroke for selected
+              0.0
+            ]
+          );
+        } else {
+          // Reset Focus Mode
+          if (await style.styleLayerExists(layerId)) {
+            await style.setStyleLayerProperty(layerId, 'fill-opacity', 0.35);
+          }
+          await style.setStyleLayerProperty(
+            'demand-grid-outline-layer',
+            'line-color',
+            'rgba(0,0,0,0)'
+          );
+        }
+      }
+    } catch (e) {
+      debugPrint("Error updating highlight: \${e}");
+    }
   }
 
   Future<void> _addSymbolLayer() async {
@@ -134,12 +220,54 @@ class _DemandGridMapIntegrationState extends State<DemandGridMapIntegration> {
       SymbolLayer(
         id: 'demand-grid-symbol-layer',
         sourceId: sourceId,
-        textField: "{surgeMultiplierText}",
+        textField: "", // Placeholder, will set via expression
         textSize: 14.0,
         textColor: Colors.white.toARGB32(),
         textHaloColor: Colors.black.withValues(alpha: 0.8).toARGB32(),
         textHaloWidth: 1.0,
+        textAllowOverlap: false,
       ),
+    );
+
+    // Conditional Labels: Only show text for CRITICAL demand levels
+    await style.setStyleLayerProperty(
+      'demand-grid-symbol-layer',
+      'text-field',
+      [
+        'case',
+        ['==', ['upcase', ['get', 'demandLevel']], 'CRITICAL'],
+        ['get', 'surgeMultiplierText'],
+        '' // Empty string for non-critical
+      ],
+    );
+  }
+
+  Future<void> _addTopDemandLayer() async {
+    final style = widget.mapboxMap.style;
+    
+    // Create a pulsating orange glow for top demand zones
+    await style.addLayerAt(
+      CircleLayer(
+        id: '${topDemandLayerId}-glow',
+        sourceId: topDemandSourceId,
+        circleColor: Colors.deepOrangeAccent.toARGB32(),
+        circleRadius: 24.0,
+        circleOpacity: 0.4,
+        circleBlur: 0.8,
+      ),
+      LayerPosition(above: 'demand-grid-symbol-layer')
+    );
+
+    await style.addLayerAt(
+      CircleLayer(
+        id: topDemandLayerId,
+        sourceId: topDemandSourceId,
+        circleColor: Colors.redAccent.toARGB32(),
+        circleRadius: 8.0,
+        circleStrokeWidth: 2.0,
+        circleStrokeColor: Colors.white.toARGB32(),
+      ),
+      LayerPosition(above: '${topDemandLayerId}-glow')
     );
   }
 
@@ -158,22 +286,90 @@ class _DemandGridMapIntegrationState extends State<DemandGridMapIntegration> {
     }
   }
 
+  Future<void> _refreshDriverDistribution(DriverDistributionLoaded state) async {
+    try {
+      final style = widget.mapboxMap.style;
+      if (await style.styleSourceExists(driverSourceId)) {
+        await style.setStyleSourceProperty(driverSourceId, "data", state.geoJson);
+        if (!(await style.styleLayerExists(driverLayerId))) {
+          await _addDriverDistributionLayer();
+        }
+      } else {
+        await style.addSource(GeoJsonSource(id: driverSourceId, data: state.geoJson));
+        await _addDriverDistributionLayer();
+      }
+    } catch (e) {
+      debugPrint("Error rendering driver distribution: $e");
+    }
+  }
+
+  Future<void> _addDriverDistributionLayer() async {
+    final style = widget.mapboxMap.style;
+    
+    // Outer glowing layer
+    await style.addLayer(
+      CircleLayer(
+        id: '${driverLayerId}-glow',
+        sourceId: driverSourceId,
+        circleColor: Colors.grey.toARGB32(), // Placeholder
+        circleRadius: 18.0, // Larger radius for glow
+        circleOpacity: 0.3,
+        circleBlur: 0.8,
+      ),
+    );
+
+    await style.setStyleLayerProperty(
+      '${driverLayerId}-glow',
+      'circle-color',
+      ['get', 'color'],
+    );
+
+    // Inner solid layer
+    await style.addLayer(
+      CircleLayer(
+        id: driverLayerId,
+        sourceId: driverSourceId,
+        circleColor: Colors.grey.toARGB32(), // Placeholder
+        circleRadius: 6.0, // Solid center
+        circleStrokeWidth: 1.5,
+        circleStrokeColor: Colors.white.toARGB32(),
+      ),
+    );
+
+    await style.setStyleLayerProperty(
+      driverLayerId,
+      'circle-color',
+      ['get', 'color'],
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     debugPrint("Building DemandGridMapIntegration widget tree...");
-    return BlocConsumer<MapGridBloc, MapGridState>(
-      listener: (context, state) {
-        if (state is GridReady) {
-          debugPrint(
-            "Bloc State GridReady: GeoJSON length = ${state.geoJson.length}",
-          );
-          _refreshMapLayers(state);
-        } else if (state is DemandUpdated) {
-          _applyDemandUpdates(state.latestUpdates);
-        }
-      },
-      builder: (context, state) {
-        if (state is GridReady && state.isRefreshing) {
+    return MultiBlocListener(
+      listeners: [
+        BlocListener<MapGridBloc, MapGridState>(
+          listener: (context, state) {
+            if (state is GridReady) {
+              debugPrint("Bloc State GridReady: GeoJSON length = ${state.geoJson.length}");
+              _refreshMapLayers(state);
+              _updateSelectedZoneHighlight(state.selectedZone);
+            } else if (state is DemandUpdated) {
+              _applyDemandUpdates(state.latestUpdates);
+            }
+          },
+        ),
+        BlocListener<DriverDistributionBloc, DriverDistributionState>(
+          listener: (context, state) {
+            if (state is DriverDistributionLoaded) {
+              _refreshDriverDistribution(state);
+            }
+          },
+        ),
+      ],
+      child: BlocBuilder<MapGridBloc, MapGridState>(
+        builder: (context, state) {
+          if (state is GridReady && state.isRefreshing) {
           return Positioned(
             top: 15,
             right: 15,
@@ -203,8 +399,8 @@ class _DemandGridMapIntegrationState extends State<DemandGridMapIntegration> {
           );
         }
         return const SizedBox.shrink(); // Headless when not refreshing
-      },
+        },
+      ),
     );
   }
-
 }
