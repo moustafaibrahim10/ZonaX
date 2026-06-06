@@ -79,7 +79,9 @@ class _LoginView extends StatelessWidget {
     if (state.status == LoginStatus.failure && state.errorMessage != null) {
       _showErrorDialog(context, state.errorMessage!, appColors);
     } else if (state.status == LoginStatus.success) {
-      Hive.box('app_box').put('terms_accepted', true);
+      final box = Hive.box('app_box');
+      box.put('terms_accepted', true);
+      box.put('onboarding_completed', true);
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: const Text('Signed in successfully!'),
