@@ -14,6 +14,11 @@ import 'package:zona_x_16_4/features/trips/data/repositories/trip_repository_imp
 import 'package:zona_x_16_4/features/trips/domain/repositories/trip_repository.dart';
 import 'package:zona_x_16_4/features/trips/presentation/bloc/trip_bloc.dart';
 
+import 'package:zona_x_16_4/core/services/voice/gemini_service.dart';
+import 'package:zona_x_16_4/core/services/voice/speech_service.dart';
+import 'package:zona_x_16_4/core/services/voice/tts_service.dart';
+import 'package:zona_x_16_4/features/voice_assistant/presentation/bloc/voice_cubit.dart';
+
 final sl = GetIt.instance;
 
 Future<void> init() async {
@@ -62,5 +67,18 @@ Future<void> init() async {
 
   sl.registerFactory<TripBloc>(
     () => TripBloc(tripRepository: sl()),
+  );
+
+  // Voice Assistant
+  sl.registerLazySingleton<GeminiService>(() => GeminiService());
+  sl.registerLazySingleton<SpeechService>(() => SpeechService());
+  sl.registerLazySingleton<TtsService>(() => TtsService());
+
+  sl.registerFactory<VoiceCubit>(
+    () => VoiceCubit(
+      geminiService: sl(),
+      speechService: sl(),
+      ttsService: sl(),
+    ),
   );
 }

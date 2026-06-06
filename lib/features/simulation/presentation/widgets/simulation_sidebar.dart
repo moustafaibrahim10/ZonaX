@@ -109,8 +109,8 @@ class _SimulationSidebarState extends State<SimulationSidebar>
                   SizedBox(height: 14.h),
 
                   // Simulation time label (vertical)
-                  if (isRunning)
-                    _buildTimeLabel((state as SimulationRunning).status.currentTime),
+                  if (state is SimulationRunning)
+                    _buildTimeLabel(state.status.currentTime),
 
                   if (isRunning) SizedBox(height: 10.h),
 

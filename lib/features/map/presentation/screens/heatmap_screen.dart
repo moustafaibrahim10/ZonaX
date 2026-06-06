@@ -23,12 +23,14 @@ import 'package:zona_x_16_4/features/demand_grid/domain/repositories/zone_reposi
 import 'package:zona_x_16_4/features/demand_grid/data/datasources/zone_boundary_service.dart';
 import 'package:zona_x_16_4/features/demand_grid/presentation/widgets/unified_zone_details_bottom_sheet.dart';
 import 'package:zona_x_16_4/features/demand_grid/data/models/driver_distribution_model.dart';
+import 'package:zona_x_16_4/features/voice_assistant/presentation/widgets/voice_assistant_button.dart';
+import 'package:zona_x_16_4/features/voice_assistant/presentation/bloc/voice_cubit.dart';
+import 'package:zona_x_16_4/features/voice_assistant/presentation/bloc/voice_state.dart';
 import 'package:zona_x_16_4/features/simulation/presentation/bloc/simulation_bloc.dart';
 import 'package:zona_x_16_4/features/simulation/presentation/bloc/simulation_state.dart';
 import 'package:zona_x_16_4/features/simulation/presentation/widgets/simulation_sidebar.dart';
 import 'package:zona_x_16_4/features/simulation/presentation/widgets/simulation_map_layer.dart';
 import 'package:zona_x_16_4/features/simulation/data/datasources/mapbox_routing_service.dart';
-import 'package:zona_x_16_4/core/network/dio_factory.dart';
 import 'package:zona_x_16_4/injection_container.dart' as di;
 import 'package:zona_x_16_4/features/trips/presentation/bloc/trip_state.dart';
 import 'package:zona_x_16_4/features/trips/presentation/bloc/trip_event.dart';
@@ -53,7 +55,7 @@ class _HeatmapScreenState extends State<HeatmapScreen> with WidgetsBindingObserv
   bool isStyleLoaded = false;
   Uint8List? carIconBytes;
 
-  int _currentDriverZoneId = 185;
+  final int _currentDriverZoneId = 185;
   bool _isTrackingCar = true; // Default starting zone
   bool _isSelectingDropoff = false;
 
@@ -222,33 +224,44 @@ class _HeatmapScreenState extends State<HeatmapScreen> with WidgetsBindingObserv
             if (mapboxMap != null)
               SimulationMapLayer(mapboxMap: mapboxMap!),
 
-          // Bloc Listener for map updates
-            BlocListener<MapCubit, MapState>(
-              listener: (context, state) {
-                if (state is MapCarMoving) {
-                  _updateCarPosition(state.lat, state.lng, state.bearing);
-                } else if (state is MapFlyToLocation) {
-                  mapboxMap?.flyTo(
-                    CameraOptions(
-                      center: Point(coordinates: Position(state.lng, state.lat)),
-                      zoom: 14.0,
-                    ),
-                    MapAnimationOptions(duration: 1500),
-                  );
-                } else if (state is MapSimulationCompleted) {
-                  if (polylineAnnotationManager != null && routePolyline != null) {
-                    polylineAnnotationManager!.delete(routePolyline!);
-                    routePolyline = null;
+          // Bloc Listener for map updates and voice actions
+          MultiBlocListener(
+            listeners: [
+              BlocListener<MapCubit, MapState>(
+                listener: (context, state) {
+                  if (state is MapCarMoving) {
+                    _updateCarPosition(state.lat, state.lng, state.bearing);
+                  } else if (state is MapFlyToLocation) {
+                    mapboxMap?.flyTo(
+                      CameraOptions(
+                        center: Point(coordinates: Position(state.lng, state.lat)),
+                        zoom: 14.0,
+                      ),
+                      MapAnimationOptions(duration: 1500),
+                    );
+                  } else if (state is MapSimulationCompleted) {
+                    if (polylineAnnotationManager != null && routePolyline != null) {
+                      polylineAnnotationManager!.delete(routePolyline!);
+                      routePolyline = null;
+                    }
+                    final tripState = context.read<TripBloc>().state;
+                    if (tripState is TripStarted) {
+                      context.read<TripBloc>().add(EndTripRequested(tripState.tripId));
+                    }
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Trip Completed!'), backgroundColor: Colors.green),
+                    );
                   }
-                  final tripState = context.read<TripBloc>().state;
-                  if (tripState is TripStarted) {
-                    context.read<TripBloc>().add(EndTripRequested(tripState.tripId));
+                },
+              ),
+              BlocListener<VoiceCubit, VoiceState>(
+                listener: (context, state) {
+                  if (state is VoiceActionTriggered && state.action == 'find_best_zone') {
+                    _findAndRouteToBestZone(context);
                   }
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Trip Completed!'), backgroundColor: Colors.green),
-                  );
-                }
-              },
+                },
+              ),
+            ],
             child: const SizedBox.shrink(),
           ),
 
@@ -271,7 +284,7 @@ class _HeatmapScreenState extends State<HeatmapScreen> with WidgetsBindingObserv
                   top: 15.h,
                   left: 70.w, // offset for sidebar
                   right: 15.w,
-                  child: _buildVoiceAssistantBar(),
+                  child: const TopVoiceAssistantBar(),
                 ),
 
                 // Simulation Sidebar on the left
@@ -327,48 +340,6 @@ class _HeatmapScreenState extends State<HeatmapScreen> with WidgetsBindingObserv
 
 
   // --- UI Components ---
-
-  Widget _buildVoiceAssistantBar() {
-    return Container(
-      padding: EdgeInsets.symmetric(horizontal: 15.w, vertical: 12.h),
-      decoration: BoxDecoration(
-        color: const Color(0xFF1E1E2A).withValues(alpha: 0.95),
-        borderRadius: BorderRadius.circular(15.r),
-        border: Border.all(color: Colors.white10),
-      ),
-      child: Row(
-        children: [
-          // Simulated Voice Waveform
-          Icon(Icons.graphic_eq, color: Colors.redAccent, size: 28.sp),
-          SizedBox(width: 10.w),
-          Icon(Icons.mic, color: Colors.blueAccent, size: 24.sp),
-          SizedBox(width: 15.w),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  "Listening for command...",
-                  style: TextStyle(color: Colors.grey, fontSize: 12.sp),
-                ),
-                Text(
-                  "\"Find high demand\"",
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 14.sp,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-
 
   Widget _buildMinimalBottomBar() {
     return BlocBuilder<MapGridBloc, MapGridState>(
@@ -786,6 +757,37 @@ class _HeatmapScreenState extends State<HeatmapScreen> with WidgetsBindingObserv
         );
       }
     }
+  }
+
+  void _findAndRouteToBestZone(BuildContext context) async {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Finding the most profitable zone...'), backgroundColor: Colors.blueAccent),
+    );
+    
+    final repo = di.sl<ZoneRepository>();
+    final result = await repo.getTopDemandZones();
+    
+    result.fold(
+      (failure) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Could not find best zone right now.'), backgroundColor: Colors.red),
+          );
+        }
+      },
+      (zones) {
+        if (zones.isNotEmpty && mounted) {
+          final bestZone = zones.first; // Usually ordered by demand
+          // Select it on map to show unified bottom sheet
+          context.read<MapGridBloc>().add(ZoneSelected(bestZone.zoneId));
+          context.read<MapGridBloc>().add(FetchZoneInsights(zoneId: bestZone.zoneId));
+          _showUnifiedZoneBottomSheet(context, bestZone.zoneId, bestZone.zoneName);
+          
+          // Draw route to it
+          _startMapboxRouteSimulation(context, _currentDriverZoneId, bestZone.zoneId);
+        }
+      }
+    );
   }
 
   void _showUnifiedZoneBottomSheet(BuildContext context, int zoneId, String zoneName) {

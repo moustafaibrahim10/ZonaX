@@ -68,7 +68,7 @@ class _SimulationMapLayerState extends State<SimulationMapLayer> {
           FillLayer(
             id: _overlayId,
             sourceId: widget.sourceId,
-            fillOpacity: 0.10, // Highly transparent to reveal streets
+            fillOpacity: 0.20, // Match the enhanced base opacity
           ),
           LayerPosition(above: 'demand-grid-layer'),
         );
@@ -91,10 +91,10 @@ class _SimulationMapLayerState extends State<SimulationMapLayer> {
         _transitionApplied = true;
       }
 
-      // Build data-driven colour expression matching the Feature 'id'
-      final expr = <dynamic>['match', ['id']];
+      // Build data-driven colour expression matching the Feature 'zoneId' property
+      final expr = <dynamic>['match', ['get', 'zoneId']];
       for (final z in state.status.zones) {
-        expr.add(z.zoneId.toString()); // The id in geojson is a string
+        expr.add(z.zoneId); // The zoneId in geojson properties is an integer
         expr.add(_color(z.demand));
       }
       expr.add('rgba(0,0,0,0)'); // transparent fallback
@@ -113,9 +113,9 @@ class _SimulationMapLayerState extends State<SimulationMapLayer> {
         _transitionApplied = false;
         debugPrint('SimulationMapLayer: overlay removed');
         
-        // Restore base layer
+        // Restore base layer (to the enhanced 0.15 opacity)
         if (await style.styleLayerExists('demand-grid-layer')) {
-          await style.setStyleLayerProperty('demand-grid-layer', 'fill-opacity', 0.05);
+          await style.setStyleLayerProperty('demand-grid-layer', 'fill-opacity', 0.15);
         }
       }
     } catch (e) {

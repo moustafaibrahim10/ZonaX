@@ -3,7 +3,6 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:mapbox_maps_flutter/mapbox_maps_flutter.dart';
 import 'dart:convert';
 import '../bloc/map_grid_bloc.dart';
-import '../bloc/map_grid_event.dart';
 import '../bloc/map_grid_state.dart';
 import '../bloc/driver_distribution_bloc.dart';
 import 'package:zona_x_16_4/features/demand_grid/data/models/zone_heatmap_model.dart';
@@ -127,8 +126,8 @@ class _DemandGridMapIntegrationState extends State<DemandGridMapIntegration> {
       ],
     );
 
-    // Initial opacity state (0.05 for all)
-    await style.setStyleLayerProperty(layerId, 'fill-opacity', 0.05);
+    // Initial opacity state (0.15 for all)
+    await style.setStyleLayerProperty(layerId, 'fill-opacity', 0.15);
 
     // 2. Line Layer (Highlight Outline)
     await style.addLayer(
@@ -154,8 +153,8 @@ class _DemandGridMapIntegrationState extends State<DemandGridMapIntegration> {
               [
                 'case',
                 ['==', ['get', 'zoneId'], selectedZone.zoneId],
-                0.2, // Selected zone opacity
-                0.02 // Unselected zones opacity
+                0.35, // Selected zone opacity
+                0.05 // Unselected zones opacity
               ]
             );
           }
@@ -184,7 +183,7 @@ class _DemandGridMapIntegrationState extends State<DemandGridMapIntegration> {
         } else {
           // Reset Focus Mode
           if (await style.styleLayerExists(layerId)) {
-            await style.setStyleLayerProperty(layerId, 'fill-opacity', 0.05);
+            await style.setStyleLayerProperty(layerId, 'fill-opacity', 0.15);
           }
           await style.setStyleLayerProperty(
             'demand-grid-outline-layer',
@@ -232,7 +231,7 @@ class _DemandGridMapIntegrationState extends State<DemandGridMapIntegration> {
     // Create a pulsating orange glow for top demand zones
     await style.addLayerAt(
       CircleLayer(
-        id: '${topDemandLayerId}-glow',
+        id: '$topDemandLayerId-glow',
         sourceId: topDemandSourceId,
         circleColor: Colors.deepOrangeAccent.toARGB32(),
         circleRadius: 24.0,
@@ -251,7 +250,7 @@ class _DemandGridMapIntegrationState extends State<DemandGridMapIntegration> {
         circleStrokeWidth: 2.0,
         circleStrokeColor: Colors.white.toARGB32(),
       ),
-      LayerPosition(above: '${topDemandLayerId}-glow')
+      LayerPosition(above: '$topDemandLayerId-glow')
     );
   }
 
@@ -293,7 +292,7 @@ class _DemandGridMapIntegrationState extends State<DemandGridMapIntegration> {
     // Outer glowing layer
     await style.addLayer(
       CircleLayer(
-        id: '${driverLayerId}-glow',
+        id: '$driverLayerId-glow',
         sourceId: driverSourceId,
         circleColor: Colors.grey.toARGB32(), // Placeholder
         circleRadius: 18.0, // Larger radius for glow
@@ -303,7 +302,7 @@ class _DemandGridMapIntegrationState extends State<DemandGridMapIntegration> {
     );
 
     await style.setStyleLayerProperty(
-      '${driverLayerId}-glow',
+      '$driverLayerId-glow',
       'circle-color',
       ['get', 'color'],
     );

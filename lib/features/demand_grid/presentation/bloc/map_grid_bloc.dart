@@ -66,6 +66,7 @@ String _generateGeoJsonInIsolate(_GeoJsonParams params) {
       "type": "Feature",
       "id": zoneId.toString(),
       "properties": {
+        "zoneId": zoneId,
         "demandLevel": demandLevel,
         "surgeMultiplierText": surgeMultiplierText,
         "revenuePrediction": revenuePrediction,

@@ -542,12 +542,12 @@ class _EarningsScreenState extends State<EarningsScreen> {
           ),
         ),
         SizedBox(height: 12.h),
-        Container(
+        SizedBox(
           height: 150.h,
           child: ListView.separated(
             scrollDirection: Axis.horizontal,
             itemCount: trends.length,
-            separatorBuilder: (_, __) => SizedBox(width: 12.w),
+            separatorBuilder: (_, _) => SizedBox(width: 12.w),
             itemBuilder: (context, index) {
               final item = trends[index];
               return Container(
