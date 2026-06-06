@@ -55,3 +55,12 @@ class MapFlyToLocation extends MapState {
 }
 
 class MapSimulationCompleted extends MapState {}
+
+class MapConnectivityChanged extends MapState {
+  final bool isConnected;
+
+  const MapConnectivityChanged(this.isConnected);
+
+  @override
+  List<Object?> get props => [isConnected];
+}

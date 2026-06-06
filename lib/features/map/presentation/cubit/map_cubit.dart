@@ -4,6 +4,7 @@ import 'package:flutter/foundation.dart';
 
 import 'package:equatable/equatable.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:zona_x_16_4/features/map/domain/entities/zone_entity.dart';
 import 'package:zona_x_16_4/features/map/domain/entities/driver_location_entity.dart';
 import 'package:zona_x_16_4/features/map/domain/repositories/map_repository.dart';
@@ -15,10 +16,12 @@ class MapCubit extends Cubit<MapState> {
   final MapRepository repository;
   final LocalDataSource localDataSource;
   Timer? _simulationTimer;
+  StreamSubscription<List<ConnectivityResult>>? _connectivitySubscription;
   bool isConnected = true;
 
   MapCubit(this.repository, this.localDataSource) : super(MapInitial()) {
     _initLocalDataSource();
+    _initConnectivity();
   }
 
   Future<void> _initLocalDataSource() async {
@@ -31,7 +34,7 @@ class MapCubit extends Cubit<MapState> {
       final zones = await repository.getActiveZones();
       emit(MapZonesLoaded(zones));
     } catch (e) {
-      emit(MapError("فشل في تحميل الزونات: ${e.toString()}"));
+      emit(MapError("Failed to load zones: ${e.toString()}"));
     }
   }
 
@@ -39,17 +42,25 @@ class MapCubit extends Cubit<MapState> {
     emit(MapFlyToLocation(lat, lng));
   }
 
-  // Simulate network connection toggle
-  void toggleConnection() async {
-    isConnected = !isConnected;
-    if (isConnected) {
-      // Connection Restored -> Sync data
-      final unsynced = await localDataSource.getUnsyncedLogs();
-      debugPrint("Syncing ${unsynced.length} offline logs to server...");
-      await localDataSource.markLogsAsSynced();
-    } else {
-      debugPrint("Connection Lost! Entering Offline Edge Mode.");
-    }
+  void _initConnectivity() {
+    _connectivitySubscription = Connectivity().onConnectivityChanged.listen((List<ConnectivityResult> results) {
+      bool isNowConnected = results.isNotEmpty && !results.contains(ConnectivityResult.none);
+      
+      if (isConnected != isNowConnected) {
+        isConnected = isNowConnected;
+        emit(MapConnectivityChanged(isConnected));
+        
+        if (isConnected) {
+          // Connection Restored -> Sync data
+          localDataSource.getUnsyncedLogs().then((unsynced) {
+            debugPrint("Syncing ${unsynced.length} offline logs to server...");
+            localDataSource.markLogsAsSynced();
+          });
+        } else {
+          debugPrint("Connection Lost! Entering Offline Edge Mode.");
+        }
+      }
+    });
   }
 
   bool isSimulating = false;
@@ -140,14 +151,17 @@ class MapCubit extends Cubit<MapState> {
     return (brng * 180.0 / math.pi + 360.0) % 360.0;
   }
 
-  void stopCarSimulation() {
+  void stopCarSimulation({bool emitCompletion = false}) {
     isSimulating = false;
     _simulationTimer?.cancel();
-    // emit(MapSimulationStopped());
+    if (emitCompletion) {
+      emit(MapSimulationCompleted());
+    }
   }
 
   @override
   Future<void> close() {
+    _connectivitySubscription?.cancel();
     _simulationTimer?.cancel();
     return super.close();
   }
