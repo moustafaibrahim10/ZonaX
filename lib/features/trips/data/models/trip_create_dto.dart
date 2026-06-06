@@ -8,12 +8,14 @@ class TripCreateDto {
   final int dropoffLocationId;
   final double fareAmount;
   final double tipAmount;
+  final String driverId;
 
   TripCreateDto({
     required this.pickupLocationId,
     required this.dropoffLocationId,
     required this.fareAmount,
     required this.tipAmount,
+    required this.driverId,
   });
 
   factory TripCreateDto.fromJson(Map<String, dynamic> json) => _$TripCreateDtoFromJson(json);

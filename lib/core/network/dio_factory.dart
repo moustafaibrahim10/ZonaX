@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 import 'api_constants.dart';
@@ -7,6 +8,7 @@ class DioFactory {
 
   static Dio? _dio;
   static String? _authToken;
+  static String? driverId;
 
   static Dio getDio() {
     if (_dio == null) {
@@ -24,11 +26,25 @@ class DioFactory {
   // Set authentication token (call this after login)
   static void setAuthToken(String token) {
     _authToken = token;
+    try {
+      final parts = token.split('.');
+      if (parts.length == 3) {
+        String payload = parts[1];
+        while (payload.length % 4 != 0) {
+          payload += '=';
+        }
+        final payloadMap = json.decode(utf8.decode(base64Url.decode(payload)));
+        driverId = payloadMap['http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier'];
+      }
+    } catch (e) {
+      debugPrint('Error decoding token: $e');
+    }
   }
 
   // Clear authentication token (call this on logout)
   static void clearAuthToken() {
     _authToken = null;
+    driverId = null;
   }
 
   static void _addInterceptors() {

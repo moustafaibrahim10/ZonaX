@@ -7,11 +7,17 @@ import '../bloc/trip_bloc.dart';
 import '../bloc/trip_event.dart';
 import '../bloc/trip_state.dart';
 import '../../data/models/trip_create_dto.dart';
+import 'package:zona_x_16_4/core/network/dio_factory.dart';
 
 class CreateTripBottomSheet extends StatefulWidget {
   final int initialPickupZoneId;
+  final int? initialDropoffZoneId;
 
-  const CreateTripBottomSheet({super.key, required this.initialPickupZoneId});
+  const CreateTripBottomSheet({
+    super.key, 
+    required this.initialPickupZoneId,
+    this.initialDropoffZoneId,
+  });
 
   @override
   State<CreateTripBottomSheet> createState() => _CreateTripBottomSheetState();
@@ -28,6 +34,7 @@ class _CreateTripBottomSheetState extends State<CreateTripBottomSheet> {
   void initState() {
     super.initState();
     _pickupLocationId = widget.initialPickupZoneId == 0 ? null : widget.initialPickupZoneId;
+    _dropoffLocationId = widget.initialDropoffZoneId == 0 ? null : widget.initialDropoffZoneId;
   }
 
   @override
@@ -70,13 +77,20 @@ class _CreateTripBottomSheetState extends State<CreateTripBottomSheet> {
             const SizedBox(height: 16),
             BlocConsumer<TripBloc, TripState>(
               listener: (context, state) {
-                if (state is TripSuccess) {
+                if (state is TripCreated) {
+                  // Trip was created successfully, now start it!
+                  context.read<TripBloc>().add(StartTripRequested(state.tripId));
+                } else if (state is TripStarted) {
                   ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text(state.message), backgroundColor: Colors.green),
+                    const SnackBar(content: Text("Trip Started Successfully!"), backgroundColor: Colors.green),
                   );
                   // Refresh Map Data
                   context.read<MapGridBloc>().add(InitializeGrid());
-                  Navigator.pop(context); // Close bottom sheet
+                  Navigator.pop(context, _dropoffLocationId); // Close bottom sheet and return dropoff zone
+                } else if (state is TripSuccess) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text(state.message), backgroundColor: Colors.green),
+                  );
                 } else if (state is TripError) {
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(content: Text(state.message), backgroundColor: Colors.red),
@@ -106,51 +120,50 @@ class _CreateTripBottomSheetState extends State<CreateTripBottomSheet> {
                                 }
                               }
                               
-                              return Row(
-                                children: [
-                                  Expanded(
-                                    child: DropdownButtonFormField<int>(
-                                      value: _pickupLocationId,
-                                      decoration: const InputDecoration(
-                                        labelText: 'Pickup Zone',
-                                        border: OutlineInputBorder(),
-                                        filled: true,
-                                        fillColor: Colors.black26,
+                                  return Row(
+                                    children: [
+                                      Expanded(
+                                        child: TextFormField(
+                                          initialValue: _pickupLocationId?.toString() ?? '',
+                                          readOnly: true,
+                                          style: const TextStyle(color: Colors.white),
+                                          decoration: const InputDecoration(
+                                            labelText: 'Pickup Zone ID',
+                                            border: OutlineInputBorder(),
+                                            filled: true,
+                                            fillColor: Colors.black26,
+                                          ),
+                                        ),
                                       ),
-                                      dropdownColor: const Color(0xFF1E1E2A),
-                                      style: const TextStyle(color: Colors.white),
-                                      items: availableZones.map((zoneId) {
-                                        return DropdownMenuItem<int>(
-                                          value: zoneId,
-                                          child: Text('Zone $zoneId'),
-                                        );
-                                      }).toList(),
-                                      onChanged: (val) => setState(() => _pickupLocationId = val),
-                                      validator: (val) => val == null ? 'Required' : null,
-                                    ),
-                                  ),
-                                  const SizedBox(width: 16),
-                                  Expanded(
-                                    child: DropdownButtonFormField<int>(
-                                      value: _dropoffLocationId,
-                                      decoration: const InputDecoration(
-                                        labelText: 'Dropoff Zone',
-                                        border: OutlineInputBorder(),
-                                        filled: true,
-                                        fillColor: Colors.black26,
+                                      const SizedBox(width: 16),
+                                      Expanded(
+                                        child: InkWell(
+                                          onTap: () {
+                                            Navigator.pop(context, -1);
+                                          },
+                                          child: Container(
+                                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
+                                            decoration: BoxDecoration(
+                                              color: Colors.black26,
+                                              border: Border.all(color: Colors.grey),
+                                              borderRadius: BorderRadius.circular(4),
+                                            ),
+                                            child: Row(
+                                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                              children: [
+                                                Text(
+                                                  _dropoffLocationId?.toString() ?? 'Select on Map',
+                                                  style: TextStyle(
+                                                    color: _dropoffLocationId == null ? Colors.grey : Colors.white,
+                                                    fontSize: 16,
+                                                  ),
+                                                ),
+                                                const Icon(Icons.map, color: Colors.blueAccent, size: 20),
+                                              ],
+                                            ),
+                                          ),
+                                        ),
                                       ),
-                                      dropdownColor: const Color(0xFF1E1E2A),
-                                      style: const TextStyle(color: Colors.white),
-                                      items: availableZones.map((zoneId) {
-                                        return DropdownMenuItem<int>(
-                                          value: zoneId,
-                                          child: Text('Zone $zoneId'),
-                                        );
-                                      }).toList(),
-                                      onChanged: (val) => setState(() => _dropoffLocationId = val),
-                                      validator: (val) => val == null ? 'Required' : null,
-                                    ),
-                                  ),
                                 ],
                               );
                             },
@@ -191,13 +204,27 @@ class _CreateTripBottomSheetState extends State<CreateTripBottomSheet> {
                             onPressed: state is TripLoading
                                 ? null
                                 : () {
+                                    if (_dropoffLocationId == null) {
+                                      ScaffoldMessenger.of(context).showSnackBar(
+                                        const SnackBar(content: Text('Please select a Dropoff Zone on the map'), backgroundColor: Colors.red),
+                                      );
+                                      return;
+                                    }
+                                    if (_dropoffLocationId == _pickupLocationId) {
+                                      ScaffoldMessenger.of(context).showSnackBar(
+                                        const SnackBar(content: Text('Pickup and Dropoff zones cannot be the same.'), backgroundColor: Colors.orange),
+                                      );
+                                      return;
+                                    }
                                     if (_formKey.currentState!.validate()) {
                                       final dto = TripCreateDto(
                                         pickupLocationId: _pickupLocationId!,
                                         dropoffLocationId: _dropoffLocationId!,
                                         fareAmount: double.parse(_fareController.text),
                                         tipAmount: double.tryParse(_tipController.text) ?? 0.0,
+                                        driverId: DioFactory.driverId ?? '',
                                       );
+
                                       context.read<TripBloc>().add(CreateTripRequested(dto));
                                     }
                                   },

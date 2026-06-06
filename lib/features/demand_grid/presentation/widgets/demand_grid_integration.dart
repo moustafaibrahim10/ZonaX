@@ -86,23 +86,7 @@ class _DemandGridMapIntegrationState extends State<DemandGridMapIntegration> {
         );
       }
 
-      // Auto-focus camera on the first feature
-      final decoded = jsonDecode(state.geoJson);
-      if (decoded['features'] != null && decoded['features'].isNotEmpty) {
-        final geometry = decoded['features'][0]['geometry'];
-        // Handle Polygon coordinates (usually nested in an array)
-        final coords = geometry['type'] == 'Polygon' 
-            ? geometry['coordinates'][0][0] 
-            : geometry['coordinates'][0];
-            
-        await widget.mapboxMap.flyTo(
-          CameraOptions(
-            center: Point(coordinates: Position(coords[0], coords[1])),
-            zoom: 13.0,
-          ),
-          MapAnimationOptions(duration: 1500),
-        );
-      }
+
 
       // Force the map canvas to refresh
       await widget.mapboxMap.triggerRepaint();
@@ -143,8 +127,8 @@ class _DemandGridMapIntegrationState extends State<DemandGridMapIntegration> {
       ],
     );
 
-    // Initial opacity state (0.35 for all)
-    await style.setStyleLayerProperty(layerId, 'fill-opacity', 0.35);
+    // Initial opacity state (0.05 for all)
+    await style.setStyleLayerProperty(layerId, 'fill-opacity', 0.05);
 
     // 2. Line Layer (Highlight Outline)
     await style.addLayer(
@@ -170,8 +154,8 @@ class _DemandGridMapIntegrationState extends State<DemandGridMapIntegration> {
               [
                 'case',
                 ['==', ['get', 'zoneId'], selectedZone.zoneId],
-                0.5, // Selected zone opacity
-                0.15 // Unselected zones opacity
+                0.2, // Selected zone opacity
+                0.02 // Unselected zones opacity
               ]
             );
           }
@@ -200,7 +184,7 @@ class _DemandGridMapIntegrationState extends State<DemandGridMapIntegration> {
         } else {
           // Reset Focus Mode
           if (await style.styleLayerExists(layerId)) {
-            await style.setStyleLayerProperty(layerId, 'fill-opacity', 0.35);
+            await style.setStyleLayerProperty(layerId, 'fill-opacity', 0.05);
           }
           await style.setStyleLayerProperty(
             'demand-grid-outline-layer',

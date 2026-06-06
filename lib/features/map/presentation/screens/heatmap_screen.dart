@@ -5,7 +5,6 @@ import 'dart:ui' as ui;
 
 import 'package:mapbox_maps_flutter/mapbox_maps_flutter.dart';
 import 'package:zona_x_16_4/core/utils/app_images.dart';
-import 'package:zona_x_16_4/features/map/domain/entities/zone_entity.dart';
 import 'package:zona_x_16_4/features/map/presentation/cubit/map_cubit.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:zona_x_16_4/features/demand_grid/presentation/bloc/map_grid_bloc.dart';
@@ -24,7 +23,16 @@ import 'package:zona_x_16_4/features/demand_grid/domain/repositories/zone_reposi
 import 'package:zona_x_16_4/features/demand_grid/data/datasources/zone_boundary_service.dart';
 import 'package:zona_x_16_4/features/demand_grid/presentation/widgets/unified_zone_details_bottom_sheet.dart';
 import 'package:zona_x_16_4/features/demand_grid/data/models/driver_distribution_model.dart';
+import 'package:zona_x_16_4/features/simulation/presentation/bloc/simulation_bloc.dart';
+import 'package:zona_x_16_4/features/simulation/presentation/bloc/simulation_state.dart';
+import 'package:zona_x_16_4/features/simulation/presentation/widgets/simulation_sidebar.dart';
+import 'package:zona_x_16_4/features/simulation/presentation/widgets/simulation_map_layer.dart';
+import 'package:zona_x_16_4/features/simulation/data/datasources/mapbox_routing_service.dart';
+import 'package:zona_x_16_4/core/network/dio_factory.dart';
 import 'package:zona_x_16_4/injection_container.dart' as di;
+import 'package:zona_x_16_4/features/trips/presentation/bloc/trip_state.dart';
+import 'package:zona_x_16_4/features/trips/presentation/bloc/trip_event.dart';
+import 'package:dio/dio.dart';
 
 class HeatmapScreen extends StatefulWidget {
   const HeatmapScreen({super.key});
@@ -39,9 +47,15 @@ class _HeatmapScreenState extends State<HeatmapScreen> with WidgetsBindingObserv
   PointAnnotationManager? pointAnnotationManager;
   CircleAnnotationManager? circleAnnotationManager;
   PolygonAnnotationManager? polygonAnnotationManager;
+  PolylineAnnotationManager? polylineAnnotationManager;
   PointAnnotation? carPointAnnotation;
+  PolylineAnnotation? routePolyline;
   bool isStyleLoaded = false;
   Uint8List? carIconBytes;
+
+  int _currentDriverZoneId = 185;
+  bool _isTrackingCar = true; // Default starting zone
+  bool _isSelectingDropoff = false;
 
   @override
   void initState() {
@@ -96,6 +110,12 @@ class _HeatmapScreenState extends State<HeatmapScreen> with WidgetsBindingObserv
             create: (context) => DriverDistributionBloc(repository: di.sl<ZoneRepository>())
               ..add(StartPollingDriverDistribution()),
           ),
+          BlocProvider(
+            create: (context) => di.sl<SimulationBloc>(),
+          ),
+          BlocProvider(
+            create: (context) => di.sl<TripBloc>(),
+          ),
         ],
         child: SafeArea(
           child: BlocBuilder<MapGridBloc, MapGridState>(
@@ -108,7 +128,7 @@ class _HeatmapScreenState extends State<HeatmapScreen> with WidgetsBindingObserv
                     key: const ValueKey("mapWidget"),
                     cameraOptions: CameraOptions(
                       center: Point(coordinates: Position(31.2357, 30.0444)), // Tahrir Square
-                      zoom: 12.5,
+                      zoom: 15.5,
                     ),
                     styleUri: 'mapbox://styles/mapbox/traffic-night-v2', // Live Traffic Dark Theme
                     onMapCreated: (map) async {
@@ -133,6 +153,12 @@ class _HeatmapScreenState extends State<HeatmapScreen> with WidgetsBindingObserv
                                 final zoneId = props['zoneId'] as int;
                                 final zoneName = props['zoneName']?.toString() ?? 'Unknown Zone';
                                 if (!mounted) return;
+                                if (_isSelectingDropoff) {
+                                  setState(() { _isSelectingDropoff = false; });
+                                  ScaffoldMessenger.of(context).clearSnackBars();
+                                  _showCreateTripBottomSheet(context, _currentDriverZoneId, initialDropoffZoneId: zoneId);
+                                  return;
+                                }
                                 context.read<MapGridBloc>().add(FetchZoneInsights(zoneId: zoneId));
                                 _showUnifiedZoneBottomSheet(context, zoneId, zoneName);
                               } else if (props.containsKey('demandPrediction') && props.containsKey('percentageOfTotalPredicted')) {
@@ -140,6 +166,12 @@ class _HeatmapScreenState extends State<HeatmapScreen> with WidgetsBindingObserv
                                 final zoneId = props['zoneId'] as int;
                                 final zoneName = props['zoneName']?.toString() ?? 'Hotspot';
                                 if (!mounted) return;
+                                if (_isSelectingDropoff) {
+                                  setState(() { _isSelectingDropoff = false; });
+                                  ScaffoldMessenger.of(context).clearSnackBars();
+                                  _showCreateTripBottomSheet(context, _currentDriverZoneId, initialDropoffZoneId: zoneId);
+                                  return;
+                                }
                                 context.read<MapGridBloc>().add(FetchZoneInsights(zoneId: zoneId));
                                 // Highlight the zone explicitly (handled by bloc state update)
                                 context.read<MapGridBloc>().add(ZoneSelected(zoneId));
@@ -150,6 +182,12 @@ class _HeatmapScreenState extends State<HeatmapScreen> with WidgetsBindingObserv
                                 final zoneName = props['zoneName']?.toString() ?? 'Zone $zoneId';
                                 if (zoneId != null) {
                                   if (!mounted) return;
+                                  if (_isSelectingDropoff) {
+                                    setState(() { _isSelectingDropoff = false; });
+                                    ScaffoldMessenger.of(context).clearSnackBars();
+                                    _showCreateTripBottomSheet(context, _currentDriverZoneId, initialDropoffZoneId: zoneId);
+                                    return;
+                                  }
                                   context.read<MapGridBloc>().add(FetchZoneInsights(zoneId: zoneId));
                                   _showUnifiedZoneBottomSheet(context, zoneId, zoneName);
                                 }
@@ -180,11 +218,15 @@ class _HeatmapScreenState extends State<HeatmapScreen> with WidgetsBindingObserv
                 initialState: gridState,
               ),
 
+            // 1.6 Simulation Real-time Visualization Layer
+            if (mapboxMap != null)
+              SimulationMapLayer(mapboxMap: mapboxMap!),
+
           // Bloc Listener for map updates
             BlocListener<MapCubit, MapState>(
               listener: (context, state) {
                 if (state is MapCarMoving) {
-                  _updateCarPosition(state.lat, state.lng);
+                  _updateCarPosition(state.lat, state.lng, state.bearing);
                 } else if (state is MapFlyToLocation) {
                   mapboxMap?.flyTo(
                     CameraOptions(
@@ -192,6 +234,18 @@ class _HeatmapScreenState extends State<HeatmapScreen> with WidgetsBindingObserv
                       zoom: 14.0,
                     ),
                     MapAnimationOptions(duration: 1500),
+                  );
+                } else if (state is MapSimulationCompleted) {
+                  if (polylineAnnotationManager != null && routePolyline != null) {
+                    polylineAnnotationManager!.delete(routePolyline!);
+                    routePolyline = null;
+                  }
+                  final tripState = context.read<TripBloc>().state;
+                  if (tripState is TripStarted) {
+                    context.read<TripBloc>().add(EndTripRequested(tripState.tripId));
+                  }
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Trip Completed!'), backgroundColor: Colors.green),
                   );
                 }
               },
@@ -212,21 +266,53 @@ class _HeatmapScreenState extends State<HeatmapScreen> with WidgetsBindingObserv
           SafeArea(
             child: Stack(
               children: [
-                // 2. Top Voice Visualizer
+                // Voice Visualizer at top
                 Positioned(
                   top: 15.h,
-                  left: 15.w,
+                  left: 70.w, // offset for sidebar
                   right: 15.w,
                   child: _buildVoiceAssistantBar(),
                 ),
 
-            // 4. Bottom Insight Card
-            Positioned(
-              bottom: 15.h,
-              left: 15.w,
-              right: 15.w,
-              child: _buildInsightCard(),
-            ),
+                // Simulation Sidebar on the left
+                Positioned(
+                  top: 15.h,
+                  left: 10.w,
+                  child: const SimulationSidebar(),
+                ),
+
+                // Tracking toggle FAB
+                Positioned(
+                  bottom: 20.h,
+                  right: 15.w,
+                  child: FloatingActionButton(
+                    heroTag: "tracking_fab",
+                    backgroundColor: _isTrackingCar ? Colors.blueAccent : const Color(0xFF1E1E2A),
+                    onPressed: () {
+                      setState(() {
+                        _isTrackingCar = !_isTrackingCar;
+                      });
+                      if (_isTrackingCar && carPointAnnotation != null) {
+                        mapboxMap?.easeTo(
+                          CameraOptions(center: carPointAnnotation!.geometry as Point),
+                          MapAnimationOptions(duration: 500),
+                        );
+                      }
+                    },
+                    child: Icon(
+                      _isTrackingCar ? Icons.my_location : Icons.location_searching,
+                      color: Colors.white,
+                    ),
+                  ),
+                ),
+
+                // Bottom Zone Info + Create Trip
+                Positioned(
+                  bottom: 15.h,
+                  left: 15.w,
+                  right: 15.w,
+                  child: _buildMinimalBottomBar(),
+                ),
               ],
             ),
           ),
@@ -284,133 +370,240 @@ class _HeatmapScreenState extends State<HeatmapScreen> with WidgetsBindingObserv
 
 
 
-  Widget _buildInsightCard() {
-    final isSimulating = context.watch<MapCubit>().isSimulating;
-
+  Widget _buildMinimalBottomBar() {
     return BlocBuilder<MapGridBloc, MapGridState>(
       builder: (context, gridState) {
-        String zoneName = "Tap a zone to see insights";
-        String revenuePrediction = "EGP 0.00";
-        String passengerProbability = "0% Passenger Probability";
-        String waitTimeInfo = "ETA: N/A";
-        String aiInsight = "Select a zone to get AI insights.";
+        String zoneName = "Tap a zone";
+        int zoneId = 0;
+        String? demandTag;
 
         if (gridState is GridReady && gridState.selectedZone != null) {
           final zone = gridState.selectedZone!;
           zoneName = zone.zoneName;
-          revenuePrediction = "EGP ${zone.revenuePrediction.toStringAsFixed(2)}";
-          passengerProbability = "${(100 - zone.predictedStockoutProbability * 100).toInt()}% Passenger Probability";
-          waitTimeInfo = "Trips: ${zone.predictedTripCount} | Wait: ~${(zone.predictedStockoutProbability * 10).toInt()} mins";
-          aiInsight = "Demand Level is ${zone.demandLevel} with a ${zone.surgeMultiplier}x surge multiplier.";
+          zoneId = zone.zoneId;
+          demandTag = zone.demandLevel;
         }
 
-        return GestureDetector(
-          onTap: () {
-            context.read<MapCubit>().toggleSimulation();
-          },
-          child: Container(
-            padding: EdgeInsets.all(15.w),
-            decoration: BoxDecoration(
-              color: const Color(0xFF191B28).withValues(alpha: 0.95),
-              borderRadius: BorderRadius.circular(20.r),
-              border: Border.all(color: Colors.white12),
-              boxShadow: const [
-                BoxShadow(
-                  color: Colors.black54,
-                  blurRadius: 10,
-                  offset: Offset(0, 5),
+        // Optional: show simulation time from SimulationBloc
+        return BlocBuilder<SimulationBloc, SimulationState>(
+          builder: (context, simState) {
+            String? simTime;
+            if (simState is SimulationRunning) {
+              final raw = simState.status.currentTime;
+              if (raw.contains('T')) {
+                simTime = raw.split('T').last.replaceAll('Z', '');
+                if (simTime.length > 5) simTime = simTime.substring(0, 5);
+              }
+            }
+
+            return Container(
+              padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 12.h),
+              decoration: BoxDecoration(
+                gradient: const LinearGradient(
+                  colors: [Color(0xFF1A1D2E), Color(0xFF252840)],
+                  begin: Alignment.centerLeft,
+                  end: Alignment.centerRight,
                 ),
-              ],
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Center(
-                  child: Container(
-                    width: 40.w,
-                    height: 4.h,
-                    margin: EdgeInsets.only(bottom: 10.h),
-                    decoration: BoxDecoration(
-                      color: Colors.grey[700],
-                      borderRadius: BorderRadius.circular(2),
-                    ),
+                borderRadius: BorderRadius.circular(18.r),
+                border: Border.all(
+                  color: Colors.white.withValues(alpha: 0.1),
+                ),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.5),
+                    blurRadius: 16,
+                    offset: const Offset(0, 6),
                   ),
-                ),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Expanded(
-                      child: Text(
-                        zoneName,
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 16.sp,
-                          fontWeight: FontWeight.bold,
+                ],
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Row(
+                    children: [
+                      // Zone info
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Row(
+                              children: [
+                                Flexible(
+                                  child: Text(
+                                    zoneName,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 15.sp,
+                                      fontWeight: FontWeight.w700,
+                                    ),
+                                  ),
+                                ),
+                                if (demandTag != null) ...[
+                                  SizedBox(width: 8.w),
+                                  Container(
+                                    padding: EdgeInsets.symmetric(horizontal: 6.w, vertical: 2.h),
+                                    decoration: BoxDecoration(
+                                      color: _demandTagColor(demandTag),
+                                      borderRadius: BorderRadius.circular(6.r),
+                                    ),
+                                    child: Text(
+                                      demandTag,
+                                      style: TextStyle(
+                                        color: Colors.white,
+                                        fontSize: 9.sp,
+                                        fontWeight: FontWeight.w700,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ],
+                            ),
+                            if (simTime != null)
+                              Text(
+                                'Sim Time: $simTime',
+                                style: TextStyle(
+                                  color: Colors.white38,
+                                  fontSize: 11.sp,
+                                ),
+                              ),
+                          ],
                         ),
                       ),
-                    ),
-                    Icon(
-                      isSimulating ? Icons.stop_circle : Icons.play_circle_fill,
-                      color: isSimulating ? Colors.red : Colors.green,
-                    ),
-                  ],
-                ),
-                SizedBox(height: 5.h),
-                Text(
-                  passengerProbability,
-                  style: TextStyle(color: Colors.white70, fontSize: 14.sp),
-                ),
-                Text(
-                  "Avg. Fare: $revenuePrediction. $waitTimeInfo.",
-                  style: TextStyle(color: Colors.white70, fontSize: 14.sp),
-                ),
-                SizedBox(height: 10.h),
-                Text(
-                  aiInsight,
-                  style: TextStyle(color: Colors.grey, fontSize: 12.sp),
-                ),
-                SizedBox(height: 15.h),
-                SizedBox(
-                  width: double.infinity,
-                  child: ElevatedButton.icon(
-                    onPressed: () {
-                      final zId = (gridState is GridReady && gridState.selectedZone != null) 
-                          ? gridState.selectedZone!.zoneId 
-                          : 0;
-                      _showCreateTripBottomSheet(context, zId);
-                    },
-                    icon: const Icon(Icons.add_road, color: Colors.white),
-                    label: const Text("Create Trip", style: TextStyle(color: Colors.white, fontSize: 16)),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.blueAccent,
-                      padding: EdgeInsets.symmetric(vertical: 12.h),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10.r)),
-                    ),
+
+                      SizedBox(width: 12.w),
+
+                      // Create Trip FAB-style button
+                      BlocBuilder<TripBloc, TripState>(
+                        builder: (context, tripState) {
+                          final isTripActive = tripState is TripStarted;
+                          return Material(
+                            color: Colors.transparent,
+                            child: InkWell(
+                              onTap: isTripActive ? null : () => _showCreateTripBottomSheet(context, zoneId),
+                              borderRadius: BorderRadius.circular(14.r),
+                              child: Ink(
+                                decoration: BoxDecoration(
+                                  gradient: LinearGradient(
+                                    colors: isTripActive 
+                                      ? [Colors.green, Colors.green.shade700]
+                                      : [const Color(0xFF2196F3), const Color(0xFF1565C0)],
+                                  ),
+                                  borderRadius: BorderRadius.circular(14.r),
+                                  boxShadow: isTripActive ? null : [
+                                    BoxShadow(
+                                      color: const Color(0xFF2196F3).withValues(alpha: 0.35),
+                                      blurRadius: 12,
+                                      offset: const Offset(0, 4),
+                                    ),
+                                  ],
+                                ),
+                                child: Padding(
+                                  padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 10.h),
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Icon(
+                                        isTripActive ? Icons.directions_car : Icons.add_road_rounded, 
+                                        color: Colors.white, 
+                                        size: 18.sp
+                                      ),
+                                      SizedBox(width: 6.w),
+                                      Text(
+                                        isTripActive ? 'In Progress' : 'New Trip',
+                                        style: TextStyle(
+                                          color: Colors.white,
+                                          fontSize: 13.sp,
+                                          fontWeight: FontWeight.w600,
+                                          letterSpacing: 0.3,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            ),
+                          );
+                        },
+                      ),
+                    ],
                   ),
-                ),
-              ],
-            ),
-          ),
+                  BlocBuilder<TripBloc, TripState>(
+                    builder: (context, tripState) {
+                      if (tripState is TripStarted) {
+                        return Padding(
+                          padding: EdgeInsets.only(top: 12.h),
+                          child: Row(
+                            children: [
+                              Icon(Icons.speed, color: Colors.white54, size: 16.sp),
+                              SizedBox(width: 8.w),
+                              Expanded(
+                                child: SliderTheme(
+                                  data: SliderThemeData(
+                                    trackHeight: 2.h,
+                                    thumbShape: RoundSliderThumbShape(enabledThumbRadius: 6.r),
+                                  ),
+                                  child: StatefulBuilder(
+                                    builder: (context, setStateSlider) {
+                                      final speed = context.read<MapCubit>().tripSpeed;
+                                      return Slider(
+                                        value: speed,
+                                        min: 0.1,
+                                        max: 5.0,
+                                        divisions: 49,
+                                        onChanged: (val) {
+                                          setStateSlider(() {});
+                                          context.read<MapCubit>().setTripSpeed(val);
+                                        },
+                                      );
+                                    }
+                                  ),
+                                ),
+                              ),
+                              Text(
+                                '${context.read<MapCubit>().tripSpeed.toStringAsFixed(1)}x',
+                                style: TextStyle(color: Colors.white54, fontSize: 10.sp),
+                              ),
+                            ],
+                          ),
+                        );
+                      }
+                      return const SizedBox.shrink();
+                    },
+                  ),
+                ],
+              ),
+            );
+          },
         );
       },
     );
   }
 
+  Color _demandTagColor(String level) {
+    switch (level.toUpperCase()) {
+      case 'CRITICAL':
+        return const Color(0xFFE53935);
+      case 'ELEVATED':
+        return const Color(0xFFFF9800);
+      default:
+        return const Color(0xFF4CAF50);
+    }
+  }
+
   // --- Mapbox Logic ---
 
   Future<void> _initAnnotationManagers() async {
-    polygonAnnotationManager = await mapboxMap?.annotations
-        .createPolygonAnnotationManager();
-    pointAnnotationManager = await mapboxMap?.annotations
-        .createPointAnnotationManager();
-    circleAnnotationManager = await mapboxMap?.annotations
-        .createCircleAnnotationManager();
+    polygonAnnotationManager = await mapboxMap?.annotations.createPolygonAnnotationManager();
+    pointAnnotationManager = await mapboxMap?.annotations.createPointAnnotationManager();
+    circleAnnotationManager = await mapboxMap?.annotations.createCircleAnnotationManager();
+    polylineAnnotationManager = await mapboxMap?.annotations.createPolylineAnnotationManager();
   }
 
 
 
-  void _updateCarPosition(double lat, double lng) async {
+  void _updateCarPosition(double lat, double lng, [double bearing = 0.0]) async {
     final position = Position(lng, lat);
 
     if (carPointAnnotation == null) {
@@ -420,17 +613,21 @@ class _HeatmapScreenState extends State<HeatmapScreen> with WidgetsBindingObserv
           geometry: Point(coordinates: position),
           image: carIconBytes,
           iconSize: 0.04, // Size matched to normal Uber-like apps
+          iconRotate: bearing - 90.0, // Offset for sideways asset
         ),
       );
     } else {
       carPointAnnotation?.geometry = Point(coordinates: position);
+      carPointAnnotation?.iconRotate = bearing - 90.0;
       pointAnnotationManager?.update(carPointAnnotation!);
     }
 
-    mapboxMap?.flyTo(
-      CameraOptions(center: Point(coordinates: position), zoom: 16.0),
-      MapAnimationOptions(duration: 1000),
-    );
+    if (_isTrackingCar) {
+      mapboxMap?.easeTo(
+        CameraOptions(center: Point(coordinates: position)),
+        MapAnimationOptions(duration: 200),
+      );
+    }
   }
 
   Future<void> _setupUserLocation() async {
@@ -482,24 +679,120 @@ class _HeatmapScreenState extends State<HeatmapScreen> with WidgetsBindingObserv
     }
   }
 
-  void _showCreateTripBottomSheet(BuildContext context, int initialZoneId) {
-    showModalBottomSheet(
+  void _moveCarToZone(BuildContext context, int zoneId) {
+    final distState = context.read<DriverDistributionBloc>().state;
+    if (distState is DriverDistributionLoaded) {
+      try {
+        final dist = distState.distributions.firstWhere((d) => d.zoneId == zoneId);
+        _updateCarPosition(dist.centerLatitude, dist.centerLongitude);
+      } catch (_) {}
+    }
+  }
+
+  void _showCreateTripBottomSheet(BuildContext context, int initialZoneId, {int? initialDropoffZoneId}) async {
+    // Capture the blocs before any async gap or builder to avoid deactivated widget lookup
+    final mapGridBloc = context.read<MapGridBloc>();
+    final tripBloc = context.read<TripBloc>();
+    
+    final result = await showModalBottomSheet<int>(
       context: context,
       backgroundColor: Colors.transparent,
       isScrollControlled: true,
       builder: (ctx) {
         return MultiBlocProvider(
           providers: [
-            BlocProvider.value(value: context.read<MapGridBloc>()),
-            BlocProvider(create: (_) => TripBloc()),
+            BlocProvider.value(value: mapGridBloc),
+            BlocProvider.value(value: tripBloc),
           ],
-          child: CreateTripBottomSheet(initialPickupZoneId: initialZoneId),
+          child: CreateTripBottomSheet(
+            initialPickupZoneId: initialZoneId,
+            initialDropoffZoneId: initialDropoffZoneId,
+          ),
         );
       },
     );
+
+    if (result != null && mounted) {
+      if (result == -1) {
+        setState(() {
+          _isSelectingDropoff = true;
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Tap on the map to select Dropoff Zone', style: TextStyle(color: Colors.white, fontSize: 16)),
+            backgroundColor: Colors.blueAccent,
+            duration: Duration(seconds: 4),
+          ),
+        );
+      } else {
+        _startMapboxRouteSimulation(context, initialZoneId, result);
+      }
+    }
+  }
+
+  void _startMapboxRouteSimulation(BuildContext context, int startZoneId, int endZoneId) async {
+    final distState = context.read<DriverDistributionBloc>().state;
+    if (distState is! DriverDistributionLoaded) return;
+
+    try {
+      final endZone = distState.distributions.firstWhere((d) => d.zoneId == endZoneId);
+
+      double startLat;
+      double startLng;
+
+      if (carPointAnnotation != null && carPointAnnotation!.geometry is Point) {
+        final point = carPointAnnotation!.geometry as Point;
+        startLat = (point.coordinates as Position).lat.toDouble();
+        startLng = (point.coordinates as Position).lng.toDouble();
+      } else {
+        final startZone = distState.distributions.firstWhere((d) => d.zoneId == startZoneId);
+        startLat = startZone.centerLatitude;
+        startLng = startZone.centerLongitude;
+      }
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Calculating route...', style: TextStyle(color: Colors.white)), backgroundColor: Colors.orange),
+      );
+
+      final routingService = MapboxRoutingService(di.sl<Dio>());
+      final routePoints = await routingService.getRoute(
+        startLat, startLng,
+        endZone.centerLatitude, endZone.centerLongitude,
+      );
+
+      // Draw polyline
+      if (polylineAnnotationManager != null) {
+        await polylineAnnotationManager!.deleteAll();
+        final coordinates = routePoints.map((p) => Position(p['lng']!, p['lat']!)).toList();
+        final geometry = LineString(coordinates: coordinates);
+        routePolyline = await polylineAnnotationManager!.create(
+          PolylineAnnotationOptions(
+            geometry: geometry,
+            lineColor: Colors.blueAccent.withValues(alpha: 0.1).value, // Extremely light shadow
+            lineWidth: 5.0, // Thinner line
+            lineOpacity: 0.1, // Reduced opacity so roads are visible
+          ),
+        );
+      }
+
+      // Start Simulation via MapCubit
+      if (mounted) {
+        context.read<MapCubit>().startCarSimulation(routePoints);
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Route Error: $e'), backgroundColor: Colors.red),
+        );
+      }
+    }
   }
 
   void _showUnifiedZoneBottomSheet(BuildContext context, int zoneId, String zoneName) {
+    final mapGridBloc = context.read<MapGridBloc>();
+    final driverDistBloc = context.read<DriverDistributionBloc>();
+    final tripBloc = context.read<TripBloc>();
+
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.transparent,
@@ -507,8 +800,9 @@ class _HeatmapScreenState extends State<HeatmapScreen> with WidgetsBindingObserv
       builder: (ctx) {
         return MultiBlocProvider(
           providers: [
-            BlocProvider.value(value: context.read<MapGridBloc>()),
-            BlocProvider.value(value: context.read<DriverDistributionBloc>()),
+            BlocProvider.value(value: mapGridBloc),
+            BlocProvider.value(value: driverDistBloc),
+            BlocProvider.value(value: tripBloc),
           ],
           child: BlocBuilder<MapGridBloc, MapGridState>(
             builder: (context, mapState) {
@@ -560,6 +854,19 @@ class _HeatmapScreenState extends State<HeatmapScreen> with WidgetsBindingObserv
                       expectedRevenue6H: 3100.00,
                       stockoutProbability: 0.15,
                     ),
+                    onCreateTripTap: () {
+                      Navigator.pop(ctx);
+                      setState(() {
+                        _isSelectingDropoff = true;
+                      });
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('Tap on the map to select Dropoff Zone', style: TextStyle(color: Colors.white, fontSize: 16)),
+                          backgroundColor: Colors.blueAccent,
+                          duration: Duration(seconds: 4),
+                        ),
+                      );
+                    },
                   );
                 },
               );

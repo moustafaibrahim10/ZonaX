@@ -12,6 +12,7 @@ TripCreateDto _$TripCreateDtoFromJson(Map<String, dynamic> json) =>
       dropoffLocationId: (json['dropoffLocationId'] as num).toInt(),
       fareAmount: (json['fareAmount'] as num).toDouble(),
       tipAmount: (json['tipAmount'] as num).toDouble(),
+      driverId: json['driverId'] as String,
     );
 
 Map<String, dynamic> _$TripCreateDtoToJson(TripCreateDto instance) =>
@@ -20,4 +21,5 @@ Map<String, dynamic> _$TripCreateDtoToJson(TripCreateDto instance) =>
       'dropoffLocationId': instance.dropoffLocationId,
       'fareAmount': instance.fareAmount,
       'tipAmount': instance.tipAmount,
+      'driverId': instance.driverId,
     };

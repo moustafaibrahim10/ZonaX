@@ -6,6 +6,8 @@ import '../../data/models/driver_distribution_model.dart';
 import '../../presentation/bloc/map_grid_bloc.dart';
 import '../../presentation/bloc/map_grid_event.dart';
 import '../../presentation/bloc/map_grid_state.dart';
+import '../../../trips/presentation/bloc/trip_bloc.dart';
+import '../../../trips/presentation/widgets/create_trip_bottom_sheet.dart';
 
 class UnifiedZoneDetailsBottomSheet extends StatelessWidget {
   final ZoneInsightsModel? insights;
@@ -13,6 +15,7 @@ class UnifiedZoneDetailsBottomSheet extends StatelessWidget {
   final DriverDistributionModel? driverDistribution;
   final String zoneName;
   final int zoneId;
+  final VoidCallback onCreateTripTap;
 
   const UnifiedZoneDetailsBottomSheet({
     super.key,
@@ -21,12 +24,13 @@ class UnifiedZoneDetailsBottomSheet extends StatelessWidget {
     this.driverDistribution,
     required this.zoneName,
     required this.zoneId,
+    required this.onCreateTripTap,
   });
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.only(top: 16),
+      padding: const EdgeInsets.only(top: 16, left: 16, right: 16, bottom: 24),
       decoration: const BoxDecoration(
         color: Color(0xFF1E1E2A),
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
@@ -73,13 +77,39 @@ class UnifiedZoneDetailsBottomSheet extends StatelessWidget {
               
               // TabBarView
               SizedBox(
-                height: 300, // Revert height for content
+                height: 300,
                 child: TabBarView(
                   children: [
                     _buildPerformanceInsightsTab(),
                     _buildDriverDistributionTab(),
                     _buildComparisonStrategyTab(),
                   ],
+                ),
+              ),
+
+              const SizedBox(height: 16),
+              
+              // Create Trip Button
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton.icon(
+                  onPressed: onCreateTripTap,
+                  icon: const Icon(Icons.add_circle_outline, color: Colors.white),
+                  label: const Text(
+                    'Create Trip in this Zone',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
+                    ),
+                  ),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.blueAccent,
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
                 ),
               ),
             ],
@@ -94,7 +124,7 @@ class UnifiedZoneDetailsBottomSheet extends StatelessWidget {
       return const Center(child: Text("No insights available.", style: TextStyle(color: Colors.grey)));
     }
     return Padding(
-      padding: const EdgeInsets.all(16.0),
+      padding: const EdgeInsets.symmetric(vertical: 16.0),
       child: Column(
         children: [
           _buildInfoCard(
@@ -128,7 +158,7 @@ class UnifiedZoneDetailsBottomSheet extends StatelessWidget {
     }
 
     return Padding(
-      padding: const EdgeInsets.all(16.0),
+      padding: const EdgeInsets.symmetric(vertical: 16.0),
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
@@ -159,7 +189,7 @@ class UnifiedZoneDetailsBottomSheet extends StatelessWidget {
         decoration: BoxDecoration(
           color: const Color(0xFF2C2F3F),
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: color.withOpacity(0.3)),
+          border: Border.all(color: color.withValues(alpha: 0.3)),
         ),
         child: Column(
           children: [
@@ -190,7 +220,7 @@ class UnifiedZoneDetailsBottomSheet extends StatelessWidget {
       return const Center(child: Text("No strategy data available.", style: TextStyle(color: Colors.grey)));
     }
     return Padding(
-      padding: const EdgeInsets.all(16.0),
+      padding: const EdgeInsets.symmetric(vertical: 16.0),
       child: Column(
         children: [
           Card(
@@ -238,7 +268,7 @@ class UnifiedZoneDetailsBottomSheet extends StatelessWidget {
       child: ListTile(
         leading: Container(
           padding: const EdgeInsets.all(8),
-          decoration: BoxDecoration(color: iconColor.withOpacity(0.2), shape: BoxShape.circle),
+          decoration: BoxDecoration(color: iconColor.withValues(alpha: 0.2), shape: BoxShape.circle),
           child: Icon(icon, color: iconColor),
         ),
         title: Text(title, style: const TextStyle(color: Colors.grey, fontSize: 13)),

@@ -1,52 +1,84 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
-import '../../data/datasources/trip_service.dart';
+import '../../domain/repositories/trip_repository.dart';
 import 'trip_event.dart';
 import 'trip_state.dart';
 
 class TripBloc extends Bloc<TripEvent, TripState> {
-  final TripService _tripService;
+  final TripRepository _tripRepository;
 
-  TripBloc({TripService? tripService}) 
-      : _tripService = tripService ?? TripService(),
+  TripBloc({required TripRepository tripRepository}) 
+      : _tripRepository = tripRepository,
         super(TripInitial()) {
     on<CreateTripRequested>(_onCreateTripRequested);
     on<UpdateTripRequested>(_onUpdateTripRequested);
     on<DeleteTripRequested>(_onDeleteTripRequested);
+    on<StartTripRequested>(_onStartTripRequested);
+    on<EndTripRequested>(_onEndTripRequested);
+    on<GetTripHistoryRequested>(_onGetTripHistoryRequested);
+    on<TestAuditTripRequested>(_onTestAuditTripRequested);
   }
 
   Future<void> _onCreateTripRequested(CreateTripRequested event, Emitter<TripState> emit) async {
     emit(TripLoading());
-    try {
-      await _tripService.createTrip(event.dto);
-      emit(const TripSuccess('Trip created successfully!'));
-    } on TripException catch (e) {
-      emit(TripError(e.message));
-    } catch (e) {
-      emit(TripError(e.toString()));
-    }
+    final result = await _tripRepository.createTrip(event.dto);
+    result.fold(
+      (failure) => emit(TripError(failure.message)),
+      (tripId) => emit(TripCreated(tripId)),
+    );
   }
 
   Future<void> _onUpdateTripRequested(UpdateTripRequested event, Emitter<TripState> emit) async {
     emit(TripLoading());
-    try {
-      await _tripService.updateTrip(event.tripId, event.dto);
-      emit(const TripSuccess('Trip updated successfully!'));
-    } on TripException catch (e) {
-      emit(TripError(e.message));
-    } catch (e) {
-      emit(TripError(e.toString()));
-    }
+    final result = await _tripRepository.updateTrip(event.tripId, event.dto);
+    result.fold(
+      (failure) => emit(TripError(failure.message)),
+      (_) => emit(const TripSuccess('Trip updated successfully!')),
+    );
   }
 
   Future<void> _onDeleteTripRequested(DeleteTripRequested event, Emitter<TripState> emit) async {
     emit(TripLoading());
-    try {
-      await _tripService.deleteTrip(event.tripId);
-      emit(const TripSuccess('Trip deleted successfully!'));
-    } on TripException catch (e) {
-      emit(TripError(e.message));
-    } catch (e) {
-      emit(TripError(e.toString()));
-    }
+    final result = await _tripRepository.deleteTrip(event.tripId);
+    result.fold(
+      (failure) => emit(TripError(failure.message)),
+      (_) => emit(const TripSuccess('Trip deleted successfully!')),
+    );
+  }
+
+  Future<void> _onStartTripRequested(StartTripRequested event, Emitter<TripState> emit) async {
+    emit(TripLoading());
+    final result = await _tripRepository.startTrip(event.tripId);
+    result.fold(
+      (failure) => emit(TripError(failure.message)),
+      (_) => emit(TripStarted(event.tripId)),
+    );
+  }
+
+  Future<void> _onEndTripRequested(EndTripRequested event, Emitter<TripState> emit) async {
+    emit(TripLoading());
+    final result = await _tripRepository.endTrip(event.tripId);
+    result.fold(
+      (failure) => emit(TripError(failure.message)),
+      (_) => emit(TripCompleted(event.tripId)),
+    );
+  }
+
+  Future<void> _onGetTripHistoryRequested(GetTripHistoryRequested event, Emitter<TripState> emit) async {
+    emit(TripLoading());
+    final result = await _tripRepository.getTripHistory(event.pageNumber, event.pageSize);
+    result.fold(
+      (failure) => emit(TripError(failure.message)),
+      (history) => emit(TripHistoryLoaded(history)),
+    );
+  }
+
+  Future<void> _onTestAuditTripRequested(TestAuditTripRequested event, Emitter<TripState> emit) async {
+    emit(TripLoading());
+    final result = await _tripRepository.testAuditTrip(event.tripId);
+    result.fold(
+      (failure) => emit(TripError(failure.message)),
+      (_) => emit(const TripSuccess('Trip test audit successful!')),
+    );
   }
 }
+

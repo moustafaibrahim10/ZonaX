@@ -53,3 +53,5 @@ class MapFlyToLocation extends MapState {
   @override
   List<Object?> get props => [lat, lng];
 }
+
+class MapSimulationCompleted extends MapState {}

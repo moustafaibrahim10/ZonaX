@@ -4,13 +4,20 @@ import 'package:zona_x_16_4/features/demand_grid/data/datasources/zone_remote_da
 import 'package:zona_x_16_4/features/demand_grid/data/datasources/zone_boundary_service.dart';
 import 'package:zona_x_16_4/features/demand_grid/data/repositories/zone_repository_impl.dart';
 import 'package:zona_x_16_4/features/demand_grid/domain/repositories/zone_repository.dart';
+import 'package:zona_x_16_4/features/simulation/data/datasources/signalr_simulation_hub.dart';
+import 'package:zona_x_16_4/features/simulation/data/datasources/simulation_service.dart';
+import 'package:zona_x_16_4/features/simulation/domain/managers/simulation_manager.dart';
+import 'package:zona_x_16_4/features/simulation/presentation/bloc/simulation_bloc.dart';
+
+import 'package:zona_x_16_4/features/trips/data/datasources/trip_remote_data_source.dart';
+import 'package:zona_x_16_4/features/trips/data/repositories/trip_repository_impl.dart';
+import 'package:zona_x_16_4/features/trips/domain/repositories/trip_repository.dart';
+import 'package:zona_x_16_4/features/trips/presentation/bloc/trip_bloc.dart';
 
 final sl = GetIt.instance;
 
 Future<void> init() async {
   // Core / Network
-  // Since DioFactory provides a static method, we can just inject the Dio instance directly
-  // or we can register the Dio instance.
   sl.registerLazySingleton(() => DioFactory.getDio());
 
   // Data Sources
@@ -22,8 +29,38 @@ Future<void> init() async {
     () => ZoneBoundaryService(dio: sl()),
   );
 
+  sl.registerLazySingleton<TripRemoteDataSource>(
+    () => TripRemoteDataSourceImpl(dio: sl()),
+  );
+
   // Repositories
   sl.registerLazySingleton<ZoneRepository>(
     () => ZoneRepositoryImpl(remoteDataSource: sl(), dio: sl()),
+  );
+
+  sl.registerLazySingleton<TripRepository>(
+    () => TripRepositoryImpl(remoteDataSource: sl()),
+  );
+
+  // Simulation
+  sl.registerLazySingleton<SimulationService>(
+    () => SimulationService(sl()),
+  );
+
+  sl.registerLazySingleton<SignalRSimulationHub>(
+    () => SignalRSimulationHub(),
+  );
+
+  sl.registerLazySingleton<SimulationManager>(
+    () => SimulationManager(sl(), sl()),
+  );
+
+  // Blocs
+  sl.registerFactory<SimulationBloc>(
+    () => SimulationBloc(sl()),
+  );
+
+  sl.registerFactory<TripBloc>(
+    () => TripBloc(tripRepository: sl()),
   );
 }
