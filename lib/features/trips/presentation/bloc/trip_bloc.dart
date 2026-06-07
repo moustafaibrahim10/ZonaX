@@ -2,6 +2,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../domain/repositories/trip_repository.dart';
 import 'trip_event.dart';
 import 'trip_state.dart';
+import '../../data/models/trip_update_dto.dart';
 
 class TripBloc extends Bloc<TripEvent, TripState> {
   final TripRepository _tripRepository;
@@ -16,6 +17,7 @@ class TripBloc extends Bloc<TripEvent, TripState> {
     on<EndTripRequested>(_onEndTripRequested);
     on<GetTripHistoryRequested>(_onGetTripHistoryRequested);
     on<TestAuditTripRequested>(_onTestAuditTripRequested);
+    on<GetTripDetailsRequested>(_onGetTripDetailsRequested);
   }
 
   Future<void> _onCreateTripRequested(CreateTripRequested event, Emitter<TripState> emit) async {
@@ -23,7 +25,7 @@ class TripBloc extends Bloc<TripEvent, TripState> {
     final result = await _tripRepository.createTrip(event.dto);
     result.fold(
       (failure) => emit(TripError(failure.message)),
-      (tripId) => emit(TripCreated(tripId)),
+      (tripId) => emit(TripCreated(tripId, event.dto.fareAmount)),
     );
   }
 
@@ -47,19 +49,34 @@ class TripBloc extends Bloc<TripEvent, TripState> {
 
   Future<void> _onStartTripRequested(StartTripRequested event, Emitter<TripState> emit) async {
     emit(TripLoading());
-    final result = await _tripRepository.startTrip(event.tripId);
+    final result = await _tripRepository.startTrip(event.tripId, event.pickupLocationId, event.dropoffLocationId);
     result.fold(
       (failure) => emit(TripError(failure.message)),
-      (_) => emit(TripStarted(event.tripId)),
+      (_) => emit(TripStarted(event.tripId, event.fareAmount)),
     );
   }
 
   Future<void> _onEndTripRequested(EndTripRequested event, Emitter<TripState> emit) async {
     emit(TripLoading());
-    final result = await _tripRepository.endTrip(event.tripId);
+    // End trip to generate receipt
+    final result = await _tripRepository.endTrip(
+      event.tripId, 
+      event.farePerMinute, 
+      event.baseFare, 
+      event.surgeMultiplier,
+    );
+    
+    // Check if endTrip was successful, then explicitly update the processStatus in the database
     result.fold(
       (failure) => emit(TripError(failure.message)),
-      (_) => emit(TripCompleted(event.tripId)),
+      (receipt) {
+        // Run updateTrip in background to actually persist the 'Completed' status
+        _tripRepository.updateTrip(
+          event.tripId, 
+          TripUpdateDto(processStatus: 'Completed'),
+        );
+        emit(TripCompleted(event.tripId, receipt));
+      },
     );
   }
 
@@ -78,6 +95,15 @@ class TripBloc extends Bloc<TripEvent, TripState> {
     result.fold(
       (failure) => emit(TripError(failure.message)),
       (_) => emit(const TripSuccess('Trip test audit successful!')),
+    );
+  }
+
+  Future<void> _onGetTripDetailsRequested(GetTripDetailsRequested event, Emitter<TripState> emit) async {
+    emit(TripLoading());
+    final result = await _tripRepository.getTripById(event.tripId);
+    result.fold(
+      (failure) => emit(TripError(failure.message)),
+      (receipt) => emit(TripDetailsLoaded(receipt)),
     );
   }
 }

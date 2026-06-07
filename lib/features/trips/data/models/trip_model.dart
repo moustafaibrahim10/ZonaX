@@ -34,13 +34,19 @@ class TripModel {
       passengerId: json['passengerId']?.toString(),
       zoneId: json['zoneId'] as int?,
       status: json['status']?.toString() ?? 'Unknown',
-      startTime: json['startTime'] != null ? DateTime.tryParse(json['startTime']) : null,
-      endTime: json['endTime'] != null ? DateTime.tryParse(json['endTime']) : null,
+      startTime: (json['startTime'] ?? json['startedAt']) != null 
+          ? DateTime.tryParse((json['startTime'] ?? json['startedAt']).toString()) 
+          : null,
+      endTime: (json['endTime'] ?? json['endedAt']) != null 
+          ? DateTime.tryParse((json['endTime'] ?? json['endedAt']).toString()) 
+          : null,
       pickupLatitude: (json['pickupLatitude'] as num?)?.toDouble(),
       pickupLongitude: (json['pickupLongitude'] as num?)?.toDouble(),
       dropoffLatitude: (json['dropoffLatitude'] as num?)?.toDouble(),
       dropoffLongitude: (json['dropoffLongitude'] as num?)?.toDouble(),
-      fare: (json['fare'] as num?)?.toDouble(),
+      fare: (json['fare'] as num?)?.toDouble() ?? 
+            (json['totalFare'] as num?)?.toDouble() ?? 
+            (json['fareAmount'] as num?)?.toDouble(),
     );
   }
 

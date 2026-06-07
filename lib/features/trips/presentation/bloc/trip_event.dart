@@ -39,20 +39,31 @@ class DeleteTripRequested extends TripEvent {
 
 class StartTripRequested extends TripEvent {
   final String tripId;
+  final int pickupLocationId;
+  final int dropoffLocationId;
+  final double fareAmount;
 
-  const StartTripRequested(this.tripId);
+  const StartTripRequested(this.tripId, this.pickupLocationId, this.dropoffLocationId, this.fareAmount);
 
   @override
-  List<Object?> get props => [tripId];
+  List<Object?> get props => [tripId, pickupLocationId, dropoffLocationId, fareAmount];
 }
 
 class EndTripRequested extends TripEvent {
   final String tripId;
+  final double farePerMinute;
+  final double baseFare;
+  final double surgeMultiplier;
 
-  const EndTripRequested(this.tripId);
+  const EndTripRequested(
+    this.tripId, {
+    this.farePerMinute = 0.5,
+    this.baseFare = 2.50,
+    this.surgeMultiplier = 1.0,
+  });
 
   @override
-  List<Object?> get props => [tripId];
+  List<Object?> get props => [tripId, farePerMinute, baseFare, surgeMultiplier];
 }
 
 class GetTripHistoryRequested extends TripEvent {
@@ -69,6 +80,15 @@ class TestAuditTripRequested extends TripEvent {
   final String tripId;
 
   const TestAuditTripRequested(this.tripId);
+
+  @override
+  List<Object?> get props => [tripId];
+}
+
+class GetTripDetailsRequested extends TripEvent {
+  final String tripId;
+
+  const GetTripDetailsRequested(this.tripId);
 
   @override
   List<Object?> get props => [tripId];

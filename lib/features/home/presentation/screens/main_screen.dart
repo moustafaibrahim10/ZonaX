@@ -3,7 +3,13 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:zona_x_16_4/features/analytics/presentation/screens/analytics_screen.dart';
 import 'package:zona_x_16_4/features/map/presentation/screens/heatmap_screen.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:zona_x_16_4/features/trips/presentation/bloc/trip_bloc.dart';
+import 'package:zona_x_16_4/features/trips/presentation/bloc/trip_state.dart';
+import 'package:zona_x_16_4/features/trips/presentation/widgets/trip_receipt_bottom_sheet.dart';
 import 'package:zona_x_16_4/features/earnings/presentation/screens/earnings_screen.dart';
+import 'package:zona_x_16_4/features/earnings/presentation/bloc/earnings_bloc.dart';
+import 'package:zona_x_16_4/features/earnings/presentation/bloc/earnings_event.dart';
 
 import 'package:zona_x_16_4/features/voice_assistant/presentation/bloc/voice_cubit.dart';
 import 'package:zona_x_16_4/features/voice_assistant/presentation/bloc/voice_state.dart';
@@ -35,11 +41,17 @@ class MainScreen extends StatefulWidget {
   const MainScreen({super.key});
 
   @override
-  State<MainScreen> createState() => _MainScreenState();
+  State<MainScreen> createState() => MainScreenState();
 }
 
-class _MainScreenState extends State<MainScreen> {
+class MainScreenState extends State<MainScreen> {
   int _currentIndex = 0;
+
+  void switchTab(int index) {
+    setState(() {
+      _currentIndex = index;
+    });
+  }
 
   final List<Widget> _screens = [
     const HeatmapScreen(),
@@ -91,8 +103,18 @@ class _MainScreenState extends State<MainScreen> {
         final hiveLocalDataSource = HiveLocalDataSourceImpl();
         return MapCubit(mapRepository, hiveLocalDataSource);
       },
-      child: BlocProvider<VoiceCubit>(
-        create: (context) => di.sl<VoiceCubit>(),
+      child: MultiBlocProvider(
+        providers: [
+          BlocProvider<VoiceCubit>(
+            create: (context) => di.sl<VoiceCubit>(),
+          ),
+          BlocProvider<TripBloc>(
+            create: (context) => di.sl<TripBloc>(),
+          ),
+          BlocProvider<EarningsBloc>(
+            create: (context) => di.sl<EarningsBloc>()..add(const FetchEarnings("Today")),
+          ),
+        ],
         child: Scaffold(
           backgroundColor: const Color(0xFF0F111A),
           body: BlocListener<VoiceCubit, VoiceState>(
@@ -105,12 +127,24 @@ class _MainScreenState extends State<MainScreen> {
                 } else if (state.action == 'navigate_to_profile') {
                   setState(() => _currentIndex = 4);
                 } else if (state.action == 'navigate_to_trips') {
-                  // Assuming Trips might be leaderboard or map. Since there's no trip tab, we fallback to 0
+                  // Fallback to Map if they ask for trips via voice
                   setState(() => _currentIndex = 0);
                 }
               }
             },
-            child: IndexedStack(index: _currentIndex, children: _screens),
+            child: BlocListener<TripBloc, TripState>(
+              listener: (context, tripState) {
+                if (tripState is TripCompleted) {
+                  showModalBottomSheet(
+                    context: context,
+                    isScrollControlled: true,
+                    backgroundColor: Colors.transparent,
+                    builder: (context) => TripReceiptBottomSheet(receipt: tripState.receipt),
+                  );
+                }
+              },
+              child: IndexedStack(index: _currentIndex, children: _screens),
+            ),
           ),
       bottomNavigationBar: Theme(
         data: Theme.of(context).copyWith(

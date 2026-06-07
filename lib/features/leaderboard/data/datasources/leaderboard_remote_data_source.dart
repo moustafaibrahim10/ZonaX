@@ -14,7 +14,15 @@ class LeaderboardRemoteDataSourceImpl implements LeaderboardRemoteDataSource {
       final response = await dio.get('/trips/statistics/drivers');
       if (response.statusCode == 200 && response.data != null) {
         final List<dynamic> dataList = response.data['data'] ?? response.data;
-        return dataList.map((json) => DriverEntity.fromJson(json as Map<String, dynamic>)).toList();
+        final drivers = dataList.map((json) => DriverEntity.fromJson(json as Map<String, dynamic>)).toList();
+        
+        // إذا كان السيرفر لا يرسل حقل الـ rank أو يرسله بصفر، نقوم بترقيمهم حسب ترتيبهم في القائمة
+        for (int i = 0; i < drivers.length; i++) {
+          if (drivers[i].rank == 0) {
+            drivers[i] = drivers[i].copyWith(rank: i + 1);
+          }
+        }
+        return drivers;
       } else {
         throw Exception('Failed to fetch leaderboard');
       }

@@ -1,4 +1,5 @@
 import 'package:equatable/equatable.dart';
+import '../../data/models/trip_receipt_model.dart';
 import '../../data/models/trip_model.dart';
 
 abstract class TripState extends Equatable {
@@ -14,29 +15,32 @@ class TripLoading extends TripState {}
 
 class TripCreated extends TripState {
   final String tripId;
+  final double fareAmount;
 
-  const TripCreated(this.tripId);
+  const TripCreated(this.tripId, this.fareAmount);
 
   @override
-  List<Object?> get props => [tripId];
+  List<Object?> get props => [tripId, fareAmount];
 }
 
 class TripStarted extends TripState {
   final String tripId;
+  final double fareAmount;
 
-  const TripStarted(this.tripId);
+  const TripStarted(this.tripId, this.fareAmount);
 
   @override
-  List<Object?> get props => [tripId];
+  List<Object?> get props => [tripId, fareAmount];
 }
 
 class TripCompleted extends TripState {
   final String tripId;
+  final TripReceiptModel receipt;
 
-  const TripCompleted(this.tripId);
+  const TripCompleted(this.tripId, this.receipt);
 
   @override
-  List<Object?> get props => [tripId];
+  List<Object?> get props => [tripId, receipt];
 }
 
 class TripHistoryLoaded extends TripState {
@@ -46,6 +50,15 @@ class TripHistoryLoaded extends TripState {
 
   @override
   List<Object?> get props => [history];
+}
+
+class TripDetailsLoaded extends TripState {
+  final TripReceiptModel receipt;
+
+  const TripDetailsLoaded(this.receipt);
+
+  @override
+  List<Object?> get props => [receipt];
 }
 
 class TripSuccess extends TripState {

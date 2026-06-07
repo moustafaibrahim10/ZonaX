@@ -78,8 +78,7 @@ class _CreateTripBottomSheetState extends State<CreateTripBottomSheet> {
             BlocConsumer<TripBloc, TripState>(
               listener: (context, state) {
                 if (state is TripCreated) {
-                  // Trip was created successfully, now start it!
-                  context.read<TripBloc>().add(StartTripRequested(state.tripId));
+                  context.read<TripBloc>().add(StartTripRequested(state.tripId, _pickupLocationId!, _dropoffLocationId!, state.fareAmount));
                 } else if (state is TripStarted) {
                   ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(content: Text("Trip Started Successfully!"), backgroundColor: Colors.green),

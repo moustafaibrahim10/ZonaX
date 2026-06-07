@@ -11,7 +11,11 @@ import 'package:zona_x_16_4/features/demand_grid/presentation/bloc/recommended_z
 import 'package:zona_x_16_4/features/demand_grid/domain/repositories/zone_repository.dart';
 import 'package:zona_x_16_4/features/analytics/presentation/bloc/peak_hours_bloc.dart';
 import 'package:zona_x_16_4/features/map/presentation/cubit/map_cubit.dart';
+import 'package:zona_x_16_4/features/home/presentation/screens/main_screen.dart';
+import 'package:zona_x_16_4/features/trips/presentation/screens/trip_history_screen.dart';
+import 'package:zona_x_16_4/features/trips/presentation/bloc/trip_bloc.dart';
 import 'package:zona_x_16_4/injection_container.dart' as di;
+import '../../domain/services/analytics_export_service.dart';
 
 class AnalyticsScreen extends StatelessWidget {
   const AnalyticsScreen({super.key});
@@ -41,9 +45,11 @@ class AnalyticsScreen extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    _buildHeader(appColors),
+                    _buildHeader(context, appColors),
                     SizedBox(height: 24.h),
                     _buildRecommendedZonesBigButton(context, appColors),
+                    SizedBox(height: 12.h),
+                    _buildTripHistoryBigButton(context, appColors),
                     SizedBox(height: 24.h),
                     Text(
                       "This Week",
@@ -79,23 +85,71 @@ class AnalyticsScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildHeader(AppColors appColors) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
+  Widget _buildHeader(BuildContext context, AppColors appColors) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        Text(
-          "Analytics",
-          style: TextStyle(
-            color: appColors.textPrimary,
-            fontSize: 24.sp,
-            fontWeight: FontWeight.bold,
-          ),
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              "Analytics",
+              style: TextStyle(
+                color: appColors.textPrimary,
+                fontSize: 24.sp,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            Text(
+              "Performance insights & trends",
+              style: TextStyle(color: appColors.textSecondary, fontSize: 14.sp),
+            ),
+          ],
         ),
-        Text(
-          "Performance insights & trends",
-          style: TextStyle(color: appColors.textSecondary, fontSize: 14.sp),
-        ),
+        _buildExportButton(context, appColors),
       ],
+    );
+  }
+
+  Widget _buildExportButton(BuildContext context, AppColors appColors) {
+    return GestureDetector(
+      onTap: () async {
+        final state = context.read<AnalyticsBloc>().state;
+        if (state is AnalyticsLoaded) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Generating Analytics PDF...')),
+          );
+          try {
+            await AnalyticsExportService.exportAsPdf(state.analytics);
+          } catch (e) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text('Error generating PDF: $e')),
+            );
+          }
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Please wait for data to load')),
+          );
+        }
+      },
+      child: Container(
+        padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 6.h),
+        decoration: BoxDecoration(
+          color: appColors.surface,
+          borderRadius: BorderRadius.circular(20.r),
+          border: Border.all(color: appColors.inputBorder),
+        ),
+        child: Row(
+          children: [
+            Icon(Icons.ios_share, color: appColors.accent, size: 16.sp),
+            SizedBox(width: 6.w),
+            Text(
+              "Export",
+              style: TextStyle(color: appColors.textPrimary, fontSize: 12.sp),
+            ),
+          ],
+        ),
+      ),
     );
   }
 
@@ -215,6 +269,36 @@ class AnalyticsScreen extends StatelessWidget {
   }
 
   Widget _buildEarningsTrendChart(AppColors appColors, WeeklySummaryEntity summary) {
+    List<Widget> bars = [];
+    if (summary.earningsTrend.isEmpty) {
+      bars = [
+        _buildBar(appColors, 0.4),
+        _buildBar(appColors, 0.7),
+        _buildBar(appColors, 0.5),
+        _buildBar(appColors, 0.9),
+        _buildBar(appColors, 0.6),
+        _buildBar(appColors, 0.8),
+        _buildBar(appColors, 0.4),
+      ];
+    } else {
+      double maxVal = 0.0;
+      List<double> values = [];
+      for (var item in summary.earningsTrend) {
+        double val = 0.0;
+        if (item is num) {
+          val = item.toDouble();
+        } else if (item is Map) {
+          val = (item['amount'] as num?)?.toDouble() ?? (item['value'] as num?)?.toDouble() ?? 0.0;
+        }
+        values.add(val);
+        if (val > maxVal) maxVal = val;
+      }
+      for (var val in values) {
+        double heightFactor = maxVal > 0 ? (val / maxVal).clamp(0.1, 1.0) : 0.1;
+        bars.add(_buildBar(appColors, heightFactor));
+      }
+    }
+
     return Container(
       height: 180.h,
       padding: EdgeInsets.all(16.w),
@@ -229,20 +313,12 @@ class AnalyticsScreen extends StatelessWidget {
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceAround,
               crossAxisAlignment: CrossAxisAlignment.end,
-              children: [
-                _buildBar(appColors, 0.4),
-                _buildBar(appColors, 0.7),
-                _buildBar(appColors, 0.5),
-                _buildBar(appColors, 0.9),
-                _buildBar(appColors, 0.6),
-                _buildBar(appColors, 0.8),
-                _buildBar(appColors, 0.4),
-              ],
+              children: bars,
             ),
           ),
           SizedBox(height: 12.h),
           Text(
-            "Weekly earnings for the last 4 weeks",
+            "Weekly earnings trend",
             style: TextStyle(color: appColors.textSecondary, fontSize: 11.sp),
           ),
         ],
@@ -387,35 +463,73 @@ class AnalyticsScreen extends StatelessWidget {
   }
 
   Widget _buildTopRoutesList(AppColors appColors, WeeklySummaryEntity summary) {
+    if (summary.topRoutes.isEmpty) {
+      return Column(
+        children: [
+          _buildRouteItem(
+            appColors,
+            "Downtown → Airport",
+            "15 trips this week",
+            "82 EGP",
+            "Trending",
+            appColors.accent,
+          ),
+          SizedBox(height: 12.h),
+          _buildRouteItem(
+            appColors,
+            "Business Bay → Mall",
+            "12 trips this week",
+            "54 EGP",
+            "Trending",
+            appColors.accent,
+          ),
+          SizedBox(height: 12.h),
+          _buildRouteItem(
+            appColors,
+            "Airport → Downtown",
+            "11 trips this week",
+            "78 EGP",
+            "Stable",
+            appColors.textSecondary,
+          ),
+        ],
+      );
+    }
+
     return Column(
-      children: [
-        _buildRouteItem(
-          appColors,
-          "Downtown → Airport",
-          "15 trips this week",
-          "82 EGP",
-          "Trending",
-          appColors.accent,
-        ),
-        SizedBox(height: 12.h),
-        _buildRouteItem(
-          appColors,
-          "Business Bay → Mall",
-          "12 trips this week",
-          "54 EGP",
-          "Trending",
-          appColors.accent,
-        ),
-        SizedBox(height: 12.h),
-        _buildRouteItem(
-          appColors,
-          "Airport → Downtown",
-          "11 trips this week",
-          "78 EGP",
-          "Stable",
-          appColors.textSecondary,
-        ),
-      ],
+      children: summary.topRoutes.map((routeData) {
+        String route = "Unknown Route";
+        String trips = "0";
+        String fare = "0 EGP";
+        String status = "Stable";
+
+        if (routeData is Map) {
+          route = routeData['route_name']?.toString() ?? routeData['route']?.toString() ?? routeData['name']?.toString() ?? route;
+          trips = routeData['trips_count']?.toString() ?? routeData['trips']?.toString() ?? routeData['count']?.toString() ?? trips;
+          final fareValue = routeData['fare'] ?? routeData['earnings'] ?? routeData['amount'];
+          fare = fareValue != null ? "$fareValue EGP" : fare;
+          status = routeData['status']?.toString() ?? status;
+        } else if (routeData is String) {
+          route = routeData;
+        } else {
+          route = routeData.toString(); // Fallback for other types
+        }
+
+        final isTrending = status.toLowerCase() == 'trending';
+        final statusColor = isTrending ? appColors.accent : appColors.textSecondary;
+
+        return Padding(
+          padding: EdgeInsets.only(bottom: 12.h),
+          child: _buildRouteItem(
+            appColors,
+            route,
+            "$trips trips this week",
+            fare,
+            status,
+            statusColor,
+          ),
+        );
+      }).toList(),
     );
   }
 
@@ -549,8 +663,8 @@ class AnalyticsScreen extends StatelessWidget {
 
   Widget _buildRecommendedZonesBigButton(BuildContext context, AppColors appColors) {
     return InkWell(
-      onTap: () {
-        Navigator.push(
+      onTap: () async {
+        final result = await Navigator.push(
           context,
           MaterialPageRoute(
             builder: (ctx) => MultiBlocProvider(
@@ -568,6 +682,11 @@ class AnalyticsScreen extends StatelessWidget {
             ),
           ),
         );
+        
+        if (result == true) {
+          final mainState = context.findAncestorStateOfType<MainScreenState>();
+          mainState?.switchTab(0);
+        }
       },
       borderRadius: BorderRadius.circular(16.r),
       child: Container(
@@ -619,6 +738,75 @@ class AnalyticsScreen extends StatelessWidget {
               ),
             ),
             Icon(Icons.arrow_forward_ios, color: appColors.accent, size: 16.sp),
+          ],
+        ),
+      ),
+    );
+  }
+  Widget _buildTripHistoryBigButton(BuildContext context, AppColors appColors) {
+    return InkWell(
+      onTap: () {
+        final tripBloc = context.read<TripBloc>();
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (ctx) => BlocProvider.value(
+              value: tripBloc,
+              child: const TripHistoryScreen(),
+            ),
+          ),
+        );
+      },
+      borderRadius: BorderRadius.circular(16.r),
+      child: Container(
+        padding: EdgeInsets.all(16.w),
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            colors: [
+              appColors.surface,
+              Colors.greenAccent.withOpacity(0.1),
+            ],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+          borderRadius: BorderRadius.circular(16.r),
+          border: Border.all(color: Colors.greenAccent.withOpacity(0.5), width: 1.5),
+        ),
+        child: Row(
+          children: [
+            Container(
+              padding: EdgeInsets.all(10.w),
+              decoration: BoxDecoration(
+                color: Colors.greenAccent.withOpacity(0.2),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(Icons.history_rounded, color: Colors.greenAccent, size: 28.sp),
+            ),
+            SizedBox(width: 16.w),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    "Trip History",
+                    style: TextStyle(
+                      color: appColors.textPrimary,
+                      fontSize: 16.sp,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  SizedBox(height: 4.h),
+                  Text(
+                    "Review your past trips and detailed receipts.",
+                    style: TextStyle(
+                      color: appColors.textSecondary,
+                      fontSize: 12.sp,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            Icon(Icons.arrow_forward_ios, color: Colors.greenAccent, size: 16.sp),
           ],
         ),
       ),

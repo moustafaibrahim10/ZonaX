@@ -12,6 +12,7 @@ TripUpdateDto _$TripUpdateDtoFromJson(Map<String, dynamic> json) =>
       dropoffLocationId: (json['dropoffLocationId'] as num?)?.toInt(),
       fareAmount: (json['fareAmount'] as num?)?.toDouble(),
       tipAmount: (json['tipAmount'] as num?)?.toDouble(),
+      processStatus: json['processStatus'] as String?,
     );
 
 Map<String, dynamic> _$TripUpdateDtoToJson(TripUpdateDto instance) =>
@@ -20,4 +21,5 @@ Map<String, dynamic> _$TripUpdateDtoToJson(TripUpdateDto instance) =>
       'dropoffLocationId': ?instance.dropoffLocationId,
       'fareAmount': ?instance.fareAmount,
       'tipAmount': ?instance.tipAmount,
+      'processStatus': ?instance.processStatus,
     };

@@ -1,4 +1,5 @@
 import 'package:dartz/dartz.dart';
+import '../models/trip_receipt_model.dart';
 import '../../../../core/error/failures.dart';
 import '../../domain/repositories/trip_repository.dart';
 import '../datasources/trip_remote_data_source.dart';
@@ -48,9 +49,9 @@ class TripRepositoryImpl implements TripRepository {
   }
 
   @override
-  Future<Either<Failure, void>> startTrip(String tripId) async {
+  Future<Either<Failure, void>> startTrip(String tripId, int pickupLocationId, int dropoffLocationId) async {
     try {
-      await remoteDataSource.startTrip(tripId);
+      await remoteDataSource.startTrip(tripId, pickupLocationId, dropoffLocationId);
       return const Right(null);
     } on TripException catch (e) {
       return Left(ServerFailure(e.message));
@@ -60,10 +61,10 @@ class TripRepositoryImpl implements TripRepository {
   }
 
   @override
-  Future<Either<Failure, void>> endTrip(String tripId) async {
+  Future<Either<Failure, TripReceiptModel>> endTrip(String tripId, double farePerMinute, double baseFare, double surgeMultiplier) async {
     try {
-      await remoteDataSource.endTrip(tripId);
-      return const Right(null);
+      final receipt = await remoteDataSource.endTrip(tripId, farePerMinute, baseFare, surgeMultiplier);
+      return Right(receipt);
     } on TripException catch (e) {
       return Left(ServerFailure(e.message));
     } catch (e) {
@@ -88,6 +89,18 @@ class TripRepositoryImpl implements TripRepository {
     try {
       await remoteDataSource.testAuditTrip(tripId);
       return const Right(null);
+    } on TripException catch (e) {
+      return Left(ServerFailure(e.message));
+    } catch (e) {
+      return Left(ServerFailure(e.toString()));
+    }
+  }
+
+  @override
+  Future<Either<Failure, TripReceiptModel>> getTripById(String tripId) async {
+    try {
+      final receipt = await remoteDataSource.getTripById(tripId);
+      return Right(receipt);
     } on TripException catch (e) {
       return Left(ServerFailure(e.message));
     } catch (e) {

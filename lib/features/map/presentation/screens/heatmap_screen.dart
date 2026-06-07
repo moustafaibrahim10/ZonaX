@@ -144,9 +144,6 @@ class _HeatmapScreenState extends State<HeatmapScreen> with WidgetsBindingObserv
           BlocProvider(
             create: (context) => di.sl<SimulationBloc>(),
           ),
-          BlocProvider(
-            create: (context) => di.sl<TripBloc>(),
-          ),
         ],
         child: SafeArea(
           child: BlocBuilder<MapGridBloc, MapGridState>(
@@ -310,7 +307,11 @@ class _HeatmapScreenState extends State<HeatmapScreen> with WidgetsBindingObserv
 
                     final tripState = context.read<TripBloc>().state;
                     if (tripState is TripStarted) {
-                      context.read<TripBloc>().add(EndTripRequested(tripState.tripId));
+                      context.read<TripBloc>().add(EndTripRequested(
+                        tripState.tripId, 
+                        baseFare: tripState.fareAmount, 
+                        farePerMinute: 0.0,
+                      ));
                       ScaffoldMessenger.of(context).showSnackBar(
                         const SnackBar(content: Text('Trip ended successfully!'), backgroundColor: Colors.green),
                       );
@@ -708,7 +709,7 @@ class _HeatmapScreenState extends State<HeatmapScreen> with WidgetsBindingObserv
         PointAnnotationOptions(
           geometry: Point(coordinates: position),
           image: carIconBytes,
-          iconSize: 0.08, // Reduced icon size
+          iconSize: 0.05, // Adjusted icon size
           iconRotate: bearing - 90.0,
         ),
       );
@@ -765,27 +766,6 @@ class _HeatmapScreenState extends State<HeatmapScreen> with WidgetsBindingObserv
       final ByteData bytes = await rootBundle.load(AppImages.carIcon);
       final Uint8List list = bytes.buffer.asUint8List();
       carIconBytes = list;
-
-      // Decode the PNG to raw RGBA pixels
-      final ui.Codec codec = await ui.instantiateImageCodec(list);
-      final ui.FrameInfo frameInfo = await codec.getNextFrame();
-      final ui.Image image = frameInfo.image;
-      final ByteData? rawBytes = await image.toByteData(format: ui.ImageByteFormat.rawRgba);
-      
-      if (rawBytes != null) {
-        final Uint8List rawPixels = rawBytes.buffer.asUint8List();
-        
-        // 2. Add style image with raw RGBA data and correct dimensions
-        await mapboxMap?.style.addStyleImage(
-          'zona-x-driver-car',
-          1.0,
-          MbxImage(width: image.width, height: image.height, data: rawPixels),
-          false,
-          [],
-          [],
-          null,
-        );
-      }
 
       // 3. Configure LocationComponentSettings with the injected image
       await mapboxMap?.location.updateSettings(

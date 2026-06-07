@@ -15,9 +15,10 @@ import 'package:zona_x_16_4/features/profile/presentation/bloc/profile_bloc.dart
 import 'package:zona_x_16_4/features/profile/presentation/bloc/profile_state.dart';
 import 'package:zona_x_16_4/features/profile/presentation/bloc/profile_event.dart';
 import 'package:zona_x_16_4/features/profile/presentation/settings_page.dart';
-import 'package:zona_x_16_4/features/profile/presentation/export_reports_page.dart';
 import 'package:zona_x_16_4/features/profile/presentation/support_faq_page.dart';
-import 'package:zona_x_16_4/features/profile/domain/entities/driver_profile_entity.dart';
+import 'package:zona_x_16_4/features/map/presentation/cubit/map_cubit.dart';
+import 'package:zona_x_16_4/features/earnings/presentation/bloc/earnings_bloc.dart';
+import 'package:zona_x_16_4/features/earnings/presentation/bloc/earnings_state.dart';
 
 class ProfilePage extends StatefulWidget {
   const ProfilePage({super.key});
@@ -164,13 +165,6 @@ class _ProfilePageState extends State<ProfilePage> {
     );
   }
 
-  void _navigateToExportReports() {
-    Navigator.push(
-      context,
-      MaterialPageRoute(builder: (context) => const ExportReportsPage()),
-    );
-  }
-
   void _navigateToSupportFAQ() {
     Navigator.push(
       context,
@@ -187,23 +181,30 @@ class _ProfilePageState extends State<ProfilePage> {
       body: SafeArea(
         child: BlocBuilder<ProfileBloc, ProfileState>(
           builder: (context, state) {
-            if (state is ProfileLoading) {
+            if (state is ProfileLoading || state is ProfileInitial) {
               return const Center(child: CircularProgressIndicator());
+            } else if (state is ProfileError) {
+              return Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Text('Failed to load profile: ${state.message}', style: TextStyle(color: Colors.red)),
+                    ElevatedButton(
+                      onPressed: () {
+                        context.read<ProfileBloc>().add(FetchProfile());
+                      },
+                      child: const Text('Retry'),
+                    ),
+                  ],
+                ),
+              );
             }
 
-            var profile = state is ProfileLoaded
-                ? state.profile
-                : const DriverProfileEntity(
-                    driverId: 'dummy_id',
-                    fullName: 'Ahmed Mohamed',
-                    plateNumber: 'ABC 123',
-                    licenseNumber: 'LIC-987654321',
-                    rating: 4.9,
-                    status: 'Available',
-                    completedTrips: 243,
-                    activeTrips: 0,
-                    totalEarnings: 5240.0,
-                  );
+            if (state is! ProfileLoaded) {
+               return const SizedBox();
+            }
+
+            final profile = state.profile;
 
             final user = Supabase.instance.client.auth.currentUser;
             final userId = user?.id ?? 'default';
@@ -424,11 +425,11 @@ class _ProfilePageState extends State<ProfilePage> {
 
                   SizedBox(height: 32.h),
 
-                  // This Month Section
+                  // Summary Section
                   Padding(
                     padding: EdgeInsets.only(left: 20.w, bottom: 12.h),
                     child: Text(
-                      'This Month',
+                      'Summary',
                       style: TextStyle(
                         fontSize: 18.sp,
                         fontWeight: FontWeight.bold,
@@ -438,33 +439,45 @@ class _ProfilePageState extends State<ProfilePage> {
                   ),
                   Padding(
                     padding: EdgeInsets.symmetric(horizontal: 20.w),
-                    child: GridView.count(
-                      crossAxisCount: 3,
-                      shrinkWrap: true,
-                      physics: const NeverScrollableScrollPhysics(),
-                      mainAxisSpacing: 12.h,
-                      crossAxisSpacing: 12.w,
-                      childAspectRatio: 1,
-                      children: [
-                        _buildStatCard(
-                          appColors,
-                          Icons.monetization_on,
-                          '${profile.totalEarnings.toStringAsFixed(0)} EGP',
-                          'Earnings',
-                        ),
-                        _buildStatCard(
-                          appColors,
-                          Icons.trending_up,
-                          '${profile.completedTrips}',
-                          'Trips',
-                        ),
-                        _buildStatCard(
-                          appColors,
-                          Icons.star,
-                          profile.rating.toStringAsFixed(1),
-                          'Rating',
-                        ),
-                      ],
+                    child: BlocBuilder<EarningsBloc, EarningsState>(
+                      builder: (context, earningsState) {
+                        String earningsText = "0 EGP";
+                        String tripsText = "0";
+                        
+                        if (earningsState is EarningsLoaded) {
+                          earningsText = '${earningsState.earnings.headerSummary.totalEarnings.toStringAsFixed(0)} EGP';
+                          tripsText = '${earningsState.earnings.headerSummary.trips}';
+                        }
+
+                        return GridView.count(
+                          crossAxisCount: 3,
+                          shrinkWrap: true,
+                          physics: const NeverScrollableScrollPhysics(),
+                          mainAxisSpacing: 12.h,
+                          crossAxisSpacing: 12.w,
+                          childAspectRatio: 1,
+                          children: [
+                            _buildStatCard(
+                              appColors,
+                              Icons.monetization_on,
+                              earningsText,
+                              'Earnings',
+                            ),
+                            _buildStatCard(
+                              appColors,
+                              Icons.trending_up,
+                              tripsText,
+                              'Trips',
+                            ),
+                            _buildStatCard(
+                              appColors,
+                              Icons.star,
+                              profile.rating.toStringAsFixed(1),
+                              'Rating',
+                            ),
+                          ],
+                        );
+                      }
                     ),
                   ),
 
@@ -495,35 +508,9 @@ class _ProfilePageState extends State<ProfilePage> {
                         SizedBox(height: 12.h),
                         _buildMenuItemWithNavigation(
                           appColors,
-                          Icons.download,
-                          'Export Reports',
-                          _navigateToExportReports,
-                        ),
-                        SizedBox(height: 12.h),
-                        _buildMenuItemWithNavigation(
-                          appColors,
                           Icons.help_outline,
                           'Support & FAQ',
                           _navigateToSupportFAQ,
-                        ),
-                        SizedBox(height: 12.h),
-
-                        _buildMenuItem(
-                          appColors,
-                          Icons.cloud_off,
-                          'Offline Mode',
-                        ),
-                        SizedBox(height: 12.h),
-                        _buildMenuItem(
-                          appColors,
-                          Icons.battery_charging_full,
-                          'Battery Saver',
-                        ),
-                        SizedBox(height: 12.h),
-                        _buildMenuItem(
-                          appColors,
-                          Icons.insert_chart,
-                          'Data Usage',
                         ),
                       ],
                     ),

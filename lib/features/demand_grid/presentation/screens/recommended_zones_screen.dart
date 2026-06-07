@@ -21,13 +21,13 @@ class RecommendedZonesScreen extends StatelessWidget {
           // 1. Send event to map
           context.read<MapCubit>().flyToZone(zone.centerLatitude, zone.centerLongitude);
           
-          // 2. Return to the previous screen (Analytics)
-          Navigator.pop(context);
+          // 2. Return to the previous screen (Analytics) with a success flag
+          Navigator.pop(context, true);
           
-          // 3. Inform user to switch tabs
+          // 3. Inform user (shorter, no need to ask them to switch)
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text("Target set to ${zone.zoneName}. Switch to the Map tab to view!"),
+              content: Text("Target set to ${zone.zoneName}."),
               backgroundColor: Colors.greenAccent,
             ),
           );

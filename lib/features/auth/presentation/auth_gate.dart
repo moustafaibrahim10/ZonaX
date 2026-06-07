@@ -63,11 +63,12 @@ class _AuthGateState extends State<AuthGate> {
       );
     }
 
+    final onboardingCompleted = Hive.box('app_box').get('onboarding_completed', defaultValue: false) ?? false;
+    if (!onboardingCompleted) {
+      return const OnboardingScreen();
+    }
+
     if (_isAuthenticated) {
-      final onboardingCompleted = Hive.box('app_box').get('onboarding_completed', defaultValue: false) ?? false;
-      if (!onboardingCompleted) {
-        return const OnboardingScreen();
-      }
       final termsAccepted = Hive.box('app_box').get('terms_accepted', defaultValue: false) ?? false;
       if (termsAccepted) {
         return const MainScreen();

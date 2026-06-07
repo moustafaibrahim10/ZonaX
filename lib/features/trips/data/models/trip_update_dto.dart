@@ -8,12 +8,14 @@ class TripUpdateDto {
   final int? dropoffLocationId;
   final double? fareAmount;
   final double? tipAmount;
+  final String? processStatus;
 
   TripUpdateDto({
     this.pickupLocationId,
     this.dropoffLocationId,
     this.fareAmount,
     this.tipAmount,
+    this.processStatus,
   });
 
   factory TripUpdateDto.fromJson(Map<String, dynamic> json) => _$TripUpdateDtoFromJson(json);

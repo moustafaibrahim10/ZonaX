@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import '../../../core/theme/app_colors.dart';
-import 'terms_acceptance_screen.dart';
+import 'auth_gate.dart';
 
 class OnboardingScreen extends StatefulWidget {
   const OnboardingScreen({super.key});
@@ -42,7 +42,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   void _completeOnboarding() {
     Hive.box('app_box').put('onboarding_completed', true);
     Navigator.of(context).pushAndRemoveUntil(
-      MaterialPageRoute(builder: (context) => const TermsAcceptanceScreen()),
+      MaterialPageRoute(builder: (context) => const AuthGate()),
       (route) => false,
     );
   }

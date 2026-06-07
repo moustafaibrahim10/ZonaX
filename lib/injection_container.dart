@@ -19,6 +19,12 @@ import 'package:zona_x_16_4/core/services/voice/speech_service.dart';
 import 'package:zona_x_16_4/core/services/voice/tts_service.dart';
 import 'package:zona_x_16_4/features/voice_assistant/presentation/bloc/voice_cubit.dart';
 
+import 'package:zona_x_16_4/features/earnings/data/datasources/earnings_remote_data_source.dart';
+import 'package:zona_x_16_4/features/earnings/data/repositories/earnings_repository_impl.dart';
+import 'package:zona_x_16_4/features/earnings/domain/repositories/earnings_repository.dart';
+import 'package:zona_x_16_4/features/earnings/domain/usecases/get_earnings_usecase.dart';
+import 'package:zona_x_16_4/features/earnings/presentation/bloc/earnings_bloc.dart';
+
 final sl = GetIt.instance;
 
 Future<void> init() async {
@@ -38,6 +44,10 @@ Future<void> init() async {
     () => TripRemoteDataSourceImpl(dio: sl()),
   );
 
+  sl.registerLazySingleton<EarningsRemoteDataSource>(
+    () => EarningsRemoteDataSourceImpl(),
+  );
+
   // Repositories
   sl.registerLazySingleton<ZoneRepository>(
     () => ZoneRepositoryImpl(remoteDataSource: sl(), dio: sl()),
@@ -45,6 +55,15 @@ Future<void> init() async {
 
   sl.registerLazySingleton<TripRepository>(
     () => TripRepositoryImpl(remoteDataSource: sl()),
+  );
+
+  sl.registerLazySingleton<EarningsRepository>(
+    () => EarningsRepositoryImpl(remoteDataSource: sl()),
+  );
+
+  // UseCases
+  sl.registerLazySingleton<GetEarningsUseCase>(
+    () => GetEarningsUseCase(sl()),
   );
 
   // Simulation
@@ -67,6 +86,10 @@ Future<void> init() async {
 
   sl.registerFactory<TripBloc>(
     () => TripBloc(tripRepository: sl()),
+  );
+
+  sl.registerFactory<EarningsBloc>(
+    () => EarningsBloc(getEarningsUseCase: sl()),
   );
 
   // Voice Assistant
