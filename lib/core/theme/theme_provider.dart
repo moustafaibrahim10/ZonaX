@@ -44,4 +44,3 @@ class ThemeProvider with ChangeNotifier {
     notifyListeners();
   }
 }
-

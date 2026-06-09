@@ -12,7 +12,7 @@ part of 'api_service.dart';
 
 class _ApiService implements ApiService {
   _ApiService(this._dio, {this.baseUrl, this.errorLogger}) {
-    baseUrl ??= 'https://api.example.com';
+    baseUrl ??= 'https://zonax.runasp.net/api/v1';
   }
 
   final Dio _dio;
@@ -31,7 +31,7 @@ class _ApiService implements ApiService {
       Options(method: 'GET', headers: _headers, extra: _extra)
           .compose(
             _dio.options,
-            '/api/v1/zones',
+            '/zones',
             queryParameters: queryParameters,
             data: _data,
           )

@@ -30,17 +30,17 @@ class AppColors extends ThemeExtension<AppColors> {
 
   // Light theme
   static AppColors light() => const AppColors(
-    background: Color(0xFFF5F5F5),  // Light gray background instead of pure white
-    surface: Color(0xFFFFFFFF),      // White surface
-    inputBackground: Color(0xFFFFFFFF),  // White input background
-    inputBorder: Color(0xFFE8E8E8),  // Subtle light border
-    textPrimary: Color(0xFF1A1A1A),  // Almost black text
-    textSecondary: Color(0xFF666666), // Medium gray secondary text
-    textHint: Color(0xFFAAAAAA),     // Light gray hint text
-    accent: Color.fromARGB(255, 55, 254, 191),  // Same cyan accent as dark mode
-    inputIcon: Color(0xFF8E8E8E),    // Medium-light gray icons
-    signInText: Color(0xFF1A1A1A),   // Dark text for sign in
-    divider: Color(0xFFE0E0E0),      // Light divider
+    background: Color(0xFFF9FAFB), // Soft off-white background
+    surface: Color(0xFFFFFFFF), // White surface
+    inputBackground: Color(0xFFF3F4F6), // Light gray input background
+    inputBorder: Color(0xFFE5E7EB), // Subtle light border
+    textPrimary: Color(0xFF111827), // Soft charcoal black text
+    textSecondary: Color(0xFF4B5563), // Medium gray secondary text
+    textHint: Color(0xFF9CA3AF), // Light gray hint text
+    accent: Color(0xFF0D9488), // High contrast teal accent matching dark cyan
+    inputIcon: Color(0xFF9CA3AF), // Medium-light gray icons
+    signInText: Color(0xFF111827), // Soft charcoal black for sign in
+    divider: Color(0xFFE5E7EB), // Light divider
   );
 
   // Dark theme

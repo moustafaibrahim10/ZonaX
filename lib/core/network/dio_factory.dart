@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 import 'api_constants.dart';
@@ -6,20 +7,44 @@ class DioFactory {
   DioFactory._();
 
   static Dio? _dio;
+  static String? _authToken;
+  static String? driverId;
 
   static Dio getDio() {
-    Duration timeOut = const Duration(milliseconds: ApiConstants.apiTimeOut);
-
     if (_dio == null) {
-      _dio = Dio();
-      _dio!
-        ..options.baseUrl = ApiConstants.baseUrl
-        ..options.connectTimeout = timeOut
-        ..options.receiveTimeout = timeOut;
+      _dio = Dio(BaseOptions(
+        baseUrl: ApiConstants.baseUrl,
+        connectTimeout: const Duration(milliseconds: ApiConstants.apiTimeOut),
+        receiveTimeout: const Duration(milliseconds: ApiConstants.apiTimeOut),
+      ));
 
       _addInterceptors();
     }
     return _dio!;
+  }
+
+  // Set authentication token (call this after login)
+  static void setAuthToken(String token) {
+    _authToken = token;
+    try {
+      final parts = token.split('.');
+      if (parts.length == 3) {
+        String payload = parts[1];
+        while (payload.length % 4 != 0) {
+          payload += '=';
+        }
+        final payloadMap = json.decode(utf8.decode(base64Url.decode(payload)));
+        driverId = payloadMap['http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier'];
+      }
+    } catch (e) {
+      debugPrint('Error decoding token: $e');
+    }
+  }
+
+  // Clear authentication token (call this on logout)
+  static void clearAuthToken() {
+    _authToken = null;
+    driverId = null;
   }
 
   static void _addInterceptors() {
@@ -27,24 +52,49 @@ class DioFactory {
     _dio?.interceptors.add(
       InterceptorsWrapper(
         onRequest: (options, handler) {
-          // TODO: Add token dynamically here when Auth service is integrated
-          // options.headers['Authorization'] = 'Bearer $token';
+          // Add Bearer token if available
+          if (_authToken != null && _authToken!.isNotEmpty) {
+            options.headers['Authorization'] = 'Bearer $_authToken';
+          }
           options.headers['Accept'] = 'application/json';
+          options.headers['Content-Type'] = 'application/json';
+          // Record start time to measure duration on error
+          options.extra['startTime'] = DateTime.now().millisecondsSinceEpoch;
           return handler.next(options);
+        },
+        onError: (error, handler) {
+          // Check for timeout
+          if (error.type == DioExceptionType.connectionTimeout || 
+              error.type == DioExceptionType.receiveTimeout || 
+              error.type == DioExceptionType.sendTimeout) {
+            final startTime = error.requestOptions.extra['startTime'] as int?;
+            if (startTime != null) {
+              final duration = DateTime.now().millisecondsSinceEpoch - startTime;
+              debugPrint('Network Timeout Error! Waited for $duration ms before timing out on ${error.requestOptions.path}');
+            }
+          }
+          // Handle 401 Unauthorized (token expired)
+          if (error.response?.statusCode == 401) {
+            clearAuthToken();
+            // TODO: Redirect to login screen
+          }
+          return handler.next(error);
         },
       ),
     );
 
     // Logging Interceptor for debugging
     if (kDebugMode) {
-      _dio?.interceptors.add(LogInterceptor(
-        request: true,
-        requestHeader: true,
-        requestBody: true,
-        responseHeader: true,
-        responseBody: true,
-        error: true,
-      ));
+      _dio?.interceptors.add(
+        LogInterceptor(
+          request: true,
+          requestHeader: true,
+          requestBody: true,
+          responseHeader: true,
+          responseBody: true,
+          error: true,
+        ),
+      );
     }
   }
 }

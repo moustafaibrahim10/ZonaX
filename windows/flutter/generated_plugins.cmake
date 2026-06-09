@@ -4,6 +4,14 @@
 
 list(APPEND FLUTTER_PLUGIN_LIST
   app_links
+  connectivity_plus
+  file_selector_windows
+  flutter_secure_storage_windows
+  flutter_tts
+  permission_handler_windows
+  record_windows
+  share_plus
+  speech_to_text_windows
   url_launcher_windows
 )
 

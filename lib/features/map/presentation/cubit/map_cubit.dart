@@ -1,8 +1,10 @@
 import 'dart:async';
+import 'dart:math' as math;
 import 'package:flutter/foundation.dart';
 
 import 'package:equatable/equatable.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:zona_x_16_4/features/map/domain/entities/zone_entity.dart';
 import 'package:zona_x_16_4/features/map/domain/entities/driver_location_entity.dart';
 import 'package:zona_x_16_4/features/map/domain/repositories/map_repository.dart';
@@ -14,10 +16,12 @@ class MapCubit extends Cubit<MapState> {
   final MapRepository repository;
   final LocalDataSource localDataSource;
   Timer? _simulationTimer;
+  StreamSubscription<List<ConnectivityResult>>? _connectivitySubscription;
   bool isConnected = true;
 
   MapCubit(this.repository, this.localDataSource) : super(MapInitial()) {
     _initLocalDataSource();
+    _initConnectivity();
   }
 
   Future<void> _initLocalDataSource() async {
@@ -30,21 +34,33 @@ class MapCubit extends Cubit<MapState> {
       final zones = await repository.getActiveZones();
       emit(MapZonesLoaded(zones));
     } catch (e) {
-      emit(MapError("فشل في تحميل الزونات: ${e.toString()}"));
+      emit(MapError("Failed to load zones: ${e.toString()}"));
     }
   }
 
-  // Simulate network connection toggle
-  void toggleConnection() async {
-    isConnected = !isConnected;
-    if (isConnected) {
-      // Connection Restored -> Sync data
-      final unsynced = await localDataSource.getUnsyncedLogs();
-      debugPrint("Syncing ${unsynced.length} offline logs to server...");
-      await localDataSource.markLogsAsSynced();
-    } else {
-      debugPrint("Connection Lost! Entering Offline Edge Mode.");
-    }
+  void flyToZone(double lat, double lng) {
+    emit(MapFlyToLocation(lat, lng));
+  }
+
+  void _initConnectivity() {
+    _connectivitySubscription = Connectivity().onConnectivityChanged.listen((List<ConnectivityResult> results) {
+      bool isNowConnected = results.isNotEmpty && !results.contains(ConnectivityResult.none);
+      
+      if (isConnected != isNowConnected) {
+        isConnected = isNowConnected;
+        emit(MapConnectivityChanged(isConnected));
+        
+        if (isConnected) {
+          // Connection Restored -> Sync data
+          localDataSource.getUnsyncedLogs().then((unsynced) {
+            debugPrint("Syncing ${unsynced.length} offline logs to server...");
+            localDataSource.markLogsAsSynced();
+          });
+        } else {
+          debugPrint("Connection Lost! Entering Offline Edge Mode.");
+        }
+      }
+    });
   }
 
   bool isSimulating = false;
@@ -53,41 +69,48 @@ class MapCubit extends Cubit<MapState> {
     if (isSimulating) {
       stopCarSimulation();
     } else {
-      startCarSimulation();
+      startCarSimulation([]);
     }
   }
 
-  void startCarSimulation() {
-    isSimulating = true;
-    // Real-world street trace in El Shorouk
-    final route = [
-      {'lat': 30.14488, 'lng': 31.63581},
-      {'lat': 30.14498, 'lng': 31.63559},
-      {'lat': 30.14506, 'lng': 31.63539},
-      {'lat': 30.14515, 'lng': 31.63519},
-      {'lat': 30.14524, 'lng': 31.63499},
-      {'lat': 30.14532, 'lng': 31.63479},
-      // Taking a curve along the road
-      {'lat': 30.14538, 'lng': 31.63460},
-      {'lat': 30.14540, 'lng': 31.63440},
-      {'lat': 30.14540, 'lng': 31.63420},
-      {'lat': 30.14538, 'lng': 31.63400},
-      // Continuing on the new street
-      {'lat': 30.14534, 'lng': 31.63380},
-      {'lat': 30.14529, 'lng': 31.63360},
-      {'lat': 30.14520, 'lng': 31.63340},
-      {'lat': 30.14510, 'lng': 31.63320},
-      {'lat': 30.14498, 'lng': 31.63300},
-    ];
+  double _tripSpeed = 1.0;
+  double get tripSpeed => _tripSpeed;
+  List<Map<String, double>> _currentRoute = [];
+  int _currentIndex = 0;
 
-    int index = 0;
+  void setTripSpeed(double speed) {
+    _tripSpeed = speed;
+    if (isSimulating && _currentRoute.isNotEmpty) {
+      // Restart timer with new speed
+      _startSimulationTimer();
+    }
+  }
+
+  void startCarSimulation(List<Map<String, double>> route) {
+    if (route.isEmpty) return;
+
+    _currentRoute = route;
+    _currentIndex = 0;
+    isSimulating = true;
+    _startSimulationTimer();
+  }
+
+  void _startSimulationTimer() {
     _simulationTimer?.cancel();
-    // Speed up: Update every 1 second
-    _simulationTimer = Timer.periodic(const Duration(seconds: 1), (timer) async {
-      if (index < route.length) {
-        final currentLat = route[index]['lat']!;
-        final currentLng = route[index]['lng']!;
-        
+    
+    final interval = (600 / _tripSpeed).toInt();
+    _simulationTimer = Timer.periodic(Duration(milliseconds: interval), (timer) async {
+      if (_currentIndex < _currentRoute.length) {
+        final currentLat = _currentRoute[_currentIndex]['lat']!;
+        final currentLng = _currentRoute[_currentIndex]['lng']!;
+
+        double currentBearing = 0.0;
+        if (_currentIndex < _currentRoute.length - 1) {
+          final nextLat = _currentRoute[_currentIndex + 1]['lat']!;
+          final nextLng = _currentRoute[_currentIndex + 1]['lng']!;
+          currentBearing = _calculateBearing(currentLat, currentLng, nextLat, nextLng);
+        }
+
         final location = DriverLocationEntity(
           lat: currentLat,
           lng: currentLng,
@@ -96,36 +119,49 @@ class MapCubit extends Cubit<MapState> {
         );
 
         if (!isConnected) {
-          // Store locally via Hive
-          await localDataSource.saveTripLog(TripLogModel(
-            lat: location.lat,
-            lng: location.lng,
-            timestamp: location.timestamp,
-          ));
+          await localDataSource.saveTripLog(
+            TripLogModel(
+              lat: location.lat,
+              lng: location.lng,
+              timestamp: location.timestamp,
+            ),
+          );
         }
 
-        emit(MapCarMoving(
-          lat: location.lat,
-          lng: location.lng,
-          bearing: 45.0,
-        ));
-        
-        index++;
+        emit(MapCarMoving(lat: location.lat, lng: location.lng, bearing: currentBearing));
+        _currentIndex++;
       } else {
         stopCarSimulation();
+        emit(MapSimulationCompleted());
       }
     });
   }
 
-  void stopCarSimulation() {
+  double _calculateBearing(double startLat, double startLng, double endLat, double endLng) {
+    // Basic bearing calculation
+    final dLng = (endLng - startLng) * math.pi / 180.0;
+    final startLatRad = startLat * math.pi / 180.0;
+    final endLatRad = endLat * math.pi / 180.0;
+
+    final y = math.sin(dLng) * math.cos(endLatRad);
+    final x = math.cos(startLatRad) * math.sin(endLatRad) -
+        math.sin(startLatRad) * math.cos(endLatRad) * math.cos(dLng);
+    
+    final brng = math.atan2(y, x);
+    return (brng * 180.0 / math.pi + 360.0) % 360.0;
+  }
+
+  void stopCarSimulation({bool emitCompletion = false}) {
     isSimulating = false;
     _simulationTimer?.cancel();
-    // Emit state if you want to notify UI that it stopped
-    // emit(MapSimulationStopped());
+    if (emitCompletion) {
+      emit(MapSimulationCompleted());
+    }
   }
 
   @override
   Future<void> close() {
+    _connectivitySubscription?.cancel();
     _simulationTimer?.cancel();
     return super.close();
   }

@@ -8,13 +8,23 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_native_splash/flutter_native_splash.dart';
 import 'dart:io' show Platform;
 import 'package:mapbox_maps_flutter/mapbox_maps_flutter.dart' as mapbox;
+import 'package:hive_flutter/hive_flutter.dart';
 import 'package:zona_x_16_4/features/auth/presentation/auth_gate.dart';
+
+import 'package:zona_x_16_4/injection_container.dart' as di;
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
+  // Initialize Dependency Injection
+  await di.init();
+
   // Preserve splash screen while initializing
   FlutterNativeSplash.preserve(widgetsBinding: WidgetsBinding.instance);
+
+  // Initialize Hive
+  await Hive.initFlutter();
+  await Hive.openBox('app_box');
 
   // Load environment variables
   try {
@@ -41,8 +51,9 @@ void main() async {
   // Initialize Supabase
   try {
     await Supabase.initialize(
-        url: "https://xoiqadbokgbrnwgthzfl.supabase.co",
-        anonKey: "sb_publishable_wsTLf4VUTJtr66kGcvUUaw_dM0V-Pvr");
+      url: "https://xoiqadbokgbrnwgthzfl.supabase.co",
+      anonKey: "sb_publishable_wsTLf4VUTJtr66kGcvUUaw_dM0V-Pvr",
+    );
   } catch (e) {
     debugPrint('Warning: Supabase initialization failed: $e');
   }
@@ -59,7 +70,6 @@ void main() async {
     runApp(MyApp(themeProvider: ThemeProvider()));
   }
 }
-
 
 class MyApp extends StatelessWidget {
   final ThemeProvider themeProvider;
@@ -95,8 +105,13 @@ class MyApp extends StatelessWidget {
                 debugShowCheckedModeBanner: false,
                 theme: lightTheme,
                 darkTheme: darkTheme,
-                themeMode: themeProvider.isDarkMode ? ThemeMode.dark : ThemeMode.light,
-                home: const AuthGate(),
+                themeMode: themeProvider.isDarkMode
+                    ? ThemeMode.dark
+                    : ThemeMode.light,
+                initialRoute: '/',
+                routes: {
+                  '/': (context) => const AuthGate(),
+                },
               );
             },
           );
@@ -105,5 +120,3 @@ class MyApp extends StatelessWidget {
     );
   }
 }
-
-

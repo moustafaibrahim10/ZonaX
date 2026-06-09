@@ -1,8 +1,13 @@
 import 'package:flutter/material.dart';
-import 'package:zona_x_16_4/features/auth/data/auth_service.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:hive_flutter/hive_flutter.dart';
+import 'package:zona_x_16_4/core/network/dio_factory.dart';
 import 'package:zona_x_16_4/core/theme/app_colors.dart';
+import 'package:zona_x_16_4/features/auth/data/datasources/local/auth_local_data_source.dart';
+import 'package:zona_x_16_4/features/auth/data/datasources/remote/auth_api_service.dart';
+import 'package:zona_x_16_4/features/auth/data/repositories/auth_repository_impl.dart';
 
-/// Forgot Password screen to reset user password via email.
+/// Forgot Password screen to send OTP via phone number.
 class ForgotPasswordScreen extends StatefulWidget {
   const ForgotPasswordScreen({super.key});
 
@@ -11,73 +16,93 @@ class ForgotPasswordScreen extends StatefulWidget {
 }
 
 class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
-  late TextEditingController _emailController;
-  final AuthService _authService = AuthService();
+  late TextEditingController _phoneController;
+  late AuthRepositoryImpl _authRepository;
+  final _formKey = GlobalKey<FormState>();
   bool _isLoading = false;
-  String? _successMessage;
 
   @override
   void initState() {
     super.initState();
-    _emailController = TextEditingController();
+    _phoneController = TextEditingController();
+    
+    final dio = DioFactory.getDio();
+    final apiService = AuthApiService(dio);
+    final localDataSource = AuthLocalDataSourceImpl(const FlutterSecureStorage(), Hive.box('app_box'));
+    _authRepository = AuthRepositoryImpl(apiService, localDataSource);
   }
 
   @override
   void dispose() {
-    _emailController.dispose();
+    _phoneController.dispose();
     super.dispose();
   }
 
-  Future<void> _handleResetPassword() async {
-    if (_emailController.text.trim().isEmpty) {
-      setState(() {
-        _successMessage = null;
-      });
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text("Please enter your email"),
-          backgroundColor: Colors.red,
-          duration: Duration(seconds: 3),
-        ),
-      );
-      return;
-    }
+  Future<void> _handleSendOtp() async {
+    if (!_formKey.currentState!.validate()) return;
 
     setState(() {
       _isLoading = true;
-      _successMessage = null;
     });
 
-    final result = await _authService.resetPassword(_emailController.text);
+    final phone = '+20${_phoneController.text.trim()}';
+    final result = await _authRepository.sendOtp(phone);
 
     if (mounted) {
       setState(() {
         _isLoading = false;
       });
 
-      if (result == null) {
-        setState(() {
-          _successMessage =
-              "Password reset link sent to your email. Check your inbox.";
-          _emailController.clear();
-        });
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(_successMessage!),
-            backgroundColor: Colors.green,
-            duration: const Duration(seconds: 4),
-          ),
-        );
-      } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(result),
-            backgroundColor: Colors.red,
-            duration: const Duration(seconds: 4),
-          ),
-        );
-      }
+      result.fold(
+        (failure) {
+          _showErrorDialog(context, failure.message, Theme.of(context).extension<AppColors>()!);
+        },
+        (_) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('OTP sent successfully to your phone!'),
+              backgroundColor: Colors.green,
+              duration: Duration(seconds: 4),
+            ),
+          );
+          // TODO: Navigate to OTP Verification Screen
+        },
+      );
     }
+  }
+
+  void _showErrorDialog(BuildContext context, String message, AppColors colors) {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) {
+        return AlertDialog(
+          backgroundColor: colors.surface, // Dynamic Surface
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+            side: const BorderSide(color: Colors.redAccent, width: 1.5),
+          ),
+          title: const Row(
+            children: [
+              Icon(Icons.error_outline_rounded, color: Colors.redAccent, size: 28),
+              SizedBox(width: 12),
+              Text("Error", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+            ],
+          ),
+          content: Text(
+            message,
+            style: const TextStyle(color: Colors.white70, fontSize: 15, height: 1.5),
+            textAlign: TextAlign.left,
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text("Dismiss", style: TextStyle(color: Colors.redAccent, fontSize: 16, fontWeight: FontWeight.bold)),
+            ),
+          ],
+        );
+      },
+    );
   }
 
   @override
@@ -101,190 +126,206 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
         child: SingleChildScrollView(
           child: Padding(
             padding: const EdgeInsets.all(24.0),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const SizedBox(height: 20),
-                Center(
-                  child: Icon(
-                    Icons.lock_reset_rounded,
-                    size: 80,
-                    color: appColors.accent,
-                  ),
-                ),
-                const SizedBox(height: 32),
-                Text(
-                  'Forgot Your Password?',
-                  style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                    color: appColors.textPrimary,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-                const SizedBox(height: 12),
-                Text(
-                  'Enter your email address and we\'ll send you a link to reset your password.',
-                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    color: appColors.textSecondary,
-                    height: 1.5,
-                  ),
-                ),
-                const SizedBox(height: 32),
-                Text(
-                  'Email Address',
-                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: appColors.textSecondary,
-                    fontSize: 13,
-                    fontWeight: FontWeight.w400,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                TextField(
-                  controller: _emailController,
-                  keyboardType: TextInputType.emailAddress,
-                  enabled: !_isLoading,
-                  style: TextStyle(
-                    color: appColors.textPrimary,
-                    fontSize: 14,
-                  ),
-                  decoration: InputDecoration(
-                    hintText: 'example@gmail.com',
-                    hintStyle: TextStyle(
-                      color: appColors.textHint,
-                      fontSize: 14,
+            child: Form(
+              key: _formKey,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const SizedBox(height: 20),
+                  Center(
+                    child: Icon(
+                      Icons.lock_reset_rounded,
+                      size: 80,
+                      color: appColors.accent,
                     ),
-                    prefixIcon: Icon(
-                      Icons.email_outlined,
-                      color: appColors.inputIcon,
-                      size: 20,
+                  ),
+                  const SizedBox(height: 32),
+                  Text(
+                    'Forgot Your Password?',
+                    style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                      color: appColors.textPrimary,
+                      fontWeight: FontWeight.w700,
                     ),
-                    filled: true,
-                    fillColor: appColors.inputBackground,
-                    contentPadding: const EdgeInsets.symmetric(
-                      horizontal: 16,
-                      vertical: 16,
+                  ),
+                  const SizedBox(height: 12),
+                  Text(
+                    'Enter your phone number and we\'ll send you an OTP via SMS to reset your password.',
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                      color: appColors.textSecondary,
+                      height: 1.5,
                     ),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide: BorderSide(
-                        color: appColors.inputBorder,
-                        width: 1,
+                  ),
+                  const SizedBox(height: 32),
+                  Text(
+                    'Phone Number',
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      color: appColors.textSecondary,
+                      fontSize: 13,
+                      fontWeight: FontWeight.w400,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  TextFormField(
+                    controller: _phoneController,
+                    keyboardType: TextInputType.phone,
+                    maxLength: 10,
+                    enabled: !_isLoading,
+                    style: TextStyle(color: appColors.textPrimary, fontSize: 14),
+                    validator: (value) {
+                      if (value == null || value.trim().isEmpty) return 'Phone number is required';
+                      if (value.length != 10) return 'Phone number must be exactly 10 digits';
+                      return null;
+                    },
+                    autovalidateMode: AutovalidateMode.onUserInteraction,
+                    decoration: InputDecoration(
+                      hintText: '100 123 4567',
+                      hintStyle: TextStyle(
+                        color: appColors.textHint,
+                        fontSize: 14,
                       ),
-                    ),
-                    enabledBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide: BorderSide(
-                        color: appColors.inputBorder,
-                        width: 1,
+                      prefixIcon: Padding(
+                        padding: const EdgeInsets.only(left: 16.0, right: 8.0),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(Icons.phone_outlined, color: appColors.inputIcon, size: 20),
+                            const SizedBox(width: 8),
+                            Text('+20', style: TextStyle(color: appColors.textPrimary, fontWeight: FontWeight.bold, fontSize: 15)),
+                          ],
+                        ),
                       ),
-                    ),
-                    focusedBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide: BorderSide(
-                        color: appColors.accent,
-                        width: 1.5,
+                      filled: true,
+                      fillColor: appColors.inputBackground,
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 16,
                       ),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 28),
-                SizedBox(
-                  width: double.infinity,
-                  height: 52,
-                  child: ElevatedButton(
-                    onPressed: _isLoading ? null : _handleResetPassword,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: appColors.accent,
-                      disabledBackgroundColor:
-                          appColors.accent.withValues(alpha: 0.6),
-                      shape: RoundedRectangleBorder(
+                      border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide(
+                          color: appColors.inputBorder,
+                          width: 1,
+                        ),
                       ),
-                    ),
-                    child: _isLoading
-                        ? const SizedBox(
-                      height: 24,
-                      width: 24,
-                      child: CircularProgressIndicator(
-                        color: Colors.white,
-                        strokeWidth: 2,
-                      ),
-                    )
-                        : Text(
-                      'Send Reset Link',
-                      style:
-                          Theme.of(context).textTheme.titleMedium?.copyWith(
-                        color: Colors.white,
-                        fontWeight: FontWeight.w600,
-                        fontSize: 16,
-                      ),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 16),
-                SizedBox(
-                  width: double.infinity,
-                  height: 52,
-                  child: OutlinedButton(
-                    onPressed: _isLoading
-                        ? null
-                        : () {
-                            Navigator.pop(context);
-                          },
-                    style: OutlinedButton.styleFrom(
-                      side: BorderSide(
-                        color: appColors.accent,
-                        width: 1.5,
-                      ),
-                      shape: RoundedRectangleBorder(
+                      enabledBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide(
+                          color: appColors.inputBorder,
+                          width: 1,
+                        ),
                       ),
-                    ),
-                    child: Text(
-                      'Back to Login',
-                      style:
-                          Theme.of(context).textTheme.titleMedium?.copyWith(
-                        color: appColors.textPrimary,
-                        fontWeight: FontWeight.w600,
-                        fontSize: 16,
-                      ),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 24),
-                Container(
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: appColors.accent.withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(
-                      color: appColors.accent.withValues(alpha: 0.3),
-                      width: 1,
-                    ),
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        '💡 Tip',
-                        style:
-                            Theme.of(context).textTheme.bodyMedium?.copyWith(
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide(
                           color: appColors.accent,
-                          fontWeight: FontWeight.w600,
+                          width: 1.5,
                         ),
                       ),
-                      const SizedBox(height: 8),
-                      Text(
-                        'Check your spam or promotions folder if you don\'t see the reset email within a few minutes.',
-                        style:
-                            Theme.of(context).textTheme.bodySmall?.copyWith(
-                          color: appColors.textSecondary,
-                          height: 1.5,
-                        ),
+                      errorBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: const BorderSide(color: Colors.redAccent, width: 1.5),
                       ),
-                    ],
+                      focusedErrorBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: const BorderSide(color: Colors.redAccent, width: 1.5),
+                      ),
+                    ),
                   ),
-                ),
-              ],
+                  const SizedBox(height: 28),
+                  SizedBox(
+                    width: double.infinity,
+                    height: 52,
+                    child: ElevatedButton(
+                      onPressed: _isLoading ? null : _handleSendOtp,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: appColors.accent,
+                        disabledBackgroundColor: appColors.accent.withValues(
+                          alpha: 0.6,
+                        ),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                      child: _isLoading
+                          ? const SizedBox(
+                              height: 24,
+                              width: 24,
+                              child: CircularProgressIndicator(
+                                color: Colors.white,
+                                strokeWidth: 2,
+                              ),
+                            )
+                          : Text(
+                              'Send OTP',
+                              style: Theme.of(context).textTheme.titleMedium
+                                  ?.copyWith(
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.w600,
+                                    fontSize: 16,
+                                  ),
+                            ),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  SizedBox(
+                    width: double.infinity,
+                    height: 52,
+                    child: OutlinedButton(
+                      onPressed: _isLoading
+                          ? null
+                          : () {
+                              Navigator.pop(context);
+                            },
+                      style: OutlinedButton.styleFrom(
+                        side: BorderSide(color: appColors.accent, width: 1.5),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                      child: Text(
+                        'Back to Login',
+                        style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                          color: appColors.textPrimary,
+                          fontWeight: FontWeight.w600,
+                          fontSize: 16,
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+                  Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: appColors.accent.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(
+                        color: appColors.accent.withValues(alpha: 0.3),
+                        width: 1,
+                      ),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          '💡 Tip',
+                          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                            color: appColors.accent,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          'Make sure your phone number is correct. The OTP will be sent via SMS immediately.',
+                          style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                            color: appColors.textSecondary,
+                            height: 1.5,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
         ),

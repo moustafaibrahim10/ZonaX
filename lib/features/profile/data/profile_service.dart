@@ -13,7 +13,7 @@ class ProfileService {
       // TODO: Replace with actual API calls when backend is ready
       // For now, return dummy data for testing
       return _getDummyProfile(user.email ?? 'user@example.com');
-      
+
       // Uncomment below when backend tables are ready:
       /*
       // Fetch profile data from profiles table
@@ -94,12 +94,15 @@ class ProfileService {
       final user = _supabaseClient.auth.currentUser;
       if (user == null) return false;
 
-      await _supabaseClient.from('profiles').update({
-        'name': name,
-        'vehicle_model': vehicleModel,
-        'vehicle_plate': vehiclePlate,
-        'updated_at': DateTime.now().toIso8601String(),
-      }).eq('id', user.id);
+      await _supabaseClient
+          .from('profiles')
+          .update({
+            'name': name,
+            'vehicle_model': vehicleModel,
+            'vehicle_plate': vehiclePlate,
+            'updated_at': DateTime.now().toIso8601String(),
+          })
+          .eq('id', user.id);
 
       return true;
     } catch (e) {
@@ -139,9 +142,7 @@ class ProfileService {
           .eq('user_id', user.id)
           .order('unlocked_at', ascending: false);
 
-      return (response as List)
-          .map((a) => Achievement.fromJson(a))
-          .toList();
+      return (response as List).map((a) => Achievement.fromJson(a)).toList();
     } catch (e) {
       print('Error fetching achievements: $e');
       return [];
@@ -161,6 +162,7 @@ class ProfileService {
         body: {'user_id': user.id},
       );
 
+      // ignore: unnecessary_null_comparison
       return response != null;
     } catch (e) {
       print('Error exporting data: $e');
@@ -168,4 +170,3 @@ class ProfileService {
     }
   }
 }
-

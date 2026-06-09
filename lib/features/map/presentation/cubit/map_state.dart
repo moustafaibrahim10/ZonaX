@@ -1,4 +1,3 @@
-
 part of 'map_cubit.dart';
 
 abstract class MapState extends Equatable {
@@ -24,7 +23,7 @@ class MapZonesLoaded extends MapState {
 class MapCarMoving extends MapState {
   final double lat;
   final double lng;
-  final double bearing; 
+  final double bearing;
 
   const MapCarMoving({
     required this.lat,
@@ -43,4 +42,25 @@ class MapError extends MapState {
 
   @override
   List<Object?> get props => [message];
+}
+
+class MapFlyToLocation extends MapState {
+  final double lat;
+  final double lng;
+
+  const MapFlyToLocation(this.lat, this.lng);
+
+  @override
+  List<Object?> get props => [lat, lng];
+}
+
+class MapSimulationCompleted extends MapState {}
+
+class MapConnectivityChanged extends MapState {
+  final bool isConnected;
+
+  const MapConnectivityChanged(this.isConnected);
+
+  @override
+  List<Object?> get props => [isConnected];
 }

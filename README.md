@@ -77,68 +77,83 @@ lib/
 │
 ├── features/                             # 2. Features Layer (Feature-First grouping)
 │   │
-│   ├── auth/                             # Feature: Authentication & Accounts
-│   │   ├── data/
+│   ├── analytics/                        # Feature: Driver Performance & Analytics
+│   ├── auth/                             # Feature: Authentication (Token management)
+│   ├── demand_grid/                      # Feature: Real-time Demand Mapping
+│   ├── earnings/                         # Feature: Driver Earnings & Payouts
+│   ├── home/                             # Feature: Main Dashboard / Home Screen
+│   ├── leaderboard/                      # Feature: Gamification & Driver Rankings
+│   ├── login/                            # Feature: User Login / Onboarding
+│   ├── map/                              # Feature: Interactive Maps & Navigation
+│   │   ├── data/                         # (Example Feature Structure)
 │   │   │   ├── models/                   
-│   │   │   └── auth_repository_impl.dart
-│   │   ├── domain/
-│   │   │   ├── entities/                 
-│   │   │   ├── repositories/             
-│   │   │   └── usecases/                 
-│   │   └── presentation/                 
-│   │       ├── bloc/                     # (AuthBloc)
-│   │       ├── screens/                  # (LoginScreen)
-│   │       └── widgets/                  # (AuthTextFieldWidget)
-│   │
-│   ├── map_intelligence/                 # Feature: Maps & AI
-│   │   ├── data/
-│   │   │   ├── models/                   
-│   │   │   └── map_repository_impl.dart
-│   │   ├── domain/
-│   │   │   ├── entities/                 
-│   │   │   ├── repositories/             
-│   │   │   └── usecases/                 
-│   │   └── presentation/                 
-│   │       ├── bloc/                     # (MapCubit, MapState)
-│   │       ├── screens/                  # (HeatmapScreen)
-│   │       └── widgets/                  # (InsightCardWidget, LegendWidget)
-│   │
-│   ├── trip_management/                  # Feature: Trips & Earnings
-│   │   ├── data/
-│   │   │   ├── models/                   
-│   │   │   ├── trip_repository_impl.dart 
-│   │   │   └── offline_sync_manager.dart 
-│   │   ├── domain/
-│   │   │   ├── entities/                 
-│   │   │   ├── repositories/             
-│   │   │   └── usecases/                 
-│   │   └── presentation/                 
-│   │       ├── bloc/                     # (TripBloc)
-│   │       ├── screens/                  # (TripHistoryScreen)
-│   │       └── widgets/                  # (TripCardWidget)
-│   │
-│   ├── driver_performance/               # Feature: Driver Performance & Analytics
-│   │   ├── data/                         
+│   │   │   └── repositories/             
 │   │   ├── domain/                       
+│   │   │   ├── entities/                 
+│   │   │   ├── repositories/             
+│   │   │   └── usecases/                 
 │   │   └── presentation/                 
-│   │       ├── bloc/                     # (PerformanceBloc)
-│   │       ├── screens/                  # (DashboardScreen)
-│   │       └── widgets/                  # (EarningsChartWidget)
+│   │       ├── cubit/                    
+│   │       ├── screens/                  
+│   │       └── widgets/                  
 │   │
-│   ├── voice_assistant/                  # Feature: Voice Assistant
-│   │   ├── data/                         
-│   │   ├── domain/                       
-│   │   └── presentation/               
-│   │       ├── bloc/                     # (VoiceAssistantBloc)
-│   │       ├── screens/                  # (VoiceAssistantOverlay)
-│   │       └── widgets/                  # (VoiceButtonWidget)
-│   │
-│   └── support_and_training/             # Feature: Support & Training
-│       ├── data/                         
-│       ├── domain/                       
-│       └── presentation/                 
-│           ├── bloc/                     # (SupportBloc)
-│           ├── screens/                  # (HelpCenterScreen)
-│           └── widgets/                  # (FaqItemWidget)
+│   ├── profile/                          # Feature: Driver Profile Management
+│   ├── simulation/                       # Feature: Testing / Demand Simulation
+│   ├── trips/                            # Feature: Trip History & Management
+│   └── voice_assistant/                  # Feature: Hands-free Voice Controls
 │
 └── main.dart                             # Application Entry Point (Calls ServiceLocator)
+```
+
+---
+
+## 🛠️ Tech Stack
+* **Framework:** Flutter 3.x
+* **State Management:** BLoC / Cubit
+* **Architecture:** Clean Architecture (Feature-First)
+* **Local Storage & Edge Mode:** Hive DB
+* **Network & Connectivity:** Dio, Retrofit, `connectivity_plus` (for real-time offline mode detection)
+* **Maps & Geospatial:** Mapbox Maps, GeoJSON
+* **Voice Assistant:** Speech To Text, Flutter TTS
+
+---
+
+## 🚀 Getting Started
+
+### Prerequisites
+* Flutter SDK (>=3.11.1 <4.0.0)
+* Mapbox Access Token
+* Supabase Credentials
+
+### Installation
+1. Clone the repo:
+   ```sh
+   git clone https://github.com/moustafaibrahim10/ZonaX.git
+   ```
+2. Install dependencies:
+   ```sh
+   flutter pub get
+   ```
+3. Setup environment variables (create a `.env` file in the root):
+   ```env
+   MAPBOX_ACCESS_TOKEN=your_token_here
+   SUPABASE_URL=your_url_here
+   SUPABASE_ANON_KEY=your_key_here
+   ```
+4. Run the app:
+   ```sh
+   flutter run
+   ```
+
+---
+
+## 📶 Real-time Offline Edge Mode
+ZonaX ensures seamless driver operation even in areas with poor or no internet connectivity. Powered by `connectivity_plus` and Hive:
+- **Instant Detection:** Switches to Offline Mode instantly when the internet drops.
+- **Local Caching:** Caches trip paths, driver coordinates, and events securely on the device.
+- **Auto-Sync:** Detects when the connection is restored and automatically syncs all queued logs to the server.
+
+---
+
+## 👨‍💻 Team & Authors
+* **Moustafa Ibrahim** - *Lead Developer*

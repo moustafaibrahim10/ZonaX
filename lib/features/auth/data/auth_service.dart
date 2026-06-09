@@ -17,7 +17,10 @@ class AuthService {
     if (password.isEmpty) return 0;
     if (password.length < 6) return 1;
     if (password.length < 8) return 2;
-    if (RegExp(r'[A-Z]').hasMatch(password) && RegExp(r'[0-9]').hasMatch(password)) return 3;
+    if (RegExp(r'[A-Z]').hasMatch(password) &&
+        RegExp(r'[0-9]').hasMatch(password)) {
+      return 3;
+    }
     return 2;
   }
 
@@ -50,14 +53,15 @@ class AuthService {
       return null; // success
     } on AuthException catch (e) {
       final message = e.message.toLowerCase();
-      
+
       // Handle different error cases
       if (message.contains('email not confirmed')) {
         return "Please confirm your email before signing in";
       } else if (message.contains('invalid login credentials')) {
         // Supabase returns this for both wrong password and non-existent accounts
         return "Invalid email or password. Please check your credentials or sign up if you don't have an account.";
-      } else if (message.contains('user not found') || message.contains('no user found')) {
+      } else if (message.contains('user not found') ||
+          message.contains('no user found')) {
         return "This account doesn't exist. Please sign up first.";
       } else if (message.contains('too many')) {
         return "Too many login attempts. Please try again later.";
@@ -69,10 +73,19 @@ class AuthService {
     }
   }
 
-
   // SIGN UP
-  Future<String?> signUp(String email, String pass, String name, String phone, String vehicleType) async {
-    if (email.trim().isEmpty || pass.trim().isEmpty || name.trim().isEmpty || phone.trim().isEmpty || vehicleType.trim().isEmpty) {
+  Future<String?> signUp(
+    String email,
+    String pass,
+    String name,
+    String phone,
+    String vehicleType,
+  ) async {
+    if (email.trim().isEmpty ||
+        pass.trim().isEmpty ||
+        name.trim().isEmpty ||
+        phone.trim().isEmpty ||
+        vehicleType.trim().isEmpty) {
       return "All fields cannot be empty";
     }
 
@@ -144,9 +157,7 @@ class AuthService {
     }
 
     try {
-      await _supabaseClient.auth.resetPasswordForEmail(
-        email.trim(),
-      );
+      await _supabaseClient.auth.resetPasswordForEmail(email.trim());
       return null; // success
     } on AuthException catch (e) {
       return "Failed to send reset email: ${e.message}";
