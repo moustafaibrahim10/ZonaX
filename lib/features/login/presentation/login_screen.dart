@@ -105,7 +105,7 @@ class _LoginView extends StatelessWidget {
       barrierDismissible: false,
       builder: (context) {
         return AlertDialog(
-          backgroundColor: const Color(0xFF1E1E2C), // Premium Dark
+          backgroundColor: colors.surface, // Dynamic Surface
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(20),
             side: const BorderSide(color: Colors.redAccent, width: 1.5),
@@ -323,7 +323,7 @@ class _TitleBlock extends StatelessWidget {
           'ZonaX',
           textAlign: TextAlign.center,
           style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-            color: appColors.textPrimary,
+            color: Colors.white,
             fontWeight: FontWeight.bold,
             fontSize: 32,
             letterSpacing: 0.5,
@@ -334,7 +334,7 @@ class _TitleBlock extends StatelessWidget {
           'Drive smarter, earn more',
           textAlign: TextAlign.center,
           style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-            color: appColors.textSecondary,
+            color: Colors.white70,
             fontSize: 14,
           ),
         ),

@@ -94,17 +94,19 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                   ),
 
                   // Right: Skip Button
-                  TextButton(
-                    onPressed: _completeOnboarding,
-                    child: Text(
-                      'Skip',
-                      style: TextStyle(
-                        color: appColors.textSecondary,
-                        fontWeight: FontWeight.w600,
-                        fontSize: 14.sp,
-                      ),
-                    ),
-                  ),
+                  _currentPage == _pages.length - 1
+                      ? SizedBox(width: 60.w)
+                      : TextButton(
+                          onPressed: _completeOnboarding,
+                          child: Text(
+                            'Skip',
+                            style: TextStyle(
+                              color: appColors.textSecondary,
+                              fontWeight: FontWeight.w600,
+                              fontSize: 14.sp,
+                            ),
+                          ),
+                        ),
                 ],
               ),
 

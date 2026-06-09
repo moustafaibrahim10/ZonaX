@@ -116,8 +116,7 @@ class _EarningsViewState extends State<EarningsView> {
                     SizedBox(height: 16.h),
                     _buildPerformanceGrid(appColors, data.performanceStats),
                     SizedBox(height: 30.h),
-                    _buildTrendSection(appColors), // Using mock fallback or data if available later
-                    SizedBox(height: 30.h),
+
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
@@ -655,87 +654,6 @@ class _EarningsViewState extends State<EarningsView> {
     );
   }
 
-  // Trend section (mock data fallback)
-  Widget _buildTrendSection(AppColors appColors) {
-    final List<dynamic> trends = [
-      {
-        'periodLabel': '2026-03-07',
-        'tripCount': 2,
-        'averageFare': 227.86,
-        'totalRevenue': 455.72,
-      },
-      {
-        'periodLabel': '2026-03-08',
-        'tripCount': 1,
-        'averageFare': 246.18,
-        'totalRevenue': 246.18,
-      },
-      // Add more mock items as needed
-    ];
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          'Trip Trends',
-          style: TextStyle(
-            color: appColors.textPrimary,
-            fontSize: 18.sp,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-        SizedBox(height: 12.h),
-        SizedBox(
-          height: 150.h,
-          child: ListView.separated(
-            scrollDirection: Axis.horizontal,
-            itemCount: trends.length,
-            separatorBuilder: (_, _) => SizedBox(width: 12.w),
-            itemBuilder: (context, index) {
-              final item = trends[index];
-              return Container(
-                width: 120.w,
-                padding: EdgeInsets.all(12.w),
-                decoration: BoxDecoration(
-                  color: appColors.surface,
-                  borderRadius: BorderRadius.circular(12.r),
-                  border: Border.all(color: appColors.inputBorder),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      item['periodLabel'],
-                      style: TextStyle(
-                        color: appColors.textSecondary,
-                        fontSize: 12.sp,
-                      ),
-                    ),
-                    SizedBox(height: 8.h),
-                    Text(
-                      '${item['tripCount']} trips',
-                      style: TextStyle(
-                        color: appColors.textPrimary,
-                        fontSize: 14.sp,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    SizedBox(height: 4.h),
-                    Text(
-                      '${item['totalRevenue'].toStringAsFixed(0)} EGP',
-                      style: TextStyle(
-                        color: appColors.accent,
-                        fontSize: 12.sp,
-                      ),
-                    ),
-                  ],
-                ),
-              );
-            },
-          ),
-        ),
-      ],
-    );
-  }
 
 }

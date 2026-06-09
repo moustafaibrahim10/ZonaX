@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:zona_x_16_4/core/theme/app_colors.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:zona_x_16_4/features/demand_grid/presentation/widgets/recommended_zones_list.dart';
 import 'package:zona_x_16_4/features/map/presentation/cubit/map_cubit.dart';
@@ -6,14 +7,15 @@ import 'package:zona_x_16_4/features/map/presentation/cubit/map_cubit.dart';
 class RecommendedZonesScreen extends StatelessWidget {
   const RecommendedZonesScreen({super.key});
 
-  @override
   Widget build(BuildContext context) {
+    final appColors = Theme.of(context).extension<AppColors>()!;
     return Scaffold(
-      backgroundColor: const Color(0xFF0F111A), // appColors.background equivalent
+      backgroundColor: appColors.background,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
-        title: const Text("Recommended Zones"),
+        title: Text("Recommended Zones", style: TextStyle(color: appColors.textPrimary)),
+        iconTheme: IconThemeData(color: appColors.textPrimary),
         centerTitle: true,
       ),
       body: RecommendedZonesList(

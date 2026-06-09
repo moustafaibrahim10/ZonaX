@@ -5,6 +5,7 @@ import 'dart:ui' as ui;
 import 'dart:math' as math;
 
 import 'package:mapbox_maps_flutter/mapbox_maps_flutter.dart';
+import 'package:zona_x_16_4/core/theme/app_colors.dart';
 import 'package:zona_x_16_4/core/utils/app_images.dart';
 import 'package:zona_x_16_4/features/map/presentation/cubit/map_cubit.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
@@ -61,6 +62,7 @@ class _HeatmapScreenState extends State<HeatmapScreen> with WidgetsBindingObserv
   PolylineAnnotation? routePolyline;
   bool isStyleLoaded = false;
   Uint8List? carIconBytes;
+  Brightness? _currentBrightness;
 
   int _currentDriverZoneId = 1;
   double _lastLat = 30.0444;
@@ -118,6 +120,21 @@ class _HeatmapScreenState extends State<HeatmapScreen> with WidgetsBindingObserv
     }
   }
 
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final brightness = Theme.of(context).brightness;
+    if (_currentBrightness != null && _currentBrightness != brightness) {
+      _currentBrightness = brightness;
+      final styleUri = brightness == Brightness.dark 
+          ? 'mapbox://styles/mapbox/traffic-night-v2' 
+          : 'mapbox://styles/mapbox/traffic-day-v2';
+      mapboxMap?.loadStyleURI(styleUri);
+    } else {
+      _currentBrightness = brightness;
+    }
+  }
+
   void _sendStatusUpdate(String status) {
     // Tahrir Square fallback coordinates
     _updateStatusUseCase(status, 30.0444, 31.2357).then((result) {
@@ -130,8 +147,13 @@ class _HeatmapScreenState extends State<HeatmapScreen> with WidgetsBindingObserv
 
   @override
   Widget build(BuildContext context) {
+    final appColors = Theme.of(context).extension<AppColors>()!;
+    final styleUri = Theme.of(context).brightness == Brightness.dark 
+        ? 'mapbox://styles/mapbox/traffic-night-v2' 
+        : 'mapbox://styles/mapbox/traffic-day-v2';
+
     return Scaffold(
-      backgroundColor: const Color(0xFF0F111A), // Dark background for nav area
+      backgroundColor: appColors.background, // Dynamic background for nav area
       body: MultiBlocProvider(
         providers: [
           BlocProvider(
@@ -158,7 +180,7 @@ class _HeatmapScreenState extends State<HeatmapScreen> with WidgetsBindingObserv
                       center: Point(coordinates: Position(31.2357, 30.0444)), // Tahrir Square
                       zoom: 15.5,
                     ),
-                    styleUri: 'mapbox://styles/mapbox/traffic-night-v2', // Live Traffic Dark Theme
+                    styleUri: styleUri, // Dynamic Traffic Theme
                     onMapCreated: (map) async {
                       setState(() {
                         mapboxMap = map;
@@ -235,6 +257,10 @@ class _HeatmapScreenState extends State<HeatmapScreen> with WidgetsBindingObserv
                         mapCubit.getZones();
                         // Draw car initially at the last known location
                         _updateCarPosition(_lastLat, _lastLng);
+                        
+                        // Redraw heatmaps and overlays after style clears them
+                        context.read<MapGridBloc>().add(InitializeGrid());
+                        context.read<DriverDistributionBloc>().add(StartPollingDriverDistribution());
                       }
                     },
             ),
@@ -404,7 +430,7 @@ class _HeatmapScreenState extends State<HeatmapScreen> with WidgetsBindingObserv
                   right: 15.w,
                   child: FloatingActionButton(
                     heroTag: "tracking_fab",
-                    backgroundColor: _isTrackingCar ? Colors.blueAccent : const Color(0xFF1E1E2A),
+                    backgroundColor: _isTrackingCar ? Colors.blueAccent : appColors.surface,
                     onPressed: () {
                       setState(() {
                         _isTrackingCar = !_isTrackingCar;
@@ -418,7 +444,7 @@ class _HeatmapScreenState extends State<HeatmapScreen> with WidgetsBindingObserv
                     },
                     child: Icon(
                       _isTrackingCar ? Icons.my_location : Icons.location_searching,
-                      color: Colors.white,
+                      color: _isTrackingCar ? Colors.white : appColors.textPrimary,
                     ),
                   ),
                 ),
@@ -428,7 +454,7 @@ class _HeatmapScreenState extends State<HeatmapScreen> with WidgetsBindingObserv
                   bottom: 15.h,
                   left: 15.w,
                   right: 15.w,
-                  child: _buildMinimalBottomBar(),
+                  child: _buildMinimalBottomBar(appColors),
                 ),
               ],
             ),
@@ -445,7 +471,7 @@ class _HeatmapScreenState extends State<HeatmapScreen> with WidgetsBindingObserv
 
   // --- UI Components ---
 
-  Widget _buildMinimalBottomBar() {
+  Widget _buildMinimalBottomBar(AppColors appColors) {
     return BlocBuilder<MapGridBloc, MapGridState>(
       builder: (context, gridState) {
         String zoneName = "Tap a zone";
@@ -473,19 +499,15 @@ class _HeatmapScreenState extends State<HeatmapScreen> with WidgetsBindingObserv
 
             return Container(
               padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 12.h),
-              decoration: BoxDecoration(
-                gradient: const LinearGradient(
-                  colors: [Color(0xFF1A1D2E), Color(0xFF252840)],
-                  begin: Alignment.centerLeft,
-                  end: Alignment.centerRight,
-                ),
+                decoration: BoxDecoration(
+                  color: appColors.surface,
                 borderRadius: BorderRadius.circular(18.r),
                 border: Border.all(
-                  color: Colors.white.withValues(alpha: 0.1),
+                  color: appColors.divider,
                 ),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.5),
+                    color: Colors.black.withValues(alpha: 0.1),
                     blurRadius: 16,
                     offset: const Offset(0, 6),
                   ),
@@ -509,7 +531,7 @@ class _HeatmapScreenState extends State<HeatmapScreen> with WidgetsBindingObserv
                                     zoneName,
                                     overflow: TextOverflow.ellipsis,
                                     style: TextStyle(
-                                      color: Colors.white,
+                                      color: appColors.textPrimary,
                                       fontSize: 15.sp,
                                       fontWeight: FontWeight.w700,
                                     ),
@@ -526,7 +548,7 @@ class _HeatmapScreenState extends State<HeatmapScreen> with WidgetsBindingObserv
                                     child: Text(
                                       demandTag,
                                       style: TextStyle(
-                                        color: Colors.white,
+                                        color: appColors.textPrimary,
                                         fontSize: 9.sp,
                                         fontWeight: FontWeight.w700,
                                       ),
@@ -539,7 +561,7 @@ class _HeatmapScreenState extends State<HeatmapScreen> with WidgetsBindingObserv
                               Text(
                                 'Sim Time: $simTime',
                                 style: TextStyle(
-                                  color: Colors.white38,
+                                  color: appColors.textSecondary,
                                   fontSize: 11.sp,
                                 ),
                               ),
@@ -614,7 +636,7 @@ class _HeatmapScreenState extends State<HeatmapScreen> with WidgetsBindingObserv
                             children: [
                               Row(
                                 children: [
-                                  Icon(Icons.speed, color: Colors.white54, size: 16.sp),
+                                  Icon(Icons.speed, color: appColors.textSecondary, size: 16.sp),
                                   SizedBox(width: 8.w),
                                   Expanded(
                                     child: SliderTheme(
@@ -641,7 +663,7 @@ class _HeatmapScreenState extends State<HeatmapScreen> with WidgetsBindingObserv
                                   ),
                                   Text(
                                     '${context.read<MapCubit>().tripSpeed.toStringAsFixed(1)}x',
-                                    style: TextStyle(color: Colors.white54, fontSize: 10.sp),
+                                    style: TextStyle(color: appColors.textSecondary, fontSize: 10.sp),
                                   ),
                                 ],
                               ),
@@ -696,6 +718,10 @@ class _HeatmapScreenState extends State<HeatmapScreen> with WidgetsBindingObserv
     pointAnnotationManager = await mapboxMap?.annotations.createPointAnnotationManager();
     circleAnnotationManager = await mapboxMap?.annotations.createCircleAnnotationManager();
     polylineAnnotationManager = await mapboxMap?.annotations.createPolylineAnnotationManager();
+    
+    // Reset annotations so they get recreated on the new style
+    carPointAnnotation = null;
+    routePolyline = null;
   }
 
 
@@ -714,6 +740,7 @@ class _HeatmapScreenState extends State<HeatmapScreen> with WidgetsBindingObserv
         ),
       );
       
+      _carAnimationController?.dispose();
       _carAnimationController = AnimationController(
         vsync: this,
         duration: const Duration(milliseconds: 600), // Match cubit interval

@@ -4,6 +4,7 @@ import 'package:zona_x_16_4/core/theme/app_colors.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../bloc/analytics_bloc.dart';
 import '../bloc/analytics_state.dart';
+import '../bloc/analytics_event.dart';
 import '../../domain/entities/analytics_entity.dart';
 import 'package:zona_x_16_4/features/demand_grid/presentation/screens/recommended_zones_screen.dart';
 import 'package:zona_x_16_4/features/demand_grid/presentation/bloc/recommended_zones_bloc.dart';
@@ -14,6 +15,7 @@ import 'package:zona_x_16_4/features/map/presentation/cubit/map_cubit.dart';
 import 'package:zona_x_16_4/features/home/presentation/screens/main_screen.dart';
 import 'package:zona_x_16_4/features/trips/presentation/screens/trip_history_screen.dart';
 import 'package:zona_x_16_4/features/trips/presentation/bloc/trip_bloc.dart';
+import 'package:zona_x_16_4/features/trips/presentation/bloc/trip_state.dart';
 import 'package:zona_x_16_4/injection_container.dart' as di;
 import '../../domain/services/analytics_export_service.dart';
 
@@ -27,7 +29,14 @@ class AnalyticsScreen extends StatelessWidget {
     return Scaffold(
       backgroundColor: appColors.background,
       body: SafeArea(
-        child: BlocBuilder<AnalyticsBloc, AnalyticsState>(
+        child: BlocListener<TripBloc, TripState>(
+          listener: (context, tripState) {
+            if (tripState is TripCompleted) {
+              context.read<AnalyticsBloc>().add(FetchAnalytics());
+              context.read<PeakHoursBloc>().add(FetchPeakHours());
+            }
+          },
+          child: BlocBuilder<AnalyticsBloc, AnalyticsState>(
           builder: (context, state) {
             if (state is AnalyticsLoading || state is AnalyticsInitial) {
               return const Center(child: CircularProgressIndicator());
@@ -40,9 +49,17 @@ class AnalyticsScreen extends StatelessWidget {
               );
             } else if (state is AnalyticsLoaded) {
               final analytics = state.analytics;
-              return SingleChildScrollView(
-                padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 20.h),
-                child: Column(
+              return RefreshIndicator(
+                color: appColors.accent,
+                onRefresh: () async {
+                  context.read<AnalyticsBloc>().add(FetchAnalytics());
+                  context.read<PeakHoursBloc>().add(FetchPeakHours());
+                  await Future.delayed(const Duration(milliseconds: 800));
+                },
+                child: SingleChildScrollView(
+                  physics: const AlwaysScrollableScrollPhysics(),
+                  padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 20.h),
+                  child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     _buildHeader(context, appColors),
@@ -76,10 +93,12 @@ class AnalyticsScreen extends StatelessWidget {
                     SizedBox(height: 40.h),
                   ],
                 ),
+                ),
               );
             }
             return const SizedBox();
           },
+        ),
         ),
       ),
     );

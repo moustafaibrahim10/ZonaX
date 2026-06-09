@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:zona_x_16_4/core/theme/app_colors.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../data/models/recommended_zone_model.dart';
 import '../bloc/recommended_zones_bloc.dart';
@@ -9,8 +10,8 @@ class RecommendedZonesList extends StatelessWidget {
 
   const RecommendedZonesList({super.key, required this.onZoneSelected});
 
-  @override
   Widget build(BuildContext context) {
+    final appColors = Theme.of(context).extension<AppColors>()!;
     return BlocBuilder<RecommendedZonesBloc, RecommendedZonesState>(
       builder: (context, state) {
         if (state is RecommendedZonesLoading) {
@@ -24,10 +25,10 @@ class RecommendedZonesList extends StatelessWidget {
           );
         } else if (state is RecommendedZonesLoaded) {
           if (state.zones.isEmpty) {
-            return const Center(
+            return Center(
               child: Text(
                 "No recommended zones found.",
-                style: TextStyle(color: Colors.grey),
+                style: TextStyle(color: appColors.textHint),
               ),
             );
           }
@@ -44,16 +45,16 @@ class RecommendedZonesList extends StatelessWidget {
                 borderRadius: BorderRadius.circular(16),
                 child: Container(
                   decoration: BoxDecoration(
-                    color: const Color(0xFF2A2A3A),
+                    color: appColors.surface,
                     borderRadius: BorderRadius.circular(16),
                     border: Border.all(
-                      color: isHighPotential ? Colors.greenAccent.withOpacity(0.5) : Colors.transparent,
+                      color: isHighPotential ? Colors.greenAccent.withValues(alpha: 0.5) : Colors.transparent,
                       width: 1,
                     ),
                     boxShadow: [
                       if (isHighPotential)
                         BoxShadow(
-                          color: Colors.greenAccent.withOpacity(0.1),
+                          color: Colors.greenAccent.withValues(alpha: 0.1),
                           blurRadius: 10,
                           offset: const Offset(0, 4),
                         ),
@@ -66,7 +67,7 @@ class RecommendedZonesList extends StatelessWidget {
                       Container(
                         padding: const EdgeInsets.all(12),
                         decoration: BoxDecoration(
-                          color: isHighPotential ? Colors.greenAccent.withOpacity(0.2) : Colors.blueAccent.withOpacity(0.2),
+                          color: isHighPotential ? Colors.greenAccent.withValues(alpha: 0.2) : Colors.blueAccent.withValues(alpha: 0.2),
                           shape: BoxShape.circle,
                         ),
                         child: Text(
@@ -86,8 +87,8 @@ class RecommendedZonesList extends StatelessWidget {
                           children: [
                             Text(
                               zone.zoneName,
-                              style: const TextStyle(
-                                color: Colors.white,
+                              style: TextStyle(
+                                color: appColors.textPrimary,
                                 fontWeight: FontWeight.bold,
                                 fontSize: 16,
                               ),
@@ -97,7 +98,7 @@ class RecommendedZonesList extends StatelessWidget {
                               zone.reason,
                               maxLines: 2,
                               overflow: TextOverflow.ellipsis,
-                              style: TextStyle(color: Colors.grey[400], fontSize: 13),
+                              style: TextStyle(color: appColors.textSecondary, fontSize: 13),
                             ),
                           ],
                         ),
@@ -118,11 +119,11 @@ class RecommendedZonesList extends StatelessWidget {
                           const SizedBox(height: 8),
                           Row(
                             children: [
-                              Icon(Icons.people_outline, color: Colors.grey[500], size: 14),
+                              Icon(Icons.people_outline, color: appColors.textHint, size: 14),
                               const SizedBox(width: 4),
                               Text(
                                 zone.demandSupplyRatio.toStringAsFixed(1),
-                                style: TextStyle(color: Colors.grey[500], fontSize: 12),
+                                style: TextStyle(color: appColors.textHint, fontSize: 12),
                               ),
                             ],
                           ),

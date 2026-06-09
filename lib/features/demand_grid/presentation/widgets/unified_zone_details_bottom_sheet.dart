@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:zona_x_16_4/core/theme/app_colors.dart';
 import '../../data/models/zone_insights_model.dart';
 import '../../data/models/zone_comparison_model.dart';
 import '../../data/models/driver_distribution_model.dart';
@@ -21,13 +22,13 @@ class UnifiedZoneDetailsBottomSheet extends StatelessWidget {
     required this.onCreateTripTap,
   });
 
-  @override
   Widget build(BuildContext context) {
+    final appColors = Theme.of(context).extension<AppColors>()!;
     return Container(
       padding: const EdgeInsets.only(top: 16, left: 16, right: 16, bottom: 24),
-      decoration: const BoxDecoration(
-        color: Color(0xFF1E1E2A),
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      decoration: BoxDecoration(
+        color: appColors.surface,
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
       ),
       child: SafeArea(
         child: DefaultTabController(
@@ -48,8 +49,8 @@ class UnifiedZoneDetailsBottomSheet extends StatelessWidget {
               
               Text(
                 zoneName,
-                style: const TextStyle(
-                  color: Colors.white,
+                style: TextStyle(
+                  color: appColors.textPrimary,
                   fontSize: 18,
                   fontWeight: FontWeight.bold,
                 ),
@@ -57,12 +58,12 @@ class UnifiedZoneDetailsBottomSheet extends StatelessWidget {
               const SizedBox(height: 8),
 
               // TabBar
-              const TabBar(
-                indicatorColor: Colors.blueAccent,
-                labelColor: Colors.white,
-                unselectedLabelColor: Colors.grey,
+              TabBar(
+                indicatorColor: appColors.accent,
+                labelColor: appColors.textPrimary,
+                unselectedLabelColor: appColors.textSecondary,
                 isScrollable: true,
-                tabs: [
+                tabs: const [
                   Tab(text: "Insights", icon: Icon(Icons.analytics_outlined)),
                   Tab(text: "Drivers", icon: Icon(Icons.local_taxi)),
                   Tab(text: "Strategy", icon: Icon(Icons.compare_arrows)),
@@ -74,9 +75,9 @@ class UnifiedZoneDetailsBottomSheet extends StatelessWidget {
                 height: 300,
                 child: TabBarView(
                   children: [
-                    _buildPerformanceInsightsTab(),
-                    _buildDriverDistributionTab(),
-                    _buildComparisonStrategyTab(),
+                    _buildPerformanceInsightsTab(appColors),
+                    _buildDriverDistributionTab(appColors),
+                    _buildComparisonStrategyTab(appColors),
                   ],
                 ),
               ),
@@ -113,15 +114,16 @@ class UnifiedZoneDetailsBottomSheet extends StatelessWidget {
     );
   }
 
-  Widget _buildPerformanceInsightsTab() {
+  Widget _buildPerformanceInsightsTab(AppColors appColors) {
     if (insights == null) {
-      return const Center(child: Text("No insights available.", style: TextStyle(color: Colors.grey)));
+      return Center(child: Text("No insights available.", style: TextStyle(color: appColors.textHint)));
     }
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 16.0),
       child: Column(
         children: [
           _buildInfoCard(
+            appColors,
             title: "Avg Wait Time",
             value: "${insights!.avgWaitTimeMinutes} mins",
             icon: Icons.timer,
@@ -129,6 +131,7 @@ class UnifiedZoneDetailsBottomSheet extends StatelessWidget {
           ),
           const SizedBox(height: 12),
           _buildInfoCard(
+            appColors,
             title: "Peak Period",
             value: insights!.peakPeriodName,
             icon: Icons.access_time_filled,
@@ -136,6 +139,7 @@ class UnifiedZoneDetailsBottomSheet extends StatelessWidget {
           ),
           const SizedBox(height: 12),
           _buildInfoCard(
+            appColors,
             title: "Driver Efficiency",
             value: "${insights!.driverEfficiencyScore.toStringAsFixed(1)} / 10",
             icon: Icons.speed,
@@ -146,9 +150,9 @@ class UnifiedZoneDetailsBottomSheet extends StatelessWidget {
     );
   }
 
-  Widget _buildDriverDistributionTab() {
+  Widget _buildDriverDistributionTab(AppColors appColors) {
     if (driverDistribution == null) {
-      return const Center(child: Text("No driver data available.", style: TextStyle(color: Colors.grey)));
+      return Center(child: Text("No driver data available.", style: TextStyle(color: appColors.textHint)));
     }
 
     return Padding(
@@ -159,12 +163,13 @@ class UnifiedZoneDetailsBottomSheet extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceAround,
             children: [
-              _buildDriverStatCard("Available", driverDistribution!.availableDriversCount.toString(), Colors.greenAccent),
-              _buildDriverStatCard("On Trip", driverDistribution!.onTripDriversCount.toString(), Colors.amberAccent),
+              _buildDriverStatCard(appColors, "Available", driverDistribution!.availableDriversCount.toString(), Colors.greenAccent),
+              _buildDriverStatCard(appColors, "On Trip", driverDistribution!.onTripDriversCount.toString(), Colors.amberAccent),
             ],
           ),
           const SizedBox(height: 24),
           _buildInfoCard(
+            appColors,
             title: "Active Drivers",
             value: driverDistribution!.activeDriversCount.toString(),
             icon: Icons.person_pin_circle,
@@ -175,13 +180,13 @@ class UnifiedZoneDetailsBottomSheet extends StatelessWidget {
     );
   }
 
-  Widget _buildDriverStatCard(String title, String count, Color color) {
+  Widget _buildDriverStatCard(AppColors appColors, String title, String count, Color color) {
     return Expanded(
       child: Container(
         margin: const EdgeInsets.symmetric(horizontal: 8),
         padding: const EdgeInsets.symmetric(vertical: 24),
         decoration: BoxDecoration(
-          color: const Color(0xFF2C2F3F),
+          color: appColors.background,
           borderRadius: BorderRadius.circular(12),
           border: Border.all(color: color.withValues(alpha: 0.3)),
         ),
@@ -198,8 +203,8 @@ class UnifiedZoneDetailsBottomSheet extends StatelessWidget {
             const SizedBox(height: 8),
             Text(
               title,
-              style: const TextStyle(
-                color: Colors.white70,
+              style: TextStyle(
+                color: appColors.textSecondary,
                 fontSize: 14,
               ),
             ),
@@ -209,33 +214,33 @@ class UnifiedZoneDetailsBottomSheet extends StatelessWidget {
     );
   }
 
-  Widget _buildComparisonStrategyTab() {
+  Widget _buildComparisonStrategyTab(AppColors appColors) {
     if (comparison == null) {
-      return const Center(child: Text("No strategy data available.", style: TextStyle(color: Colors.grey)));
+      return Center(child: Text("No strategy data available.", style: TextStyle(color: appColors.textHint)));
     }
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 16.0),
       child: Column(
         children: [
           Card(
-            color: const Color(0xFF2A2A3A),
+            color: appColors.background,
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
             child: Padding(
               padding: const EdgeInsets.all(16.0),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text(
+                  Text(
                     "Revenue Strategy",
-                    style: TextStyle(color: Colors.grey, fontSize: 14, fontWeight: FontWeight.bold),
+                    style: TextStyle(color: appColors.textSecondary, fontSize: 14, fontWeight: FontWeight.bold),
                   ),
-                  const Divider(color: Colors.white12, height: 24),
+                  Divider(color: appColors.divider, height: 24),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      _buildMetricColumn("Current Total", "EGP ${comparison!.totalRevenue.toStringAsFixed(2)}", Colors.white),
-                      const Icon(Icons.arrow_forward_ios, color: Colors.grey, size: 16),
-                      _buildMetricColumn("Predicted (6H)", "EGP ${comparison!.expectedRevenue6H.toStringAsFixed(2)}", Colors.blueAccent),
+                      _buildMetricColumn(appColors, "Current Total", "EGP ${comparison!.totalRevenue.toStringAsFixed(2)}", appColors.textPrimary),
+                      Icon(Icons.arrow_forward_ios, color: appColors.textHint, size: 16),
+                      _buildMetricColumn(appColors, "Predicted (6H)", "EGP ${comparison!.expectedRevenue6H.toStringAsFixed(2)}", Colors.blueAccent),
                     ],
                   ),
                 ],
@@ -244,6 +249,7 @@ class UnifiedZoneDetailsBottomSheet extends StatelessWidget {
           ),
           const SizedBox(height: 12),
           _buildInfoCard(
+            appColors,
             title: "Stockout Probability",
             value: "${(comparison!.stockoutProbability * 100).toStringAsFixed(1)}%",
             icon: Icons.warning_amber_rounded,
@@ -254,9 +260,9 @@ class UnifiedZoneDetailsBottomSheet extends StatelessWidget {
     );
   }
 
-  Widget _buildInfoCard({required String title, required String value, required IconData icon, required Color iconColor}) {
+  Widget _buildInfoCard(AppColors appColors, {required String title, required String value, required IconData icon, required Color iconColor}) {
     return Card(
-      color: const Color(0xFF2A2A3A),
+      color: appColors.background,
       elevation: 0,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       child: ListTile(
@@ -265,17 +271,17 @@ class UnifiedZoneDetailsBottomSheet extends StatelessWidget {
           decoration: BoxDecoration(color: iconColor.withValues(alpha: 0.2), shape: BoxShape.circle),
           child: Icon(icon, color: iconColor),
         ),
-        title: Text(title, style: const TextStyle(color: Colors.grey, fontSize: 13)),
-        subtitle: Text(value, style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w600)),
+        title: Text(title, style: TextStyle(color: appColors.textSecondary, fontSize: 13)),
+        subtitle: Text(value, style: TextStyle(color: appColors.textPrimary, fontSize: 16, fontWeight: FontWeight.w600)),
       ),
     );
   }
 
-  Widget _buildMetricColumn(String label, String value, Color valueColor) {
+  Widget _buildMetricColumn(AppColors appColors, String label, String value, Color valueColor) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(label, style: const TextStyle(color: Colors.grey, fontSize: 12)),
+        Text(label, style: TextStyle(color: appColors.textSecondary, fontSize: 12)),
         const SizedBox(height: 4),
         Text(value, style: TextStyle(color: valueColor, fontSize: 16, fontWeight: FontWeight.bold)),
       ],

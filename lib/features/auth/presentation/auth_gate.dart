@@ -5,7 +5,7 @@ import 'package:hive_flutter/hive_flutter.dart';
 import 'package:zona_x_16_4/core/network/dio_factory.dart';
 import 'package:zona_x_16_4/features/login/presentation/login_screen.dart';
 import 'package:zona_x_16_4/features/home/presentation/screens/main_screen.dart';
-import 'package:zona_x_16_4/features/auth/presentation/terms_acceptance_screen.dart';
+
 import 'package:zona_x_16_4/features/auth/presentation/onboarding_screen.dart';
 
 class AuthGate extends StatefulWidget {
@@ -69,12 +69,7 @@ class _AuthGateState extends State<AuthGate> {
     }
 
     if (_isAuthenticated) {
-      final termsAccepted = Hive.box('app_box').get('terms_accepted', defaultValue: false) ?? false;
-      if (termsAccepted) {
-        return const MainScreen();
-      } else {
-        return const TermsAcceptanceScreen();
-      }
+      return const MainScreen();
     } else {
       return const LoginScreen();
     }

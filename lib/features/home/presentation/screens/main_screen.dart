@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:zona_x_16_4/core/theme/app_colors.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:zona_x_16_4/features/analytics/presentation/screens/analytics_screen.dart';
@@ -116,7 +117,7 @@ class MainScreenState extends State<MainScreen> {
           ),
         ],
         child: Scaffold(
-          backgroundColor: const Color(0xFF0F111A),
+          backgroundColor: Theme.of(context).extension<AppColors>()!.background,
           body: BlocListener<VoiceCubit, VoiceState>(
             listener: (context, state) {
               if (state is VoiceActionTriggered) {
@@ -152,11 +153,9 @@ class MainScreenState extends State<MainScreen> {
           highlightColor: Colors.transparent,
         ),
         child: BottomNavigationBar(
-          backgroundColor: const Color(0xFF0F111A),
+          backgroundColor: Theme.of(context).extension<AppColors>()!.background,
           type: BottomNavigationBarType.fixed,
-          selectedItemColor: const Color(
-            0xFF00D293,
-          ), // Teal/Green accent from image
+          selectedItemColor: Theme.of(context).extension<AppColors>()!.accent, // Teal/Green accent from image
           unselectedItemColor: Colors.grey[600],
           showUnselectedLabels: true,
           selectedFontSize: 11.sp,

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:zona_x_16_4/core/theme/app_colors.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../bloc/trip_bloc.dart';
 import '../bloc/trip_event.dart';
@@ -22,14 +23,15 @@ class _TripHistoryScreenState extends State<TripHistoryScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final appColors = Theme.of(context).extension<AppColors>()!;
     return Scaffold(
-      backgroundColor: const Color(0xFF0F111A),
+      backgroundColor: appColors.background,
       appBar: AppBar(
-        backgroundColor: const Color(0xFF0F111A),
+        backgroundColor: appColors.background,
         elevation: 0,
-        title: const Text(
+        title: Text(
           'Trip History',
-          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+          style: TextStyle(color: appColors.textPrimary, fontWeight: FontWeight.bold),
         ),
       ),
       body: BlocBuilder<TripBloc, TripState>(
@@ -58,7 +60,7 @@ class _TripHistoryScreenState extends State<TripHistoryScreen> {
           } else if (state is TripHistoryLoaded) {
             final items = state.history.items;
             if (items.isEmpty) {
-              return _buildEmptyState();
+              return _buildEmptyState(appColors);
             }
             return RefreshIndicator(
               onRefresh: () async {
@@ -68,41 +70,41 @@ class _TripHistoryScreenState extends State<TripHistoryScreen> {
                 padding: const EdgeInsets.all(16),
                 itemCount: items.length,
                 itemBuilder: (context, index) {
-                  return _buildTripCard(items[index]);
+                  return _buildTripCard(items[index], appColors);
                 },
               ),
             );
           }
 
           // Fallback state
-          return _buildEmptyState();
+          return _buildEmptyState(appColors);
         },
       ),
     );
   }
 
-  Widget _buildEmptyState() {
+  Widget _buildEmptyState(AppColors appColors) {
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Icon(Icons.history, size: 64, color: Colors.grey[800]),
           const SizedBox(height: 16),
-          const Text(
+          Text(
             'No trips found',
-            style: TextStyle(color: Colors.white54, fontSize: 18),
+            style: TextStyle(color: appColors.textPrimary, fontSize: 18),
           ),
           const SizedBox(height: 8),
-          const Text(
+          Text(
             'Your completed trips will appear here.',
-            style: TextStyle(color: Colors.white38, fontSize: 14),
+            style: TextStyle(color: appColors.textSecondary, fontSize: 14),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildTripCard(TripModel trip) {
+  Widget _buildTripCard(TripModel trip, AppColors appColors) {
     String dateString = 'Unknown Date';
     if (trip.startTime != null) {
       final t = trip.startTime!;
@@ -129,9 +131,9 @@ class _TripHistoryScreenState extends State<TripHistoryScreen> {
       margin: const EdgeInsets.only(bottom: 16),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: const Color(0xFF1E1E2A),
+        color: appColors.surface,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.white12),
+        border: Border.all(color: appColors.inputBorder),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -141,7 +143,7 @@ class _TripHistoryScreenState extends State<TripHistoryScreen> {
             children: [
               Text(
                 dateString,
-                style: const TextStyle(color: Colors.white70, fontSize: 14),
+                style: TextStyle(color: appColors.textSecondary, fontSize: 14),
               ),
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
@@ -167,15 +169,15 @@ class _TripHistoryScreenState extends State<TripHistoryScreen> {
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text(
+                  Text(
                     'Trip ID',
-                    style: TextStyle(color: Colors.white38, fontSize: 12),
+                    style: TextStyle(color: appColors.textSecondary, fontSize: 12),
                   ),
                   const SizedBox(height: 4),
                   Text(
                     '#${trip.id}',
-                    style: const TextStyle(
-                      color: Colors.white,
+                    style: TextStyle(
+                      color: appColors.textPrimary,
                       fontSize: 16,
                       fontWeight: FontWeight.bold,
                     ),
@@ -185,9 +187,9 @@ class _TripHistoryScreenState extends State<TripHistoryScreen> {
               Column(
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
-                  const Text(
+                  Text(
                     'Fare',
-                    style: TextStyle(color: Colors.white38, fontSize: 12),
+                    style: TextStyle(color: appColors.textSecondary, fontSize: 12),
                   ),
                   const SizedBox(height: 4),
                   Text(

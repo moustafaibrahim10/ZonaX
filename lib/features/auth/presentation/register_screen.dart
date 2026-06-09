@@ -11,7 +11,8 @@ import '../data/repositories/auth_repository_impl.dart';
 import 'bloc/register_bloc.dart';
 import 'bloc/register_event.dart';
 import 'bloc/register_state.dart';
-import 'onboarding_screen.dart';
+import '../../home/presentation/screens/main_screen.dart';
+import 'terms_acceptance_screen.dart';
 
 class RegisterScreen extends StatelessWidget {
   const RegisterScreen({super.key});
@@ -87,7 +88,7 @@ class _RegisterViewState extends State<_RegisterView> {
       barrierDismissible: false,
       builder: (context) {
         return AlertDialog(
-          backgroundColor: const Color(0xFF1E1E2C), // Premium Dark
+          backgroundColor: colors.surface, // Dynamic Surface
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(20),
             side: const BorderSide(color: Colors.redAccent, width: 1.5),
@@ -128,7 +129,7 @@ class _RegisterViewState extends State<_RegisterView> {
             const SnackBar(content: Text('Registration Successful!'), backgroundColor: Colors.green),
           );
           Navigator.of(context).pushAndRemoveUntil(
-            MaterialPageRoute(builder: (context) => const OnboardingScreen()),
+            MaterialPageRoute(builder: (context) => const TermsAcceptanceScreen()),
             (route) => false,
           );
         }

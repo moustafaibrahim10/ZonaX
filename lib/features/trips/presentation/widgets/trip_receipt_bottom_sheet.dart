@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:zona_x_16_4/core/theme/app_colors.dart';
 import '../../data/models/trip_receipt_model.dart';
 
 class TripReceiptBottomSheet extends StatelessWidget {
@@ -6,13 +7,13 @@ class TripReceiptBottomSheet extends StatelessWidget {
 
   const TripReceiptBottomSheet({super.key, required this.receipt});
 
-  @override
   Widget build(BuildContext context) {
+    final appColors = Theme.of(context).extension<AppColors>()!;
     return Container(
       padding: const EdgeInsets.only(top: 16),
-      decoration: const BoxDecoration(
-        color: Color(0xFF1E1E2A),
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      decoration: BoxDecoration(
+        color: appColors.surface,
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
       ),
       child: SafeArea(
         child: Padding(
@@ -45,30 +46,30 @@ class TripReceiptBottomSheet extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: 16),
-              const Text(
+              Text(
                 "Trip Completed!",
                 textAlign: TextAlign.center,
                 style: TextStyle(
-                  color: Colors.white,
+                  color: appColors.textPrimary,
                   fontSize: 22,
                   fontWeight: FontWeight.bold,
                 ),
               ),
               const SizedBox(height: 24),
-              _buildRow("Duration", "${receipt.durationMinutes} mins"),
-              _buildRow("Base Fare", "\$${receipt.baseFare.toStringAsFixed(2)}"),
-              _buildRow("Surge Multiplier", "${receipt.surgeMultiplier}x"),
-              const Padding(
-                padding: EdgeInsets.symmetric(vertical: 16.0),
-                child: Divider(color: Colors.white24),
+              _buildRow("Duration", "${receipt.durationMinutes} mins", appColors),
+              _buildRow("Base Fare", "\$${receipt.baseFare.toStringAsFixed(2)}", appColors),
+              _buildRow("Surge Multiplier", "${receipt.surgeMultiplier}x", appColors),
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 16.0),
+                child: Divider(color: appColors.divider),
               ),
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  const Text(
+                  Text(
                     "Total Earnings",
                     style: TextStyle(
-                      color: Colors.white70,
+                      color: appColors.textSecondary,
                       fontSize: 18,
                     ),
                   ),
@@ -104,7 +105,7 @@ class TripReceiptBottomSheet extends StatelessWidget {
     );
   }
 
-  Widget _buildRow(String label, String value) {
+  Widget _buildRow(String label, String value, AppColors appColors) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 8.0),
       child: Row(
@@ -112,12 +113,12 @@ class TripReceiptBottomSheet extends StatelessWidget {
         children: [
           Text(
             label,
-            style: const TextStyle(color: Colors.white70, fontSize: 16),
+            style: TextStyle(color: appColors.textSecondary, fontSize: 16),
           ),
           Text(
             value,
-            style: const TextStyle(
-              color: Colors.white,
+            style: TextStyle(
+              color: appColors.textPrimary,
               fontSize: 16,
               fontWeight: FontWeight.w600,
             ),

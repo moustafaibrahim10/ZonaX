@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:zona_x_16_4/core/theme/app_colors.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:zona_x_16_4/features/demand_grid/presentation/bloc/map_grid_bloc.dart';
 import 'package:zona_x_16_4/features/demand_grid/presentation/bloc/map_grid_event.dart';
@@ -46,11 +47,12 @@ class _CreateTripBottomSheetState extends State<CreateTripBottomSheet> {
 
   @override
   Widget build(BuildContext context) {
+    final appColors = Theme.of(context).extension<AppColors>()!;
     return Container(
       padding: const EdgeInsets.only(top: 16),
-      decoration: const BoxDecoration(
-        color: Color(0xFF1E1E2A),
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      decoration: BoxDecoration(
+        color: appColors.surface,
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
       ),
       child: SafeArea(
         child: Column(
@@ -66,10 +68,10 @@ class _CreateTripBottomSheetState extends State<CreateTripBottomSheet> {
                 borderRadius: BorderRadius.circular(2),
               ),
             ),
-            const Text(
+            Text(
               "Create New Trip",
               style: TextStyle(
-                color: Colors.white,
+                color: appColors.textPrimary,
                 fontSize: 18,
                 fontWeight: FontWeight.bold,
               ),
@@ -125,12 +127,13 @@ class _CreateTripBottomSheetState extends State<CreateTripBottomSheet> {
                                         child: TextFormField(
                                           initialValue: _pickupLocationId?.toString() ?? '',
                                           readOnly: true,
-                                          style: const TextStyle(color: Colors.white),
-                                          decoration: const InputDecoration(
+                                          style: TextStyle(color: appColors.textPrimary),
+                                          decoration: InputDecoration(
                                             labelText: 'Pickup Zone ID',
-                                            border: OutlineInputBorder(),
+                                            labelStyle: TextStyle(color: appColors.textSecondary),
+                                            border: const OutlineInputBorder(),
                                             filled: true,
-                                            fillColor: Colors.black26,
+                                            fillColor: appColors.inputBackground,
                                           ),
                                         ),
                                       ),
@@ -143,8 +146,8 @@ class _CreateTripBottomSheetState extends State<CreateTripBottomSheet> {
                                           child: Container(
                                             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
                                             decoration: BoxDecoration(
-                                              color: Colors.black26,
-                                              border: Border.all(color: Colors.grey),
+                                              color: appColors.inputBackground,
+                                              border: Border.all(color: appColors.inputBorder),
                                               borderRadius: BorderRadius.circular(4),
                                             ),
                                             child: Row(
@@ -153,7 +156,7 @@ class _CreateTripBottomSheetState extends State<CreateTripBottomSheet> {
                                                 Text(
                                                   _dropoffLocationId?.toString() ?? 'Select on Map',
                                                   style: TextStyle(
-                                                    color: _dropoffLocationId == null ? Colors.grey : Colors.white,
+                                                    color: _dropoffLocationId == null ? appColors.textSecondary : appColors.textPrimary,
                                                     fontSize: 16,
                                                   ),
                                                 ),
@@ -171,13 +174,14 @@ class _CreateTripBottomSheetState extends State<CreateTripBottomSheet> {
                           TextFormField(
                             controller: _fareController,
                             keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                            style: const TextStyle(color: Colors.white),
-                            decoration: const InputDecoration(
+                            style: TextStyle(color: appColors.textPrimary),
+                            decoration: InputDecoration(
                               labelText: 'Fare Amount',
-                              prefixIcon: Icon(Icons.attach_money, color: Colors.green),
-                              border: OutlineInputBorder(),
+                              labelStyle: TextStyle(color: appColors.textSecondary),
+                              prefixIcon: const Icon(Icons.attach_money, color: Colors.green),
+                              border: const OutlineInputBorder(),
                               filled: true,
-                              fillColor: Colors.black26,
+                              fillColor: appColors.inputBackground,
                             ),
                             validator: (val) {
                               if (val == null || val.isEmpty) return 'Required';
@@ -189,13 +193,14 @@ class _CreateTripBottomSheetState extends State<CreateTripBottomSheet> {
                           TextFormField(
                             controller: _tipController,
                             keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                            style: const TextStyle(color: Colors.white),
-                            decoration: const InputDecoration(
+                            style: TextStyle(color: appColors.textPrimary),
+                            decoration: InputDecoration(
                               labelText: 'Tip Amount (Optional)',
-                              prefixIcon: Icon(Icons.volunteer_activism, color: Colors.orange),
-                              border: OutlineInputBorder(),
+                              labelStyle: TextStyle(color: appColors.textSecondary),
+                              prefixIcon: const Icon(Icons.volunteer_activism, color: Colors.orange),
+                              border: const OutlineInputBorder(),
                               filled: true,
-                              fillColor: Colors.black26,
+                              fillColor: appColors.inputBackground,
                             ),
                           ),
                           const SizedBox(height: 24),

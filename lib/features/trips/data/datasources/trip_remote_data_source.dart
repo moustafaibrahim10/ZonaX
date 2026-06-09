@@ -162,9 +162,14 @@ class TripRemoteDataSourceImpl implements TripRemoteDataSource {
   @override
   Future<PaginatedTripHistory> getTripHistory(int pageNumber, int pageSize) async {
     try {
+      final box = Hive.box('app_box');
+      final profile = box.get('HIVE_KEY_PROFILE') as Map<dynamic, dynamic>?;
+      final driverId = profile?['id'] as String? ?? '1c3d90db-5541-463c-812c-ceaa835379a2';
+
       final response = await _dio.get(
         '${ApiConstants.tripsEndpoint}/history',
         queryParameters: {
+          'driverId': driverId,
           'pageNumber': pageNumber,
           'pageSize': pageSize,
         },
